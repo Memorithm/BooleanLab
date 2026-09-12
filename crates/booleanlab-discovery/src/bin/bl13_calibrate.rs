@@ -19,7 +19,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let parity_3 = BooleanFunction::from_fn(3, |x| x.count_ones() % 2 == 1)?;
     let majority_3 = BooleanFunction::from_fn(3, |x| x.count_ones() >= 2)?;
 
-    println!("name\tinputs\tdegree\tnonlinearity\tbalanced\tbent\tcorrelation_immunity\tfingerprint");
+    println!(
+        "name\tinputs\tdegree\tnonlinearity\tbalanced\tbent\tcorrelation_immunity\tfingerprint"
+    );
     report("and_2", &and_2);
     report("parity_3", &parity_3);
     report("majority_3", &majority_3);
