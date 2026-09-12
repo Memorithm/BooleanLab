@@ -61,11 +61,7 @@ pub fn xor_and_cell(left: &[bool], right: &[bool]) -> Result<bool, BmeError> {
 /// Exact number of XNOR/equality matches in one Boolean matrix cell.
 pub fn xnor_popcount_cell(left: &[bool], right: &[bool]) -> Result<usize, BmeError> {
     validate_pair(left, right)?;
-    Ok(left
-        .iter()
-        .zip(right)
-        .filter(|(a, b)| a == b)
-        .count())
+    Ok(left.iter().zip(right).filter(|(a, b)| a == b).count())
 }
 
 /// Thresholded XNOR-popcount cell.
