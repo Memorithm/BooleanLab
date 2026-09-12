@@ -7,6 +7,8 @@
 //! implementation of ANF and Walsh analysis across the `Memorithm` ecosystem.
 
 pub mod gf2;
+#[cfg(feature = "sedenion-experiments")]
+pub mod sedenion;
 
 use std::collections::BTreeMap;
 use std::fmt;
