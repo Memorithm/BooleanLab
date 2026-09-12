@@ -30,18 +30,9 @@ pub struct BooleanFunction {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FunctionError {
     ZeroInputs,
-    InputWidthTooLarge {
-        width: u32,
-        maximum: u32,
-    },
-    TruthTableLength {
-        expected: usize,
-        actual: usize,
-    },
-    NonBooleanValue {
-        index: usize,
-        value: u8,
-    },
+    InputWidthTooLarge { width: u32, maximum: u32 },
+    TruthTableLength { expected: usize, actual: usize },
+    NonBooleanValue { index: usize, value: u8 },
 }
 
 /// Exact algebraic and spectral metrics supplied by `SciRust`.
