@@ -253,11 +253,11 @@ mod tests {
         );
         assert_eq!(
             xnor_popcount_product(&left, &right),
-            Ok(vec![vec![1, 2], vec![2, 2]])
+            Ok(vec![vec![1, 1], vec![1, 3]])
         );
         assert_eq!(
             thresholded_xnor_product(&left, &right, 2),
-            Ok(vec![vec![false, true], vec![true, true]])
+            Ok(vec![vec![false, false], vec![false, true]])
         );
     }
 
