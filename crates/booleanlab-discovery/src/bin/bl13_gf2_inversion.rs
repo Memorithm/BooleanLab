@@ -33,9 +33,7 @@ fn run_family(label: &str, field: Gf2Field) -> Result<(), Box<dyn std::error::Er
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!(
-        "field\tbit\tdegree\tnonlinearity\tbalanced\tbent\tcorrelation_immunity\tfingerprint"
-    );
+    println!("field\tbit\tdegree\tnonlinearity\tbalanced\tbent\tcorrelation_immunity\tfingerprint");
     run_family("primitive8", Gf2Field::primitive8())?;
     run_family("rijndael8", Gf2Field::rijndael8())?;
     Ok(())
