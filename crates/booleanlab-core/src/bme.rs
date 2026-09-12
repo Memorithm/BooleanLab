@@ -9,11 +9,20 @@ use core::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BmeError {
     EmptyInput,
-    LengthMismatch { left: usize, right: usize },
-    ThresholdOutOfRange { threshold: usize, width: usize },
+    LengthMismatch {
+        left: usize,
+        right: usize,
+    },
+    ThresholdOutOfRange {
+        threshold: usize,
+        width: usize,
+    },
     EmptyMatrix,
     RaggedMatrix,
-    MatrixDimensionMismatch { left_cols: usize, right_rows: usize },
+    MatrixDimensionMismatch {
+        left_cols: usize,
+        right_rows: usize,
+    },
 }
 
 impl fmt::Display for BmeError {
@@ -222,9 +231,7 @@ pub fn thresholded_xnor_product(
             width: inner,
         });
     }
-    matrix_product_with(left, right, |a, b| {
-        thresholded_xnor_cell(a, b, threshold)
-    })
+    matrix_product_with(left, right, |a, b| thresholded_xnor_cell(a, b, threshold))
 }
 
 #[cfg(test)]
