@@ -102,10 +102,7 @@ mod tests {
 
     #[test]
     fn gf2_parity_distinguishes_one_and_two_products() {
-        assert_eq!(
-            xor_and_cell(&[true, false], &[true, true]),
-            Ok(true)
-        );
+        assert_eq!(xor_and_cell(&[true, false], &[true, true]), Ok(true));
         assert_eq!(xor_and_cell(&[true, true], &[true, true]), Ok(false));
     }
 
