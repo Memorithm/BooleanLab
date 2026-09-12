@@ -31,17 +31,12 @@ pub enum SedenionGeneratorError {
 }
 
 const FIXED_MIXER: [f32; SEDENION_COORDINATES] = [
-    1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0,
-    1.0, -1.0,
+    1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0,
 ];
 
 #[inline]
 fn bipolar(input: u64, bit: u32) -> f32 {
-    if ((input >> bit) & 1) == 1 {
-        1.0
-    } else {
-        -1.0
-    }
+    if ((input >> bit) & 1) == 1 { 1.0 } else { -1.0 }
 }
 
 fn left_operand(input: u64) -> SedenionSimd {
@@ -122,7 +117,8 @@ pub fn control_component_functions() -> Result<Vec<BooleanFunction>, SedenionGen
     tables
         .into_iter()
         .map(|table| {
-            BooleanFunction::new(CONTROL_INPUT_BITS, table).map_err(SedenionGeneratorError::Function)
+            BooleanFunction::new(CONTROL_INPUT_BITS, table)
+                .map_err(SedenionGeneratorError::Function)
         })
         .collect()
 }
@@ -162,9 +158,11 @@ mod tests {
     fn generates_sixteen_bounded_predicate_functions() {
         let functions = control_component_functions().unwrap();
         assert_eq!(functions.len(), SEDENION_COORDINATES);
-        assert!(functions
-            .iter()
-            .all(|function| function.input_bits() == CONTROL_INPUT_BITS));
+        assert!(
+            functions
+                .iter()
+                .all(|function| function.input_bits() == CONTROL_INPUT_BITS)
+        );
     }
 
     #[test]
