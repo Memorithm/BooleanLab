@@ -67,6 +67,15 @@ pub enum CircuitError {
 impl BooleanCircuit {
     pub const MAX_EXACT_INPUT_BITS: usize = 20;
 
+    /// Creates and validates an acyclic Boolean circuit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CircuitError::ZeroInputs`] or [`CircuitError::ZeroOutputs`] for
+    /// empty interfaces, [`CircuitError::InputOutOfRange`] for invalid input
+    /// references, [`CircuitError::ForwardReference`] when a node references
+    /// itself or a later node, and [`CircuitError::OutputOutOfRange`] for an
+    /// invalid output node.
     pub fn new(
         input_width: usize,
         nodes: Vec<Node>,
@@ -145,6 +154,13 @@ impl BooleanCircuit {
         &self.nodes
     }
 
+    /// Evaluates the circuit deterministically for one Boolean input state.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CircuitError::InputWidthMismatch`] when the supplied state has
+    /// the wrong width. State access failures are propagated as
+    /// [`CircuitError::State`].
     pub fn evaluate(&self, input: &BitState) -> Result<BitState, CircuitError> {
         if input.width() != self.input_width {
             return Err(CircuitError::InputWidthMismatch {
@@ -189,6 +205,13 @@ impl BooleanCircuit {
         Ok(output)
     }
 
+    /// Enumerates the complete truth table when the input width is bounded.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CircuitError::ExactEnumerationTooWide`] when the circuit has
+    /// more than [`Self::MAX_EXACT_INPUT_BITS`] inputs. Evaluation/state errors
+    /// are propagated unchanged.
     pub fn exact_truth_table(&self) -> Result<Vec<TruthRow>, CircuitError> {
         if self.input_width > Self::MAX_EXACT_INPUT_BITS {
             return Err(CircuitError::ExactEnumerationTooWide {
