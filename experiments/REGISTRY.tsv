@@ -33,7 +33,7 @@ BL-13.1.1	BL-13	Boolean-function-space	SYNTHESIZE	Can the baseline Boolean-only 
 BL-13.1.2	BL-13	Boolean-function-space	SYNTHESIZE	What Pareto frontier of nonlinearity degree balancedness correlation immunity and circuit cost is reachable by Boolean-only search under a frozen budget?	PROPOSED
 BL-13.2.1	BL-13	Sedenion	PREDICATE	Do exact predicates induced by Boolean×sedenion dynamics generate scalar Boolean functions outside the matched Boolean-only canonical set?	PROPOSED
 BL-13.2.2	BL-13	Cayley-Dickson	SELECT	Does dynamic algebra selection induce recurring Boolean construction motifs not present in the seed grammar?	PROPOSED
-BL-13.3.1	BL-13	GF(2^k)	ENCODE	Can finite-field-derived predicates induce Boolean functions with non-dominated algebraic or spectral property combinations under matched circuit cost?	PROPOSED
+BL-13.3.1	BL-13	GF(2^k)	ENCODE	Can finite-field-derived predicates induce Boolean functions with non-dominated algebraic or spectral property combinations under matched circuit cost?	VALIDATED
 BL-13.4.1	BL-13	Tropical-semiring	PREDICATE	Can tropical path or threshold structure induce compact Boolean functions with distinctive symmetry or spectral fingerprints?	PROPOSED
 BL-13.5.1	BL-13	Dynamical-system	PREDICATE	Can regime boundaries from controlled dynamics induce reusable Boolean construction families after exact discretization?	PROPOSED
 BL-13.6.1	BL-13	Cross-domain	SYNTHESIZE	Do different X domains independently induce equivalent Boolean functions revealing a common construction principle?	PROPOSED
