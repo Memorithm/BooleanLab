@@ -1,7 +1,7 @@
 //! Sedenion-induced Boolean-function controls for BL-13.
 //!
 //! This module is available only with the `sedenion-experiments` feature and
-//! therefore on the nightly toolchain required by SciRust `portable-simd`.
+//! therefore on the nightly toolchain required by `SciRust` `portable-simd`.
 
 use std::fmt;
 
@@ -72,7 +72,7 @@ fn control_state(input: u64) -> Result<[f32; SEDENION_COORDINATES], SedenionGene
                 value_bits: value.to_bits(),
             });
         }
-        if value != value.round() {
+        if value.to_bits() != value.round().to_bits() {
             return Err(SedenionGeneratorError::NonIntegralOutput {
                 input,
                 coordinate,
@@ -87,7 +87,7 @@ fn control_state(input: u64) -> Result<[f32; SEDENION_COORDINATES], SedenionGene
 /// Generates sixteen scalar Boolean predicates from a bounded sedenion control.
 ///
 /// Eight Boolean input bits are embedded as bipolar coefficients (`-1` or `+1`)
-/// in two SciRust sedenions. The control computes `(left * right) * mixer`, where
+/// in two `SciRust` sedenions. The control computes `(left * right) * mixer`, where
 /// the fixed mixer also has integer coefficients. Each output coordinate is
 /// projected with the declared predicate `coordinate > 0`.
 ///
