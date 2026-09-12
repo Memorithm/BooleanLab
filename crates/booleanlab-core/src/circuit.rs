@@ -39,11 +39,28 @@ pub struct TruthRow {
 pub enum CircuitError {
     ZeroInputs,
     ZeroOutputs,
-    InputWidthMismatch { expected: usize, actual: usize },
-    InputOutOfRange { node: NodeId, input: usize, width: usize },
-    ForwardReference { node: NodeId, referenced: NodeId },
-    OutputOutOfRange { output: usize, node: NodeId, node_count: usize },
-    ExactEnumerationTooWide { width: usize, maximum: usize },
+    InputWidthMismatch {
+        expected: usize,
+        actual: usize,
+    },
+    InputOutOfRange {
+        node: NodeId,
+        input: usize,
+        width: usize,
+    },
+    ForwardReference {
+        node: NodeId,
+        referenced: NodeId,
+    },
+    OutputOutOfRange {
+        output: usize,
+        node: NodeId,
+        node_count: usize,
+    },
+    ExactEnumerationTooWide {
+        width: usize,
+        maximum: usize,
+    },
     State(StateError),
 }
 
@@ -207,10 +224,18 @@ impl BooleanCircuit {
 impl fmt::Display for CircuitError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ZeroInputs => write!(formatter, "Boolean circuit must declare at least one input"),
-            Self::ZeroOutputs => write!(formatter, "Boolean circuit must declare at least one output"),
+            Self::ZeroInputs => {
+                write!(formatter, "Boolean circuit must declare at least one input")
+            }
+            Self::ZeroOutputs => write!(
+                formatter,
+                "Boolean circuit must declare at least one output"
+            ),
             Self::InputWidthMismatch { expected, actual } => {
-                write!(formatter, "input width mismatch: expected {expected}, got {actual}")
+                write!(
+                    formatter,
+                    "input width mismatch: expected {expected}, got {actual}"
+                )
             }
             Self::InputOutOfRange { node, input, width } => write!(
                 formatter,
