@@ -37,15 +37,10 @@ impl CanonicalBmeEquation {
         match self {
             Self::OrAnd => or_and_product(left, right).map(CanonicalBmeOutput::Boolean),
             Self::XorAnd => xor_and_product(left, right).map(CanonicalBmeOutput::Boolean),
-            Self::XnorPopcount => {
-                xnor_popcount_product(left, right).map(CanonicalBmeOutput::Count)
+            Self::XnorPopcount => xnor_popcount_product(left, right).map(CanonicalBmeOutput::Count),
+            Self::ThresholdedXnor { threshold } => {
+                thresholded_xnor_product(left, right, threshold).map(CanonicalBmeOutput::Boolean)
             }
-            Self::ThresholdedXnor { threshold } => thresholded_xnor_product(
-                left,
-                right,
-                threshold,
-            )
-            .map(CanonicalBmeOutput::Boolean),
         }
     }
 
