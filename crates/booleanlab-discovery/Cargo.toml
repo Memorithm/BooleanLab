@@ -1,0 +1,12 @@
+[package]
+name = "booleanlab-discovery"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+scirust-modalg = { git = "https://github.com/Memorithm/scirust", rev = "7178bcfc6800e3277b9f16c3f03c70523b53e2c7" }
+
+[lints]
+workspace = true
