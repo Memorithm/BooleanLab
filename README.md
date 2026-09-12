@@ -12,8 +12,9 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 
 ## Current research status
 
-| Experiment | Status | Verified result |
+| Experiment / track | Status | Verified result or current question |
 | --- | --- | --- |
+| **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
 | BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
 | BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
@@ -22,6 +23,38 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | BL-13.3.1 | VALIDATED | Two `GF(2^8)` inversion constructions each produced eight distinct component functions with degree 7, nonlinearity 112 and balanced outputs. Pipeline validation only; no novelty claim. |
 
 The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/), including the frozen [`BL-13.1 Boolean baseline`](experiments/results/BL-13.1-BOOLEAN-BASELINE.md).
+
+## Priority programme: Boolean Attention Control Plane
+
+The attention programme now treats Boolean logic as a potential **early control plane** rather than merely as a compressed representation.
+
+The central systems hypothesis is:
+
+```text
+T_boolean_front_end + T_FLAT_survivors < T_FLAT_dense
+```
+
+The first target is not full 1-bit attention. The first target is to use compact Boolean decisions to decide which blocks or KV pages deserve exact numerical attention.
+
+```text
+Q/K state
+  -> bitpacked signatures / Boolean predicates
+  -> block or page admission
+       reject -> avoid exact Q·K and, where architecture permits, avoid K/V staging/read
+       accept -> execute exact FLAT attention
+```
+
+BooleanLab owns the scientific function/policy search and controlled evidence. **FLAT-ATTENTION** owns GPU consumption, routing placement and end-to-end timing. **KVLab** owns cache/page-specific retention, selection and tiering experiments. Reusable packed-bit/math primitives should be promoted to **SciRust** rather than duplicated.
+
+Current BL-4 additions:
+
+- `BL-4.4.1`: Boolean block admission versus dense, structural and density-matched random masks.
+- `BL-4.4.2`: bitpacked Q/K signature families and XOR/XNOR-popcount selection frontiers.
+- `BL-4.5.1`: query-aware Boolean KV-page admission available from the first decode token after prefill.
+- `BL-4.6.1`: measured Boolean-control overhead versus exact attention work and K/V traffic eliminated.
+- `BL-4.7.1`: 1-bit QK only after the router path is qualified, compared against exact FLAT, low-precision QK and Boolean-prefilter-plus-exact-QK.
+
+No acceleration claim is accepted from theoretical operation counts alone. Hardware evidence must include Boolean front-end time, retained density, K/V bytes avoided, metadata cost, first-token latency, steady-state decode, prefill, tokens/s and quality/false-negative metrics.
 
 ## Core hybrid contract
 
@@ -50,7 +83,7 @@ For Boolean-function discovery, a second question is equally important:
 | BL-1 | Pure Boolean feed-forward learning/inference |
 | BL-2 | Recurrent Boolean state, memory and cellular dynamics |
 | BL-3 | Discrete learning/search without floating relaxation: SAT/MaxSAT/CEGIS/evolutionary search |
-| BL-4 | Boolean attention, associative memory and KV policies |
+| **BL-4** | **Boolean attention control plane, associative memory and KV policies** |
 | BL-5 | Boolean × real/complex/quaternion systems |
 | BL-6 | Boolean × octonion/sedenion/Cayley-Dickson systems |
 | BL-7 | Boolean × finite-field and coding-theory systems |
@@ -96,24 +129,31 @@ BooleanLab reuses Memorithm foundations rather than silently copying them:
 - **BooleanLab** owns experiments, candidate provenance, controlled generators and evidence.
 - **Forge** may later search Boolean topology and Boolean × X operator choices under frozen evaluation contracts.
 - **ProofLab / SciRust-Verify** are natural promotion targets for equivalence and invariant proofs.
-- **TDI, ADA, FLAT-ATTENTION, KVLab, NNIS, ElasticXxx and other Memorithm projects** may consume only promoted results with an explicit integration contract.
+- **FLAT-ATTENTION** consumes qualified Boolean attention policies and measures real attention-system behavior.
+- **KVLab** owns cache/page-specific experiments and cache resource accounting.
+- **TDI, ADA, NNIS, ElasticXxx and other Memorithm projects** may consume only promoted results with an explicit integration contract.
 
 The stable BooleanLab core remains on stable Rust. Experiments requiring SciRust `portable-simd`, including the current sedenion control, are isolated behind an optional feature and a separately pinned nightly CI job.
 
 ## Immediate research direction
 
-The Boolean-only reference stage is now validated. The active critical path is:
+Two active tracks now run in parallel:
 
 ```text
-BL-13.1.1 exact four-input reference-space calibration      [VALIDATED]
-        -> BL-13.1.2 bounded eight-input Boolean population [VALIDATED]
-        -> BL-13.2.1 sedenion-vs-Boolean bounded screening
-        -> stronger declared equivalence screening
-        -> construction-cost matching / synthesis
-        -> cross-domain Boolean-function discovery
+BL-13 function discovery:
+BL-13.1 validated Boolean baselines
+  -> BL-13.2.1 sedenion-vs-Boolean screening
+  -> stronger equivalence / construction-cost matching
+  -> cross-domain discovery
+
+BL-4 Boolean Attention Control Plane:
+BL-4.4 block-admission + bitpacked signature experiments
+  -> BL-4.5 first-token KV-page routing
+  -> BL-4.6 measured FLAT systems comparison
+  -> BL-4.7 gated 1-bit QK research
 ```
 
-The first bounded comparison already demonstrates why the next gates matter: the Boolean-only population reached nonlinearity 96, while some sedenion-induced control functions reached 98–100 and the known `GF(2^8)` inversion components reached 112. These observations do **not** establish novelty or superiority. The search population is bounded, equivalence screening is still limited, and construction costs are not yet matched.
+The bounded BL-13 comparison already demonstrates why stronger gates matter: the Boolean-only population reached nonlinearity 96, while some sedenion-induced control functions reached 98–100 and the known `GF(2^8)` inversion components reached 112. These observations do **not** establish novelty or superiority. The search population is bounded, equivalence screening is still limited, and construction costs are not yet matched.
 
 ## License
 

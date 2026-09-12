@@ -9,6 +9,11 @@ BL-4.1.1	BL-4	Attention	MASK	Can binary visibility masks preserve task quality u
 BL-4.2.1	BL-4	KV-cache	MEMORY	Can Boolean KEEP EVICT decisions reduce cache storage under a frozen quality threshold?	PROPOSED
 BL-4.2.2	BL-4	KV-cache	ROUTE	Can Boolean policies route KV entries across memory tiers without violating declared latency and quality constraints?	PROPOSED
 BL-4.3.1	BL-4	Associative-memory	PREDICATE	Can XNOR plus Hamming retrieval match continuous similarity on controlled binary-compatible workloads?	PROPOSED
+BL-4.4.1	BL-4	Attention	MASK	Under matched retained density can Boolean block admission preserve dense-attention target recall and downstream quality better than random and structural mask baselines?	PROPOSED
+BL-4.4.2	BL-4	Attention	PREDICATE	Which preregistered bitpacked Q K signature families and XOR XNOR popcount rules produce the best recall false-negative sparsity frontier before exact Q K evaluation?	PROPOSED
+BL-4.5.1	BL-4	KV-cache	ROUTE	Can Boolean query-aware page admission select useful resident KV pages from the first decode token while preserving declared quality thresholds?	PROPOSED
+BL-4.6.1	BL-4	Attention-system	ROUTE	Does an early Boolean control plane eliminate enough exact attention work and KV traffic to offset its measured overhead under the same FLAT workload?	PROPOSED
+BL-4.7.1	BL-4	Attention	ENCODE	After Boolean routing is qualified can one-bit QK similarity yield a non-dominated quality latency memory trade-off against exact FLAT QK low-precision QK and Boolean-prefilter-plus-exact-QK?	PROPOSED
 BL-5.1.1	BL-5	Real	MASK	Does learned Boolean feature masking improve efficiency relative to matched sparse real baselines?	PROPOSED
 BL-5.2.1	BL-5	Complex	ROUTE	Can Boolean routing select complex-valued operations more efficiently than an always-complex matched baseline?	PROPOSED
 BL-5.3.1	BL-5	Quaternion	MASK	Can Boolean component selection improve quaternion compute allocation under equal task-quality constraints?	PROPOSED
