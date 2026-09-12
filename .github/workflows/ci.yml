@@ -28,3 +28,18 @@ jobs:
         run: cargo run -p booleanlab-discovery --bin bl13_calibrate --release
       - name: BL-13 GF(2^8) inversion campaign
         run: cargo run -p booleanlab-discovery --bin bl13_gf2_inversion --release
+
+  sedenion-nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-07-02
+          components: rustfmt, clippy
+      - name: Sedenion tests
+        run: cargo test -p booleanlab-discovery --features sedenion-experiments
+      - name: Sedenion Clippy
+        run: cargo clippy -p booleanlab-discovery --features sedenion-experiments --all-targets -- -D warnings
+      - name: BL-13.2.0 sedenion predicate control
+        run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_control --release
