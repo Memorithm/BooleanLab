@@ -35,16 +35,16 @@ const FIXED_MIXER: [f32; SEDENION_COORDINATES] = [
 ];
 
 #[inline]
-fn bipolar(input: u64, bit: u32) -> f32 {
+fn bipolar(input: u64, bit: usize) -> f32 {
     if ((input >> bit) & 1) == 1 { 1.0 } else { -1.0 }
 }
 
 fn left_operand(input: u64) -> SedenionSimd {
     let mut coefficients = [0.0; SEDENION_COORDINATES];
     coefficients[0] = 1.0;
-    for bit in 0..4_u32 {
-        coefficients[1 + bit as usize] = bipolar(input, bit);
-        coefficients[9 + bit as usize] = bipolar(input, bit + 4);
+    for bit in 0..4_usize {
+        coefficients[1 + bit] = bipolar(input, bit);
+        coefficients[9 + bit] = bipolar(input, bit + 4);
     }
     SedenionSimd::from_array(coefficients)
 }
@@ -52,9 +52,9 @@ fn left_operand(input: u64) -> SedenionSimd {
 fn right_operand(input: u64) -> SedenionSimd {
     let mut coefficients = [0.0; SEDENION_COORDINATES];
     coefficients[0] = 1.0;
-    for bit in 0..4_u32 {
-        coefficients[1 + bit as usize] = bipolar(input, bit + 4);
-        coefficients[9 + bit as usize] = bipolar(input, bit);
+    for bit in 0..4_usize {
+        coefficients[1 + bit] = bipolar(input, bit + 4);
+        coefficients[9 + bit] = bipolar(input, bit);
     }
     SedenionSimd::from_array(coefficients)
 }
@@ -103,11 +103,12 @@ fn control_state(input: u64) -> Result<[f32; SEDENION_COORDINATES], SedenionGene
 /// truth table violates the Boolean-function representation contract.
 pub fn control_component_functions() -> Result<Vec<BooleanFunction>, SedenionGeneratorError> {
     let row_count = 1usize << CONTROL_INPUT_BITS;
+    let input_count = 1_u64 << CONTROL_INPUT_BITS;
     let mut tables: Vec<Vec<u8>> = (0..SEDENION_COORDINATES)
         .map(|_| Vec::with_capacity(row_count))
         .collect();
 
-    for input in 0..row_count as u64 {
+    for input in 0..input_count {
         let coefficients = control_state(input)?;
         for (coordinate, table) in tables.iter_mut().enumerate() {
             table.push(u8::from(coefficients[coordinate] > 0.0));
