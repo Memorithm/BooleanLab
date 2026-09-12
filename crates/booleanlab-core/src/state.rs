@@ -14,6 +14,11 @@ pub enum StateError {
 }
 
 impl BitState {
+    /// Creates an all-zero Boolean state with the requested bit width.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StateError::ZeroWidth`] when `width` is zero.
     pub fn zero(width: usize) -> Result<Self, StateError> {
         if width == 0 {
             return Err(StateError::ZeroWidth);
@@ -24,6 +29,11 @@ impl BitState {
         })
     }
 
+    /// Packs a Boolean slice into the compact state representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StateError::ZeroWidth`] when `bits` is empty.
     pub fn from_bools(bits: &[bool]) -> Result<Self, StateError> {
         let mut state = Self::zero(bits.len())?;
         for (index, &value) in bits.iter().enumerate() {
@@ -42,11 +52,21 @@ impl BitState {
         &self.words
     }
 
+    /// Reads one bit from the state.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StateError::BitOutOfRange`] when `bit >= self.width()`.
     pub fn get(&self, bit: usize) -> Result<bool, StateError> {
         self.check(bit)?;
         Ok((self.words[bit / 64] & (1_u64 << (bit % 64))) != 0)
     }
 
+    /// Sets one bit in the state.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StateError::BitOutOfRange`] when `bit >= self.width()`.
     pub fn set(&mut self, bit: usize, value: bool) -> Result<(), StateError> {
         self.check(bit)?;
         let mask = 1_u64 << (bit % 64);
@@ -59,12 +79,22 @@ impl BitState {
         Ok(())
     }
 
+    /// Flips one bit in the state.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StateError::BitOutOfRange`] when `bit >= self.width()`.
     pub fn flip(&mut self, bit: usize) -> Result<(), StateError> {
         self.check(bit)?;
         self.words[bit / 64] ^= 1_u64 << (bit % 64);
         Ok(())
     }
 
+    /// Computes the exact Hamming distance between equal-width states.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StateError::WidthMismatch`] when the state widths differ.
     pub fn hamming_distance(&self, other: &Self) -> Result<u32, StateError> {
         if self.width != other.width {
             return Err(StateError::WidthMismatch {
