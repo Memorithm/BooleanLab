@@ -6,6 +6,7 @@
 //! Exact Boolean metrics are delegated to `SciRust` so there is one mathematical
 //! implementation of ANF and Walsh analysis across the `Memorithm` ecosystem.
 
+pub mod baseline;
 pub mod gf2;
 #[cfg(feature = "sedenion-experiments")]
 pub mod sedenion;
