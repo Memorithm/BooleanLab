@@ -25,7 +25,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         summary.best_nonlinearity,
         summary.pareto_front.len()
     );
-    println!("pareto_rank\tnonlinearity\timbalance\tcorrelation_immunity\tdegree\tgates\tdepth\tfingerprint");
+    println!(
+        "pareto_rank\tnonlinearity\timbalance\tcorrelation_immunity\tdegree\tgates\tdepth\tfingerprint"
+    );
     for (rank, record) in summary.pareto_front.iter().take(32).enumerate() {
         println!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:016x}",
