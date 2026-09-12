@@ -1,10 +1,15 @@
 use booleanlab_core::{BitState, BooleanCircuit, Node};
 
 fn bits(state: &BitState) -> String {
-    state
-        .iter()
+    (0..state.width())
         .rev()
-        .map(|bit| if bit { '1' } else { '0' })
+        .map(|index| {
+            if state.get(index).expect("index generated from state width") {
+                '1'
+            } else {
+                '0'
+            }
+        })
         .collect()
 }
 
