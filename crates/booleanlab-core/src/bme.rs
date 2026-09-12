@@ -44,12 +44,22 @@ fn validate_pair(left: &[bool], right: &[bool]) -> Result<(), BmeError> {
 }
 
 /// Boolean semiring cell: OR reduction over pairwise AND.
+///
+/// # Errors
+///
+/// Returns [`BmeError::EmptyInput`] for empty cells and
+/// [`BmeError::LengthMismatch`] when the two cell widths differ.
 pub fn or_and_cell(left: &[bool], right: &[bool]) -> Result<bool, BmeError> {
     validate_pair(left, right)?;
     Ok(left.iter().zip(right).any(|(&a, &b)| a && b))
 }
 
 /// GF(2) cell: XOR/parity reduction over pairwise AND.
+///
+/// # Errors
+///
+/// Returns [`BmeError::EmptyInput`] for empty cells and
+/// [`BmeError::LengthMismatch`] when the two cell widths differ.
 pub fn xor_and_cell(left: &[bool], right: &[bool]) -> Result<bool, BmeError> {
     validate_pair(left, right)?;
     Ok(left
@@ -59,12 +69,23 @@ pub fn xor_and_cell(left: &[bool], right: &[bool]) -> Result<bool, BmeError> {
 }
 
 /// Exact number of XNOR/equality matches in one Boolean matrix cell.
+///
+/// # Errors
+///
+/// Returns [`BmeError::EmptyInput`] for empty cells and
+/// [`BmeError::LengthMismatch`] when the two cell widths differ.
 pub fn xnor_popcount_cell(left: &[bool], right: &[bool]) -> Result<usize, BmeError> {
     validate_pair(left, right)?;
     Ok(left.iter().zip(right).filter(|(a, b)| a == b).count())
 }
 
 /// Thresholded XNOR-popcount cell.
+///
+/// # Errors
+///
+/// Returns [`BmeError::EmptyInput`] for empty cells,
+/// [`BmeError::LengthMismatch`] when the two cell widths differ, and
+/// [`BmeError::ThresholdOutOfRange`] when `threshold` exceeds the cell width.
 pub fn thresholded_xnor_cell(
     left: &[bool],
     right: &[bool],
