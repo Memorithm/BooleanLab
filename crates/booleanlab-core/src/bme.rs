@@ -222,7 +222,9 @@ pub fn thresholded_xnor_product(
             width: inner,
         });
     }
-    matrix_product_with(left, right, |a, b| thresholded_xnor_cell(a, b, threshold))
+    matrix_product_with(left, right, |a, b| {
+        thresholded_xnor_cell(a, b, threshold)
+    })
 }
 
 #[cfg(test)]
