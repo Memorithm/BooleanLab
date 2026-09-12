@@ -26,6 +26,8 @@ jobs:
         run: cargo run -p booleanlab-runner --release
       - name: BL-13 exact metric calibration
         run: cargo run -p booleanlab-discovery --bin bl13_calibrate --release
+      - name: BL-13 Boolean-only reference and Pareto campaign
+        run: cargo run -p booleanlab-discovery --bin bl13_boolean_baseline --release
       - name: BL-13 GF(2^8) inversion campaign
         run: cargo run -p booleanlab-discovery --bin bl13_gf2_inversion --release
 
