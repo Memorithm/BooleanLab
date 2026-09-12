@@ -2,13 +2,14 @@
 resolver = "2"
 members = [
     "crates/booleanlab-core",
+    "crates/booleanlab-discovery",
     "crates/booleanlab-runner",
 ]
 
 [workspace.package]
 edition = "2024"
 license = "LicenseRef-PolyForm-Noncommercial-1.0.0"
-rust-version = "1.85"
+rust-version = "1.89"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
