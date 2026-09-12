@@ -2,12 +2,18 @@ use crate::BitState;
 
 /// Extracts explicit Boolean predicates from a value in mathematical domain `X`.
 ///
-/// The bridge must document the semantics of every produced bit. BooleanLab
+/// The bridge must document the semantics of every produced bit. `BooleanLab`
 /// treats these predicates as part of the experimental contract rather than as
 /// an opaque embedding.
 pub trait PredicateBridge<X> {
     type Error;
 
+    /// Extracts the declared Boolean predicates from `value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the implementation-defined error when the domain value cannot be
+    /// mapped to the bridge's declared predicate state.
     fn predicates(&self, value: &X) -> Result<BitState, Self::Error>;
 }
 
@@ -18,6 +24,13 @@ pub trait PredicateBridge<X> {
 pub trait HybridOperator<X> {
     type Error;
 
+    /// Applies the Boolean control state to `value` according to the declared
+    /// hybrid semantics.
+    ///
+    /// # Errors
+    ///
+    /// Returns the implementation-defined error when the control state is
+    /// incompatible with the operator or the domain operation cannot be applied.
     fn apply(&self, control: &BitState, value: &X) -> Result<X, Self::Error>;
 }
 
