@@ -29,8 +29,8 @@ BL-12.1.1	BL-12	CPU-SIMD	ENCODE	What are measured throughput and energy proxies 
 BL-12.2.1	BL-12	GPU	ENCODE	When do bitpacked Boolean kernels outperform conventional low-precision kernels under matched workload semantics?	PROPOSED
 BL-12.3.1	BL-12	FPGA	ENCODE	Which Boolean circuit families map efficiently to FPGA resources under exact functional equivalence constraints?	PROPOSED
 BL-13.0.1	BL-13	Boolean-function-space	VERIFY	Does the exact BL-13 screening layer reproduce frozen AND-2 and parity-3 reference properties using SciRust metrics?	VALIDATED
-BL-13.1.1	BL-13	Boolean-function-space	SYNTHESIZE	Can the baseline Boolean-only grammar rediscover reference bent balanced resilient and plateaued exemplars at bounded widths?	PROPOSED
-BL-13.1.2	BL-13	Boolean-function-space	SYNTHESIZE	What Pareto frontier of nonlinearity degree balancedness correlation immunity and circuit cost is reachable by Boolean-only search under a frozen budget?	PROPOSED
+BL-13.1.1	BL-13	Boolean-function-space	VERIFY	Does exhaustive four-input enumeration recover reference bent balanced resilient and explicitly defined three-valued plateaued classes before larger searches?	PREREGISTERED
+BL-13.1.2	BL-13	Boolean-function-space	SYNTHESIZE	What Pareto frontier of nonlinearity balance correlation immunity gate count and depth is reached by 4096 deterministic eight-input circuits with 4 to 24 gates?	PREREGISTERED
 BL-13.2.0	BL-13	Sedenion	PREDICATE	Can the pinned SciRust sedenion implementation deterministically induce bounded integer-lattice Boolean predicate functions without contaminating the stable toolchain?	VALIDATED
 BL-13.2.1	BL-13	Sedenion	PREDICATE	Do exact predicates induced by Boolean×sedenion dynamics generate scalar Boolean functions outside the matched Boolean-only canonical set?	PROPOSED
 BL-13.2.2	BL-13	Cayley-Dickson	SELECT	Does dynamic algebra selection induce recurring Boolean construction motifs not present in the seed grammar?	PROPOSED
