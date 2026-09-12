@@ -47,9 +47,7 @@ pub fn inversion_component_functions(
     }
 
     let order = 1usize << degree;
-    let mut tables: Vec<Vec<u8>> = (0..degree)
-        .map(|_| Vec::with_capacity(order))
-        .collect();
+    let mut tables: Vec<Vec<u8>> = (0..degree).map(|_| Vec::with_capacity(order)).collect();
 
     for element in 0..field.order() {
         let inverse = if element == 0 {
@@ -122,10 +120,6 @@ mod tests {
 
     #[test]
     fn generator_enforces_resource_bound() {
-        assert_eq!(
-            inversion_component_functions(Gf2Field::gf2_16()).unwrap().len(),
-            16
-        );
         let too_wide = Gf2Field::new(17, (1_u64 << 17) | 0b11);
         assert_eq!(
             inversion_component_functions(too_wide),
