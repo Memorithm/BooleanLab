@@ -6,9 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut exact_index = DedupIndex::new();
     let mut complement_index = DedupIndex::new();
 
-    println!(
-        "coordinate\tdegree\tnonlinearity\tbalanced\tbent\tcorrelation_immunity\tfingerprint"
-    );
+    println!("coordinate\tdegree\tnonlinearity\tbalanced\tbent\tcorrelation_immunity\tfingerprint");
 
     for (coordinate, function) in functions.into_iter().enumerate() {
         let metrics = function.exact_metrics();
