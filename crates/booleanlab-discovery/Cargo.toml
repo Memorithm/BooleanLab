@@ -5,8 +5,18 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+default = []
+sedenion-experiments = ["dep:scirust-simd"]
+
 [dependencies]
 scirust-modalg = { git = "https://github.com/Memorithm/scirust", rev = "7178bcfc6800e3277b9f16c3f03c70523b53e2c7" }
+scirust-simd = { git = "https://github.com/Memorithm/scirust", rev = "7178bcfc6800e3277b9f16c3f03c70523b53e2c7", optional = true, features = ["portable-simd"] }
+
+[[bin]]
+name = "bl13_sedenion_control"
+path = "src/bin/bl13_sedenion_control.rs"
+required-features = ["sedenion-experiments"]
 
 [lints]
 workspace = true
