@@ -2,16 +2,15 @@
 //! Exact Boolean-function candidate representation and screening primitives for
 //! the BL-13 discovery programme.
 //!
-//! BooleanLab owns candidate provenance, canonicalisation and deduplication.
-//! Exact Boolean metrics are delegated to SciRust so there is one mathematical
-//! implementation of ANF and Walsh analysis across the Memorithm ecosystem.
+//! `BooleanLab` owns candidate provenance, canonicalisation and deduplication.
+//! Exact Boolean metrics are delegated to `SciRust` so there is one mathematical
+//! implementation of ANF and Walsh analysis across the `Memorithm` ecosystem.
 
 use std::collections::BTreeMap;
 use std::fmt;
 
 use scirust_modalg::boolean::{
-    MAX_EXACT_BITS, anf_degree_of_table, correlation_immunity, is_balanced, is_bent,
-    nonlinearity,
+    MAX_EXACT_BITS, anf_degree_of_table, correlation_immunity, is_balanced, is_bent, nonlinearity,
 };
 
 const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
@@ -31,12 +30,21 @@ pub struct BooleanFunction {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FunctionError {
     ZeroInputs,
-    InputWidthTooLarge { width: u32, maximum: u32 },
-    TruthTableLength { expected: usize, actual: usize },
-    NonBooleanValue { index: usize, value: u8 },
+    InputWidthTooLarge {
+        width: u32,
+        maximum: u32,
+    },
+    TruthTableLength {
+        expected: usize,
+        actual: usize,
+    },
+    NonBooleanValue {
+        index: usize,
+        value: u8,
+    },
 }
 
-/// Exact algebraic and spectral metrics supplied by SciRust.
+/// Exact algebraic and spectral metrics supplied by `SciRust`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ExactMetrics {
     pub algebraic_degree: u32,
@@ -80,7 +88,7 @@ impl BooleanFunction {
     /// # Errors
     ///
     /// Returns [`FunctionError::ZeroInputs`] for zero input bits,
-    /// [`FunctionError::InputWidthTooLarge`] above SciRust's exact-analysis
+    /// [`FunctionError::InputWidthTooLarge`] above `SciRust`'s exact-analysis
     /// bound, [`FunctionError::TruthTableLength`] when the table does not have
     /// exactly `2^n` rows, and [`FunctionError::NonBooleanValue`] for entries
     /// other than zero or one.
@@ -131,10 +139,8 @@ impl BooleanFunction {
                 maximum: MAX_EXACT_BITS,
             });
         }
-        let rows = 1usize << input_bits;
-        let truth_table = (0..rows)
-            .map(|x| u8::from(function(x as u64)))
-            .collect();
+        let rows = 1_u64 << input_bits;
+        let truth_table = (0..rows).map(|x| u8::from(function(x))).collect();
         Self::new(input_bits, truth_table)
     }
 
@@ -148,7 +154,7 @@ impl BooleanFunction {
         &self.truth_table
     }
 
-    /// Computes exact ANF/Walsh-derived metrics using SciRust.
+    /// Computes exact ANF/Walsh-derived metrics using `SciRust`.
     #[must_use]
     pub fn exact_metrics(&self) -> ExactMetrics {
         let mut anf_table = self.truth_table.clone();
@@ -186,7 +192,7 @@ impl BooleanFunction {
     /// `f` and its complement is returned.
     #[must_use]
     pub fn canonical_under_complement(&self) -> Self {
-        let complement: Vec<u8> = self.truth_table.iter().map(|value| value ^ 1).collect();
+        let complement: Vec<u8> = self.truth_table.iter().map(|value| *value ^ 1).collect();
         if complement < self.truth_table {
             Self {
                 input_bits: self.input_bits,
@@ -229,7 +235,10 @@ impl DedupIndex {
 impl fmt::Display for FunctionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ZeroInputs => write!(formatter, "Boolean functions require at least one input bit"),
+            Self::ZeroInputs => write!(
+                formatter,
+                "Boolean functions require at least one input bit"
+            ),
             Self::InputWidthTooLarge { width, maximum } => write!(
                 formatter,
                 "exact Boolean analysis supports at most {maximum} inputs, got {width}"
