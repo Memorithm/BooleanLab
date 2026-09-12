@@ -54,14 +54,8 @@ pub struct FourVariableReferenceStats {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BaselineError {
     ZeroCandidates,
-    InvalidGateRange {
-        min_gates: usize,
-        max_gates: usize,
-    },
-    InputWidth {
-        width: u32,
-        maximum: usize,
-    },
+    InvalidGateRange { min_gates: usize, max_gates: usize },
+    InputWidth { width: u32, maximum: usize },
     Circuit(CircuitError),
     Function(FunctionError),
 }
@@ -158,21 +152,26 @@ pub fn run_boolean_baseline(config: BaselineConfig) -> Result<BaselineSummary, B
     let mut pareto_front: Vec<BaselineRecord> = Vec::new();
 
     for _ in 0..config.candidates {
-        let gate_count = config.min_gates
-            + rng.bounded(config.max_gates - config.min_gates + 1);
+        let gate_count = config.min_gates + rng.bounded(config.max_gates - config.min_gates + 1);
         let (circuit, depth) = random_circuit(config.input_bits, gate_count, &mut rng)?;
         let function = circuit_to_function(&circuit)?;
         let fingerprint = function.stable_fingerprint();
 
-        let duplicate = buckets
-            .get(&fingerprint)
-            .is_some_and(|indices| indices.iter().any(|&index| unique[index].function == function));
+        let duplicate = buckets.get(&fingerprint).is_some_and(|indices| {
+            indices
+                .iter()
+                .any(|&index| unique[index].function == function)
+        });
         if duplicate {
             continue;
         }
 
         let metrics = function.exact_metrics();
-        let ones = function.truth_table().iter().filter(|&&bit| bit == 1).count();
+        let ones = function
+            .truth_table()
+            .iter()
+            .filter(|&&bit| bit == 1)
+            .count();
         let imbalance = ones.abs_diff(function.truth_table().len() / 2);
         let record = BaselineRecord {
             function,
@@ -188,7 +187,10 @@ pub fn run_boolean_baseline(config: BaselineConfig) -> Result<BaselineSummary, B
         unique.push(record);
     }
 
-    let balanced_functions = unique.iter().filter(|record| record.metrics.balanced).count();
+    let balanced_functions = unique
+        .iter()
+        .filter(|record| record.metrics.balanced)
+        .count();
     let bent_functions = unique.iter().filter(|record| record.metrics.bent).count();
     let best_nonlinearity = unique
         .iter()
@@ -229,7 +231,8 @@ fn validate_config(config: BaselineConfig) -> Result<(), BaselineError> {
         });
     }
     let maximum = BooleanCircuit::MAX_EXACT_INPUT_BITS;
-    if config.input_bits == 0 || usize::try_from(config.input_bits).map_or(true, |width| width > maximum)
+    if config.input_bits == 0
+        || usize::try_from(config.input_bits).map_or(true, |width| width > maximum)
     {
         return Err(BaselineError::InputWidth {
             width: config.input_bits,
@@ -282,8 +285,8 @@ fn random_circuit(
 
     let output = nodes.len() - 1;
     let depth = depths[output];
-    let circuit = BooleanCircuit::new(input_width, nodes, vec![output])
-        .map_err(BaselineError::Circuit)?;
+    let circuit =
+        BooleanCircuit::new(input_width, nodes, vec![output]).map_err(BaselineError::Circuit)?;
     Ok((circuit, depth))
 }
 
