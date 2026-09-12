@@ -9,20 +9,11 @@ use core::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BmeError {
     EmptyInput,
-    LengthMismatch {
-        left: usize,
-        right: usize,
-    },
-    ThresholdOutOfRange {
-        threshold: usize,
-        width: usize,
-    },
+    LengthMismatch { left: usize, right: usize },
+    ThresholdOutOfRange { threshold: usize, width: usize },
     EmptyMatrix,
     RaggedMatrix,
-    MatrixDimensionMismatch {
-        left_cols: usize,
-        right_rows: usize,
-    },
+    MatrixDimensionMismatch { left_cols: usize, right_rows: usize },
 }
 
 impl fmt::Display for BmeError {
@@ -179,10 +170,7 @@ pub fn thresholded_xnor_cell(
 ///
 /// Returns a matrix-shape error when either input is empty or ragged, or when
 /// the left column count differs from the right row count.
-pub fn or_and_product(
-    left: &[Vec<bool>],
-    right: &[Vec<bool>],
-) -> Result<Vec<Vec<bool>>, BmeError> {
+pub fn or_and_product(left: &[Vec<bool>], right: &[Vec<bool>]) -> Result<Vec<Vec<bool>>, BmeError> {
     matrix_product_with(left, right, or_and_cell)
 }
 
