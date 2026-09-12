@@ -154,7 +154,7 @@ pub fn run_boolean_baseline(config: BaselineConfig) -> Result<BaselineSummary, B
     for _ in 0..config.candidates {
         let gate_count = config.min_gates + rng.bounded(config.max_gates - config.min_gates + 1);
         let (circuit, depth) = random_circuit(config.input_bits, gate_count, &mut rng)?;
-        let function = circuit_to_function(&circuit)?;
+        let function = circuit_to_function(&circuit, config.input_bits)?;
         let fingerprint = function.stable_fingerprint();
 
         let duplicate = buckets.get(&fingerprint).is_some_and(|indices| {
@@ -167,11 +167,11 @@ pub fn run_boolean_baseline(config: BaselineConfig) -> Result<BaselineSummary, B
         }
 
         let metrics = function.exact_metrics();
-        let ones = function
+        let ones: usize = function
             .truth_table()
             .iter()
-            .filter(|&&bit| bit == 1)
-            .count();
+            .map(|&bit| usize::from(bit))
+            .sum();
         let imbalance = ones.abs_diff(function.truth_table().len() / 2);
         let record = BaselineRecord {
             function,
@@ -290,7 +290,10 @@ fn random_circuit(
     Ok((circuit, depth))
 }
 
-fn circuit_to_function(circuit: &BooleanCircuit) -> Result<BooleanFunction, BaselineError> {
+fn circuit_to_function(
+    circuit: &BooleanCircuit,
+    input_bits: u32,
+) -> Result<BooleanFunction, BaselineError> {
     let rows = circuit
         .exact_truth_table()
         .map_err(BaselineError::Circuit)?;
@@ -298,7 +301,7 @@ fn circuit_to_function(circuit: &BooleanCircuit) -> Result<BooleanFunction, Base
         .iter()
         .map(|row| u8::from(row.output.iter().next().unwrap_or(false)))
         .collect();
-    BooleanFunction::new(circuit.input_width() as u32, table).map_err(BaselineError::Function)
+    BooleanFunction::new(input_bits, table).map_err(BaselineError::Function)
 }
 
 fn update_pareto_front(front: &mut Vec<BaselineRecord>, candidate: &BaselineRecord) {
@@ -362,7 +365,9 @@ impl SplitMix64 {
 
     fn bounded(&mut self, upper: usize) -> usize {
         debug_assert!(upper > 0);
-        (self.next() % upper as u64) as usize
+        let upper_u64 = u64::try_from(upper).expect("bounded search upper bound fits in u64");
+        let value = self.next() % upper_u64;
+        usize::try_from(value).expect("bounded remainder fits in usize")
     }
 }
 
