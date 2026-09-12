@@ -15,13 +15,13 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | Experiment | Status | Verified result |
 | --- | --- | --- |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
-| BL-13.1.1 | PREREGISTERED | Exhaustive scan of all 65,536 four-input scalar Boolean functions to calibrate bent, balanced, resilient and explicitly defined three-valued plateaued classes. |
-| BL-13.1.2 | PREREGISTERED | Deterministic Boolean-only search: 4,096 eight-input circuits, 4–24 gates, exact deduplication and Pareto analysis. |
+| BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
+| BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
 | BL-13.2.0 | VALIDATED | A bounded SciRust sedenion control produced 16 distinct scalar functions `F_2^8 -> F_2`; observed algebraic degrees 6–8 and nonlinearities 76–100. No novelty claim. |
-| BL-13.2.1 | PROPOSED | Compare sedenion-induced functions against the matched Boolean-only canonical population. |
+| BL-13.2.1 | PROPOSED | Screen the sedenion-induced functions against the validated bounded Boolean-only population, then strengthen equivalence and construction-cost matching. |
 | BL-13.3.1 | VALIDATED | Two `GF(2^8)` inversion constructions each produced eight distinct component functions with degree 7, nonlinearity 112 and balanced outputs. Pipeline validation only; no novelty claim. |
 
-The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/).
+The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/), including the frozen [`BL-13.1 Boolean baseline`](experiments/results/BL-13.1-BOOLEAN-BASELINE.md).
 
 ## Core hybrid contract
 
@@ -102,17 +102,18 @@ The stable BooleanLab core remains on stable Rust. Experiments requiring SciRust
 
 ## Immediate research direction
 
-The active critical path is:
+The Boolean-only reference stage is now validated. The active critical path is:
 
 ```text
-BL-13.1.1 exact four-input reference-space calibration
-        -> BL-13.1.2 bounded eight-input Boolean-only Pareto population
-        -> BL-13.2.1 matched comparison against sedenion-induced functions
-        -> stronger equivalence screening
+BL-13.1.1 exact four-input reference-space calibration      [VALIDATED]
+        -> BL-13.1.2 bounded eight-input Boolean population [VALIDATED]
+        -> BL-13.2.1 sedenion-vs-Boolean bounded screening
+        -> stronger declared equivalence screening
+        -> construction-cost matching / synthesis
         -> cross-domain Boolean-function discovery
 ```
 
-This baseline must exist before BooleanLab can make a meaningful statement that a function produced by sedenions, finite fields, tropical algebra, dynamics, noise or another domain `X` is unusual relative to a comparable Boolean-only construction budget.
+The first bounded comparison already demonstrates why the next gates matter: the Boolean-only population reached nonlinearity 96, while some sedenion-induced control functions reached 98–100 and the known `GF(2^8)` inversion components reached 112. These observations do **not** establish novelty or superiority. The search population is bounded, equivalence screening is still limited, and construction costs are not yet matched.
 
 ## License
 
