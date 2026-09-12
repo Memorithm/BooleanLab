@@ -153,7 +153,7 @@ impl BooleanCircuit {
             });
         }
 
-        let mut values = Vec::with_capacity(self.nodes.len());
+        let mut values: Vec<bool> = Vec::with_capacity(self.nodes.len());
         for node in &self.nodes {
             let value = match *node {
                 Node::Input(index) => input.get(index).map_err(CircuitError::State)?,
