@@ -1,0 +1,30 @@
+id	series	domain_x	coupling	question	status
+BL-1.1.1	BL-1	Boolean	SYNTHESIZE	Can bounded learned Boolean circuits match fixed Boolean task baselines under equal gate budget?	PROPOSED
+BL-1.2.1	BL-1	Boolean	SYNTHESIZE	How does circuit depth affect accuracy versus gate count under a fixed truth-table task family?	PROPOSED
+BL-2.1.1	BL-2	Finite-state	TRANSITION	Can a learned Boolean recurrent state retain delayed information under a fixed bit budget?	PROPOSED
+BL-2.2.1	BL-2	Finite-state	MEMORY	Do Boolean associative states improve bounded recall over recurrent-state-only controls?	PROPOSED
+BL-3.1.1	BL-3	Boolean	SYNTHESIZE	Can SAT or MaxSAT recover minimal circuits for bounded supervised truth-table tasks?	PROPOSED
+BL-3.2.1	BL-3	Boolean	SYNTHESIZE	Can CEGIS reduce evaluated candidates versus exhaustive bounded circuit enumeration?	PROPOSED
+BL-4.1.1	BL-4	Attention	MASK	Can binary visibility masks preserve task quality under matched attention-compute budgets?	PROPOSED
+BL-4.2.1	BL-4	KV-cache	MEMORY	Can Boolean KEEP EVICT decisions reduce cache storage under a frozen quality threshold?	PROPOSED
+BL-4.2.2	BL-4	KV-cache	ROUTE	Can Boolean policies route KV entries across memory tiers without violating declared latency and quality constraints?	PROPOSED
+BL-4.3.1	BL-4	Associative-memory	PREDICATE	Can XNOR plus Hamming retrieval match continuous similarity on controlled binary-compatible workloads?	PROPOSED
+BL-5.1.1	BL-5	Real	MASK	Does learned Boolean feature masking improve efficiency relative to matched sparse real baselines?	PROPOSED
+BL-5.2.1	BL-5	Complex	ROUTE	Can Boolean routing select complex-valued operations more efficiently than an always-complex matched baseline?	PROPOSED
+BL-5.3.1	BL-5	Quaternion	MASK	Can Boolean component selection improve quaternion compute allocation under equal task-quality constraints?	PROPOSED
+BL-6.1.1	BL-6	Octonion	MASK	Does adaptive Boolean component masking change accuracy-cost tradeoffs relative to full octonion and matched real-vector controls?	PROPOSED
+BL-6.2.1	BL-6	Sedenion	MASK	Does adaptive activation of 16 sedenion components yield a measurable benefit over full-sedenion and matched real-vector controls?	PROPOSED
+BL-6.3.1	BL-6	Cayley-Dickson	SELECT	Can a Boolean controller select R C H O S representations per state more efficiently than any fixed representation under matched budgets?	PROPOSED
+BL-7.1.1	BL-7	GF(2^k)	ENCODE	Can Boolean-controlled finite-field encoding improve exact associative-memory robustness under controlled bit errors?	PROPOSED
+BL-7.2.1	BL-7	Error-correcting-code	VERIFY	Can learned Boolean verification gates reduce unnecessary correction operations while preserving exact recovery criteria?	PROPOSED
+BL-8.1.1	BL-8	Tropical-semiring	ROUTE	Can Boolean regime selection improve tropical routing objectives relative to fixed routing policies?	PROPOSED
+BL-8.2.1	BL-8	Graph	MASK	Can Boolean edge activation discover sparse task-preserving graph substructures under matched edge budgets?	PROPOSED
+BL-9.1.1	BL-9	Dynamical-system	TRANSITION	Can Boolean regime switches improve prediction or control of piecewise dynamical systems over fixed-regime baselines?	PROPOSED
+BL-9.2.1	BL-9	Field-system	PREDICATE	Can Boolean predicates over field observables identify useful discrete operating regimes without post-hoc thresholds?	PROPOSED
+BL-10.1.1	BL-10	Stochastic-process	TRANSITION	When do stochastic Boolean transitions retain useful signal that deterministic denoising removes?	PROPOSED
+BL-10.2.1	BL-10	Noise	PREDICATE	Can Boolean event structure extracted from noise predict downstream system behaviour beyond scalar noise summaries?	PROPOSED
+BL-11.1.1	BL-11	Circuit-search	SYNTHESIZE	Can Forge-style search discover smaller Boolean controllers than seeded hand-designed circuits under identical verification gates?	PROPOSED
+BL-11.2.1	BL-11	Hybrid-search	SYNTHESIZE	Can joint search over Boolean topology and X-domain operator choice outperform topology-only or operator-only search under equal evaluation budget?	PROPOSED
+BL-12.1.1	BL-12	CPU-SIMD	ENCODE	What are measured throughput and energy proxies for packed Boolean kernels versus scalar Boolean execution on declared hardware?	PROPOSED
+BL-12.2.1	BL-12	GPU	ENCODE	When do bitpacked Boolean kernels outperform conventional low-precision kernels under matched workload semantics?	PROPOSED
+BL-12.3.1	BL-12	FPGA	ENCODE	Which Boolean circuit families map efficiently to FPGA resources under exact functional equivalence constraints?	PROPOSED
