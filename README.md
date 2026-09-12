@@ -1,13 +1,27 @@
 # BooleanLab
 
-BooleanLab is the Memorithm research bench for **pure Boolean AI** and **Boolean × mathematical-domain hybrid systems**.
+BooleanLab is the Memorithm research bench for **pure Boolean AI**, **Boolean-function discovery**, and **Boolean × mathematical-domain hybrid systems**.
 
-The bench studies two distinct programmes:
+The bench studies three connected programmes:
 
-1. **Pure Boolean systems** — useful state, transitions, inference and execution are represented in `{0,1}` and composed from discrete logical operators.
-2. **Boolean × X systems** — a Boolean control/state plane interacts with a richer mathematical domain `X` such as real or complex numbers, finite fields, quaternions, octonions, sedenions, tensors, graphs, semirings or dynamical systems.
+1. **Pure Boolean systems** — state, transitions, inference and execution represented in `{0,1}` and composed from discrete logical operators.
+2. **Boolean × X systems** — a Boolean control/state plane interacting with a richer mathematical domain `X`: finite fields, real/complex systems, quaternions, octonions, sedenions, tensors, graphs, semirings, dynamical systems and other mathematical structures.
+3. **Boolean-function discovery** — systematic generation, exact characterization, deduplication and equivalence screening of Boolean functions induced either by Boolean-only search or by Boolean × X constructions.
 
 BooleanLab is a research bench, not a production inference runtime. Scientific claims require reproducible evidence and must remain narrower than the experiments that support them.
+
+## Current research status
+
+| Experiment | Status | Verified result |
+| --- | --- | --- |
+| BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
+| BL-13.1.1 | PREREGISTERED | Exhaustive scan of all 65,536 four-input scalar Boolean functions to calibrate bent, balanced, resilient and explicitly defined three-valued plateaued classes. |
+| BL-13.1.2 | PREREGISTERED | Deterministic Boolean-only search: 4,096 eight-input circuits, 4–24 gates, exact deduplication and Pareto analysis. |
+| BL-13.2.0 | VALIDATED | A bounded SciRust sedenion control produced 16 distinct scalar functions `F_2^8 -> F_2`; observed algebraic degrees 6–8 and nonlinearities 76–100. No novelty claim. |
+| BL-13.2.1 | PROPOSED | Compare sedenion-induced functions against the matched Boolean-only canonical population. |
+| BL-13.3.1 | VALIDATED | Two `GF(2^8)` inversion constructions each produced eight distinct component functions with degree 7, nonlinearity 112 and balanced outputs. Pipeline validation only; no novelty claim. |
+
+The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/).
 
 ## Core hybrid contract
 
@@ -20,15 +34,19 @@ x(t+1) = G_{b(t+1)}(x(t), u(t))
 
 where `b ∈ {0,1}^m`, `x ∈ X^n`, `P_X` extracts explicit predicates from the mathematical domain, and the Boolean state may select, mask, route, constrain or verify operations in `X`.
 
-The research question is not whether Boolean × X is automatically superior. The question is:
+The central question is not whether Boolean × X is automatically superior. It is:
 
 > For which domains X, tasks and resource envelopes does coupling an explicit Boolean state/control plane to X provide a measurable capability, efficiency, verifiability or interpretability advantage over matched Boolean-only and X-only baselines?
+
+For Boolean-function discovery, a second question is equally important:
+
+> Can a Boolean × X construction induce a new construction rule, equivalence class, or non-dominated property trade-off that is not recovered by a matched Boolean-only search?
 
 ## Research series
 
 | Series | Programme |
 | --- | --- |
-| BL-0 | Boolean foundations, exact semantics, bit-packing, ANF/Walsh bridges and circuit IR |
+| BL-0 | Boolean foundations, exact semantics, packed state and circuit IR |
 | BL-1 | Pure Boolean feed-forward learning/inference |
 | BL-2 | Recurrent Boolean state, memory and cellular dynamics |
 | BL-3 | Discrete learning/search without floating relaxation: SAT/MaxSAT/CEGIS/evolutionary search |
@@ -41,33 +59,63 @@ The research question is not whether Boolean × X is automatically superior. The
 | BL-10 | Noisy/stochastic Boolean systems and perturbation response |
 | BL-11 | Automatic synthesis of cognitive/logical circuits |
 | BL-12 | CPU SIMD / GPU / FPGA execution and measured resource comparison |
+| **BL-13** | **Boolean-function discovery: exact metrics, Boolean-only baselines, Boolean × X generators, equivalence screening and novelty candidates** |
 
-## Ecosystem rule
+## BL-13 discovery pipeline
 
-BooleanLab must reuse and extend Memorithm foundations instead of copying them silently. In particular, SciRust is the canonical mathematical/tooling layer; BooleanLab is the experimental layer. Promotion of a result into SciRust, TDI, ADA, FLAT-ATTENTION, KVLab, NNIS, ElasticXxx or another project requires an explicit evidence and integration contract.
+```text
+GENERATE
+  -> EXACT TRUTH TABLE
+  -> ANF / WALSH METRICS
+  -> EXACT DEDUPLICATION
+  -> DECLARED EQUIVALENCE SCREENING
+  -> PARETO FILTERING
+  -> MATCHED BOOLEAN-ONLY COMPARISON
+  -> PRIOR-ART REVIEW
+  -> NOVELTY CANDIDATE
+```
 
-## Scientific discipline
+BooleanLab never treats an unseen truth table as a discovery by itself. For fixed `n`, all scalar Boolean functions already exist as mathematical objects. Scientifically meaningful novelty requires at least one declared target such as a new construction, a new parametric family, a new equivalence class under a specified relation, or a new verified trade-off among properties.
+
+## Evidence rules
 
 - No novelty claim without prior-art review.
-- No performance claim without measured hardware evidence.
+- No performance or energy claim without measured hardware evidence.
 - Boolean-only, X-only and Boolean × X baselines must be matched as closely as the hypothesis permits.
-- Exact results, numerical evidence, conjectures and engineering observations must be labelled separately.
-- Sedenion experiments must account explicitly for non-associativity and zero divisors; algebraic identities must never be imported from associative algebras without proof.
-- Failed and negative experiments are retained.
+- Exact results, numerical evidence, conjectures and engineering observations are labelled separately.
+- Stable fingerprints are indexes only; equality is confirmed from exact truth tables.
+- Sedenion experiments account explicitly for non-associativity and zero divisors; algebraic identities are never imported from associative algebras without proof.
+- Failed, equivalent, inconclusive and negative experiments are retained.
+- `NEW` is not an automatic experiment status. A candidate must pass explicit equivalence and prior-art gates first.
 
-## Initial engineering target
+## Architecture and ecosystem rule
 
-BL-0 begins with a small reusable Rust core:
+BooleanLab reuses Memorithm foundations rather than silently copying them:
 
-- packed Boolean state;
-- typed Boolean circuit IR;
-- deterministic evaluator;
-- exact truth-table validation for bounded widths;
-- `PredicateBridge<X>` and `HybridOperator<X>` contracts;
-- a first Boolean × sedenion masked-component experiment backed by SciRust semantics rather than a duplicate hypercomplex implementation.
+- **SciRust** supplies canonical mathematical primitives and exact Boolean analysis.
+- **BooleanLab** owns experiments, candidate provenance, controlled generators and evidence.
+- **Forge** may later search Boolean topology and Boolean × X operator choices under frozen evaluation contracts.
+- **ProofLab / SciRust-Verify** are natural promotion targets for equivalence and invariant proofs.
+- **TDI, ADA, FLAT-ATTENTION, KVLab, NNIS, ElasticXxx and other Memorithm projects** may consume only promoted results with an explicit integration contract.
+
+The stable BooleanLab core remains on stable Rust. Experiments requiring SciRust `portable-simd`, including the current sedenion control, are isolated behind an optional feature and a separately pinned nightly CI job.
+
+## Immediate research direction
+
+The active critical path is:
+
+```text
+BL-13.1.1 exact four-input reference-space calibration
+        -> BL-13.1.2 bounded eight-input Boolean-only Pareto population
+        -> BL-13.2.1 matched comparison against sedenion-induced functions
+        -> stronger equivalence screening
+        -> cross-domain Boolean-function discovery
+```
+
+This baseline must exist before BooleanLab can make a meaningful statement that a function produced by sedenions, finite fields, tropical algebra, dynamics, noise or another domain `X` is unusual relative to a comparable Boolean-only construction budget.
 
 ## License
 
-PolyForm Noncommercial License 1.0.0. See `LICENSE.md` once the bootstrap PR lands.
+PolyForm Noncommercial License 1.0.0. See [`LICENSE.md`](LICENSE.md).
 
 Copyright 2026 Tarek Zekriti.
