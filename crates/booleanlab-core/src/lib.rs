@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod attention;
+pub mod attention_page;
 pub mod bme;
 pub mod bme_cost;
 pub mod bme_equation;
@@ -17,6 +18,10 @@ pub mod state;
 pub use attention::{
     AdmissionScore, AttentionRouterError, BitSignature, admit_by_hamming, hamming_admission_row,
     hamming_distance, score_admission,
+};
+pub use attention_page::{
+    PageEnvelope, PageEnvelopeError, admit_page_by_hamming_lower_bound, hamming_page_admission_row,
+    page_hamming_lower_bound,
 };
 pub use bme::{BmeError, or_and_cell, thresholded_xnor_cell, xnor_popcount_cell, xor_and_cell};
 pub use bme_cost::{BmeCostError, BmeLogicalCost, BmeShape, logical_cost};
