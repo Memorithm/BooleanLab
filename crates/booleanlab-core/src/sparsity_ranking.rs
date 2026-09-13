@@ -155,12 +155,10 @@ pub fn structured_nm_mask_from_u64_scores(
         return Err(StructuredSparsityError::ZeroGroupSize);
     }
     if retained_per_group > group_size {
-        return Err(
-            StructuredSparsityError::RetainedPerGroupExceedsGroupSize {
-                retained_per_group,
-                group_size,
-            },
-        );
+        return Err(StructuredSparsityError::RetainedPerGroupExceedsGroupSize {
+            retained_per_group,
+            group_size,
+        });
     }
     if scores.is_empty() {
         return Err(SparsityError::EmptyMask.into());
@@ -282,8 +280,7 @@ mod tests {
 
     #[test]
     fn nm_structured_mask_keeps_exactly_n_per_group() {
-        let mask =
-            structured_nm_mask_from_u64_scores(&[9, 1, 8, 7, 2, 5, 6, 4], 2, 4).unwrap();
+        let mask = structured_nm_mask_from_u64_scores(&[9, 1, 8, 7, 2, 5, 6, 4], 2, 4).unwrap();
         assert_eq!(
             mask.as_slice(),
             &[true, false, true, false, false, true, true, false]
