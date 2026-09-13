@@ -31,21 +31,11 @@ pub struct FrozenSparsityRuleSelection {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SparsitySemanticFreezeError {
     Selection(SparsityFreezeError),
-    EmptyBindingId {
-        index: usize,
-    },
-    DuplicateBinding {
-        candidate_id: String,
-    },
-    UnfrozenBinding {
-        candidate_id: String,
-    },
-    MissingFrozenBinding {
-        candidate_id: String,
-    },
-    RuleSemanticMismatch {
-        candidate_id: String,
-    },
+    EmptyBindingId { index: usize },
+    DuplicateBinding { candidate_id: String },
+    UnfrozenBinding { candidate_id: String },
+    MissingFrozenBinding { candidate_id: String },
+    RuleSemanticMismatch { candidate_id: String },
 }
 
 impl FrozenSparsityRuleSelection {
@@ -159,7 +149,11 @@ mod tests {
     use super::*;
     use crate::sparsity_rule_search::{SparsityEvaluationPhase, SparsityRuleCandidate};
 
-    fn candidate(candidate_id: &str, phase: SparsityEvaluationPhase, retained: u64) -> SparsityRuleCandidate {
+    fn candidate(
+        candidate_id: &str,
+        phase: SparsityEvaluationPhase,
+        retained: u64,
+    ) -> SparsityRuleCandidate {
         SparsityRuleCandidate {
             candidate_id: candidate_id.to_owned(),
             phase,
