@@ -252,8 +252,14 @@ mod tests {
         ];
         let page = PageEnvelope::from_keys(&keys).unwrap();
 
-        assert_eq!(admit_page_by_hamming_lower_bound(&query, &page, 1), Ok(false));
-        assert_eq!(admit_page_by_hamming_lower_bound(&query, &page, 2), Ok(true));
+        assert_eq!(
+            admit_page_by_hamming_lower_bound(&query, &page, 1),
+            Ok(false)
+        );
+        assert_eq!(
+            admit_page_by_hamming_lower_bound(&query, &page, 2),
+            Ok(true)
+        );
     }
 
     #[test]
@@ -270,7 +276,10 @@ mod tests {
 
     #[test]
     fn construction_and_query_validation_fail_closed() {
-        assert_eq!(PageEnvelope::from_keys(&[]), Err(PageEnvelopeError::EmptyPage));
+        assert_eq!(
+            PageEnvelope::from_keys(&[]),
+            Err(PageEnvelopeError::EmptyPage)
+        );
 
         let mismatched = [signature(&[true, false]), signature(&[true, false, true])];
         assert!(matches!(
