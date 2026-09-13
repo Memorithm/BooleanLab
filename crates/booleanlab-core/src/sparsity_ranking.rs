@@ -1,12 +1,13 @@
 //! Deterministic score-to-ranking helpers for BL-14 baseline calibration.
 //!
 //! This module deliberately accepts only exact integer score keys. It does not
-//! define how magnitude, structured, or Boolean-controller evidence is converted
-//! into those keys. The random calibration baseline is the one exception: its
-//! counter-based key generator is frozen here so a declared seed reproduces the
-//! same exact ranking without depending on a platform RNG implementation.
+//! define how magnitude or Boolean-controller evidence is converted into those
+//! keys. The random calibration baseline freezes its own counter-based key
+//! generator. The N:M structured baseline freezes only grouping and selection
+//! semantics; callers still own the scientific provenance of the score keys.
 
 use core::cmp::Reverse;
+use core::fmt;
 
 use crate::{ExactMask, SparsityError};
 
@@ -17,6 +18,35 @@ fn mix_splitmix64(mut value: u64) -> u64 {
     value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
     value ^ (value >> 31)
 }
+
+/// Fail-closed errors specific to structured BL-14 baseline construction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StructuredSparsityError {
+    Mask(SparsityError),
+    ZeroGroupSize,
+    RetainedPerGroupExceedsGroupSize {
+        retained_per_group: usize,
+        group_size: usize,
+    },
+    GroupSizeDoesNotDivideTotal {
+        total: usize,
+        group_size: usize,
+    },
+}
+
+impl From<SparsityError> for StructuredSparsityError {
+    fn from(error: SparsityError) -> Self {
+        Self::Mask(error)
+    }
+}
+
+impl fmt::Display for StructuredSparsityError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{self:?}")
+    }
+}
+
+impl std::error::Error for StructuredSparsityError {}
 
 /// Deterministically rank exact score keys from highest to lowest.
 ///
@@ -98,11 +128,68 @@ pub fn deterministic_random_mask(
     mask_from_descending_u64_scores(&keys, retained)
 }
 
+/// Materialize an exact N:M structured baseline from per-element integer scores.
+///
+/// The input is partitioned into contiguous groups of `group_size`. Within each
+/// group, exactly `retained_per_group` indices are retained by descending score;
+/// ties are resolved by ascending original index. Partial trailing groups are
+/// rejected instead of silently receiving a different density.
+///
+/// This function defines grouping/selection semantics only. It does not define
+/// what the score keys mean and therefore does not by itself establish a
+/// magnitude, quality, or hardware-performance result.
+///
+/// # Errors
+///
+/// Returns [`StructuredSparsityError::ZeroGroupSize`] for `group_size == 0`,
+/// [`StructuredSparsityError::RetainedPerGroupExceedsGroupSize`] when the N:M
+/// contract is impossible, [`StructuredSparsityError::GroupSizeDoesNotDivideTotal`]
+/// for a partial trailing group, or a wrapped [`SparsityError`] for empty masks
+/// and exact-mask construction failures.
+pub fn structured_nm_mask_from_u64_scores(
+    scores: &[u64],
+    retained_per_group: usize,
+    group_size: usize,
+) -> Result<ExactMask, StructuredSparsityError> {
+    if group_size == 0 {
+        return Err(StructuredSparsityError::ZeroGroupSize);
+    }
+    if retained_per_group > group_size {
+        return Err(
+            StructuredSparsityError::RetainedPerGroupExceedsGroupSize {
+                retained_per_group,
+                group_size,
+            },
+        );
+    }
+    if scores.is_empty() {
+        return Err(SparsityError::EmptyMask.into());
+    }
+    if scores.len() % group_size != 0 {
+        return Err(StructuredSparsityError::GroupSizeDoesNotDivideTotal {
+            total: scores.len(),
+            group_size,
+        });
+    }
+
+    let mut retained_indices = Vec::with_capacity(
+        (scores.len() / group_size).saturating_mul(retained_per_group),
+    );
+
+    for group_start in (0..scores.len()).step_by(group_size) {
+        let mut group_indices: Vec<usize> = (group_start..group_start + group_size).collect();
+        group_indices.sort_unstable_by_key(|&index| (Reverse(scores[index]), index));
+        retained_indices.extend_from_slice(&group_indices[..retained_per_group]);
+    }
+
+    ExactMask::from_retained_indices(scores.len(), &retained_indices).map_err(Into::into)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        deterministic_random_keys, deterministic_random_mask, mask_from_descending_u64_scores,
-        rank_descending_u64,
+        StructuredSparsityError, deterministic_random_keys, deterministic_random_mask,
+        mask_from_descending_u64_scores, rank_descending_u64, structured_nm_mask_from_u64_scores,
     };
     use crate::{MaskCardinality, SparsityError};
 
@@ -191,6 +278,54 @@ mod tests {
                 retained: 4,
                 total: 3,
             })
+        );
+    }
+
+    #[test]
+    fn nm_structured_mask_keeps_exactly_n_per_group() {
+        let mask = structured_nm_mask_from_u64_scores(&[9, 1, 8, 7, 2, 5, 6, 4], 2, 4).unwrap();
+        assert_eq!(
+            mask.as_slice(),
+            &[true, false, true, false, false, true, true, false]
+        );
+        assert_eq!(mask.cardinality(), MaskCardinality::new(4, 8).unwrap());
+    }
+
+    #[test]
+    fn nm_structured_mask_has_explicit_deterministic_ties() {
+        let mask = structured_nm_mask_from_u64_scores(&[5, 5, 1, 0], 1, 4).unwrap();
+        assert_eq!(mask.as_slice(), &[true, false, false, false]);
+    }
+
+    #[test]
+    fn nm_structured_mask_supports_zero_retained_per_group() {
+        let mask = structured_nm_mask_from_u64_scores(&[5, 4, 3, 2], 0, 2).unwrap();
+        assert_eq!(mask.as_slice(), &[false, false, false, false]);
+    }
+
+    #[test]
+    fn nm_structured_mask_rejects_invalid_group_contracts() {
+        assert_eq!(
+            structured_nm_mask_from_u64_scores(&[1, 2, 3, 4], 1, 0),
+            Err(StructuredSparsityError::ZeroGroupSize)
+        );
+        assert_eq!(
+            structured_nm_mask_from_u64_scores(&[1, 2, 3, 4], 3, 2),
+            Err(StructuredSparsityError::RetainedPerGroupExceedsGroupSize {
+                retained_per_group: 3,
+                group_size: 2,
+            })
+        );
+        assert_eq!(
+            structured_nm_mask_from_u64_scores(&[1, 2, 3], 1, 2),
+            Err(StructuredSparsityError::GroupSizeDoesNotDivideTotal {
+                total: 3,
+                group_size: 2,
+            })
+        );
+        assert_eq!(
+            structured_nm_mask_from_u64_scores(&[], 0, 1),
+            Err(StructuredSparsityError::Mask(SparsityError::EmptyMask))
         );
     }
 }
