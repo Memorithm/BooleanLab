@@ -3,7 +3,7 @@
 //! This module provides the deterministic evidence boundary that SAT/MaxSAT,
 //! CEGIS, Forge-style search or another declared discrete search method can feed
 //! after evaluating a candidate under one frozen contract. It also exposes a
-//! bounded proposal adapter over BooleanLab's existing deterministic circuit
+//! bounded proposal adapter over `BooleanLab`'s existing deterministic circuit
 //! generator. Proposal generation does not evaluate sparsity quality or select
 //! using holdout evidence. Search evidence and final holdout evidence are
 //! deliberately separate and may not be pooled into one frontier.
