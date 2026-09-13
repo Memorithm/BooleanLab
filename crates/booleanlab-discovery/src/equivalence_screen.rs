@@ -120,7 +120,6 @@ pub fn screen_candidate_set(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ExactMetrics;
 
     fn function(bits: &[u8]) -> BooleanFunction {
         BooleanFunction::new(2, bits.to_vec()).unwrap()
