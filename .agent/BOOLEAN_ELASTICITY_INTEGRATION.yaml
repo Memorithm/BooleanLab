@@ -1,0 +1,67 @@
+schema_version: 1
+kind: booleanlab_elasticity_integration_overlay
+status: active
+last_updated: "2026-09-13"
+repository: Memorithm/BooleanLab
+canonical_runtime_owner: Memorithm/ElasticXxx
+canonical_runtime_roadmap: Memorithm/ElasticXxx@agent/ecosystem-roadmap:.agent/BOOLEAN_ELASTICITY_ROADMAP.yaml
+merge_policy: never_merge_this_file_to_default_branch_unless_user_explicitly_requests
+
+mission: >-
+  Use BooleanLab as the experimental and differential-oracle bench for Boolean
+  decision structures that may later be promoted into ElasticXxx. Keep
+  production runtime semantics in ElasticXxx and experimental discovery in
+  BooleanLab.
+
+hard_boundaries:
+  - no_unmeasured_performance_claims
+  - no_scientific_novelty_claim_without_evidence
+  - no_copying_Elastic_runtime_actuation_semantics_into_BooleanLab
+  - no_promoting_experimental_forms_without_versioned_contract_and_tests
+  - exact_exhaustive_small_domain_oracles_take_precedence_over_heuristic_claims
+  - required_CI_must_be_green_on_exact_PR_head_before_merge
+
+implementation_sequence:
+  - id: BL-BE0
+    status: active
+    work:
+      - install_agent_bootstrap
+      - inventory_existing_BL_boolean_expression_mask_and_search_primitives
+      - map_reusable_oracles_to_ElasticXxx_BE1_BE3_BE11_BE13
+  - id: BL-BE1
+    status: planned
+    work:
+      - add_differential_oracle_for_Elastic_strong_Kleene_truth_tables
+      - exhaustively_compare_simple_compiled_conjunctions_with_generic_evaluation
+      - characterize_contradictions_tautologies_and_redundancy_on_small_domains
+  - id: BL-BE2
+    status: planned
+    work:
+      - benchmark_scalar_expression_vs_u64_mask_vs_multiword_candidate_forms
+      - measure_storage_and_evaluation_cost_without_extrapolating_to_Elastic_runtime
+  - id: BL-BE3
+    status: planned
+    work:
+      - experiment_with_canonicalization_normal_forms_BDD_and_bounded_SAT
+      - record_failure_modes_and_complexity_explosion
+      - identify_safe_bounded_backend_contracts
+  - id: BL-BE4
+    status: planned
+    work:
+      - experiment_with_pseudo_boolean_weighted_constraints
+      - validate_exact_integer_scaling_over_small_enumerable_domains
+  - id: BL-BE5
+    status: planned
+    work:
+      - publish_versioned_candidate_contracts_for_generic_results
+      - promote_only_evidence_backed_primitives_to_ElasticXxx_or_SciRust_as_appropriate
+
+cross_repository_rules:
+  - ElasticXxx_production_tests_must_not_depend_on_BooleanLab_network_or_runtime_availability
+  - use_pinned_artifacts_or_reimplemented_exact_oracles_for_cross_repo_regression_tests
+  - record_source_commit_for_promoted_algorithm_or_test_vector
+  - TDI_scientific_holdouts_and_final_material_are_out_of_scope
+
+current_facts:
+  - BooleanLab_main_contains_BL_14_5_exhaustive_Boolean_mask_fit_calibration_through_PR_55
+  - BooleanLab_currently_has_no_root_AGENTS_bootstrap_before_this_program
