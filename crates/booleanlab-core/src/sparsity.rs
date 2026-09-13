@@ -16,6 +16,11 @@ pub struct MaskCardinality {
 
 impl MaskCardinality {
     /// Construct an exact cardinality record.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SparsityError::EmptyMask`] when `total` is zero and
+    /// [`SparsityError::RetainedExceedsTotal`] when `retained > total`.
     pub fn new(retained: usize, total: usize) -> Result<Self, SparsityError> {
         if total == 0 {
             return Err(SparsityError::EmptyMask);
@@ -27,6 +32,10 @@ impl MaskCardinality {
     }
 
     /// Count a Boolean keep/drop mask exactly (`true` means retained).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SparsityError::EmptyMask`] when `mask` is empty.
     pub fn from_mask(mask: &[bool]) -> Result<Self, SparsityError> {
         if mask.is_empty() {
             return Err(SparsityError::EmptyMask);
@@ -50,15 +59,6 @@ impl MaskCardinality {
         self.total - self.retained
     }
 
-    /// Floating representation for reporting only.
-    ///
-    /// Scientific density matching should use [`Self::same_density`] or
-    /// [`Self::same_cardinality`] rather than comparing floating-point values.
-    #[must_use]
-    pub fn retained_density(self) -> f64 {
-        self.retained as f64 / self.total as f64
-    }
-
     /// Exact cardinality equality: same retained count and same declared width.
     #[must_use]
     pub const fn same_cardinality(self, other: Self) -> bool {
@@ -74,6 +74,12 @@ impl MaskCardinality {
 
     /// Require two baselines to use exactly the same declared mask width and
     /// retained cardinality.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SparsityError::MaskWidthMismatch`] when the declared mask
+    /// widths differ, or [`SparsityError::RetainedCountMismatch`] when the
+    /// widths match but retained cardinalities differ.
     pub fn require_matched_cardinality(self, other: Self) -> Result<(), SparsityError> {
         if self.total != other.total {
             return Err(SparsityError::MaskWidthMismatch {
@@ -129,7 +135,6 @@ mod tests {
         assert_eq!(cardinality.retained(), 3);
         assert_eq!(cardinality.dropped(), 2);
         assert_eq!(cardinality.total(), 5);
-        assert!((cardinality.retained_density() - 0.6).abs() < f64::EPSILON);
     }
 
     #[test]
