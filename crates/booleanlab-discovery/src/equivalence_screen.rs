@@ -6,6 +6,7 @@
 //! CCZ, affine, permutation, circuit, or algebraic equivalence.
 
 use crate::BooleanFunction;
+use crate::baseline::BaselineRecord;
 
 /// The strongest equivalence relation actually demonstrated by this screen.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -59,6 +60,48 @@ pub fn screen_exact_or_complement(
         })
 }
 
+/// Screens one candidate directly against retained Boolean-only baseline records.
+///
+/// The returned index addresses `reference` itself, so callers can recover the
+/// matched record's exact metrics, gate count, depth and imbalance without a
+/// parallel lookup table. The equivalence relation is unchanged: only exact
+/// truth-table equality and the declared output-complement canonicalisation are
+/// considered.
+///
+/// A `None` result still means only "not found in this supplied bounded baseline
+/// under the declared relations". It is not evidence of novelty or of broader
+/// affine, EA, CCZ, permutation, circuit or algebraic non-equivalence.
+#[must_use]
+pub fn screen_baseline_records(
+    candidate: &BooleanFunction,
+    reference: &[BaselineRecord],
+) -> Option<EquivalenceMatch> {
+    if let Some(reference_index) = reference
+        .iter()
+        .position(|record| &record.function == candidate)
+    {
+        return Some(EquivalenceMatch {
+            reference_index,
+            relation: ScreenedEquivalence::Exact,
+        });
+    }
+
+    let canonical = candidate.canonical_under_complement();
+    reference
+        .iter()
+        .enumerate()
+        .find_map(|(reference_index, record)| {
+            let known = &record.function;
+            if known.input_bits() != candidate.input_bits() {
+                return None;
+            }
+            (known.canonical_under_complement() == canonical).then_some(EquivalenceMatch {
+                reference_index,
+                relation: ScreenedEquivalence::OutputComplement,
+            })
+        })
+}
+
 /// Screens a candidate set without collapsing individual provenance.
 ///
 /// The output order exactly matches `candidates`; each entry is independently
@@ -82,6 +125,16 @@ mod tests {
         BooleanFunction::new(2, bits.to_vec()).unwrap()
     }
 
+    fn baseline_record(function: BooleanFunction, gate_count: usize) -> BaselineRecord {
+        BaselineRecord {
+            metrics: function.exact_metrics(),
+            function,
+            gate_count,
+            depth: gate_count,
+            imbalance: 0,
+        }
+    }
+
     #[test]
     fn exact_match_has_precedence() {
         let candidate = function(&[0, 1, 1, 0]);
@@ -101,6 +154,34 @@ mod tests {
         let reference = vec![function(&[1, 1, 0, 0])];
         assert_eq!(
             screen_exact_or_complement(&candidate, &reference),
+            Some(EquivalenceMatch {
+                reference_index: 0,
+                relation: ScreenedEquivalence::OutputComplement,
+            })
+        );
+    }
+
+    #[test]
+    fn baseline_record_screen_preserves_cost_lookup_index() {
+        let candidate = function(&[0, 1, 1, 0]);
+        let reference = vec![
+            baseline_record(function(&[0, 0, 0, 1]), 3),
+            baseline_record(candidate.clone(), 7),
+        ];
+        let matched = screen_baseline_records(&candidate, &reference).unwrap();
+
+        assert_eq!(matched.reference_index, 1);
+        assert_eq!(matched.relation, ScreenedEquivalence::Exact);
+        assert_eq!(reference[matched.reference_index].gate_count, 7);
+    }
+
+    #[test]
+    fn baseline_record_screen_keeps_declared_relation_narrow() {
+        let candidate = function(&[0, 0, 1, 1]);
+        let reference = vec![baseline_record(function(&[1, 1, 0, 0]), 4)];
+
+        assert_eq!(
+            screen_baseline_records(&candidate, &reference),
             Some(EquivalenceMatch {
                 reference_index: 0,
                 relation: ScreenedEquivalence::OutputComplement,
