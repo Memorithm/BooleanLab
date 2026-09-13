@@ -229,7 +229,7 @@ mod tests {
         let expected = packed_xnor_popcount_cell(&packed_left, &packed_right, width).unwrap();
 
         packed_left[1] |= !1_u64;
-        packed_right[1] = 1_u64;
+        packed_right[1] |= !1_u64;
 
         assert_eq!(
             packed_xnor_popcount_cell(&packed_left, &packed_right, width),
