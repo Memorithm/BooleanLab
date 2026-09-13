@@ -18,5 +18,5 @@ pub use bme_packed::{
 };
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
-pub use sparsity::{MaskCardinality, SparsityError};
+pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
 pub use state::{BitState, StateError};
