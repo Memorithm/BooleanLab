@@ -228,13 +228,7 @@ mod tests {
             })
         );
 
-        let missing = vec![candidate(
-            "a",
-            SparsityEvaluationPhase::Holdout,
-            1,
-            80,
-            5,
-        )];
+        let missing = vec![candidate("a", SparsityEvaluationPhase::Holdout, 1, 80, 5)];
         assert_eq!(
             frozen.validate_holdout(&missing),
             Err(SparsityFreezeError::MissingFrozenCandidate {
@@ -245,47 +239,23 @@ mod tests {
 
     #[test]
     fn holdout_rejects_phase_domain_and_duplicate_drift() {
-        let search = vec![candidate(
-            "only",
-            SparsityEvaluationPhase::Search,
-            0,
-            50,
-            1,
-        )];
+        let search = vec![candidate("only", SparsityEvaluationPhase::Search, 0, 50, 1)];
         let frozen = FrozenSparsitySelection::from_search_frontier(&search).unwrap();
 
-        let wrong_phase = vec![candidate(
-            "only",
-            SparsityEvaluationPhase::Search,
-            0,
-            50,
-            1,
-        )];
+        let wrong_phase = vec![candidate("only", SparsityEvaluationPhase::Search, 0, 50, 1)];
         assert!(matches!(
             frozen.validate_holdout(&wrong_phase),
             Err(SparsityFreezeError::HoldoutPhaseRequired { .. })
         ));
 
-        let mut wrong_domain = candidate(
-            "only",
-            SparsityEvaluationPhase::Holdout,
-            0,
-            50,
-            1,
-        );
+        let mut wrong_domain = candidate("only", SparsityEvaluationPhase::Holdout, 0, 50, 1);
         wrong_domain.total_units = 101;
         assert!(matches!(
             frozen.validate_holdout(&[wrong_domain]),
             Err(SparsityFreezeError::HoldoutDomainSizeMismatch { .. })
         ));
 
-        let duplicate = candidate(
-            "only",
-            SparsityEvaluationPhase::Holdout,
-            0,
-            50,
-            1,
-        );
+        let duplicate = candidate("only", SparsityEvaluationPhase::Holdout, 0, 50, 1);
         assert!(matches!(
             frozen.validate_holdout(&[duplicate.clone(), duplicate]),
             Err(SparsityFreezeError::DuplicateHoldoutCandidate { .. })
