@@ -198,10 +198,12 @@ fn next_permutation(values: &mut [u32]) -> bool {
     else {
         return false;
     };
-    let successor = (pivot + 1..values.len())
+    let Some(successor) = (pivot + 1..values.len())
         .rev()
         .find(|&index| values[pivot] < values[index])
-        .expect("pivot guarantees a successor");
+    else {
+        return false;
+    };
     values.swap(pivot, successor);
     values[pivot + 1..].reverse();
     true
