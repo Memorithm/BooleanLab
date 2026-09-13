@@ -78,7 +78,7 @@ pub fn screen_baseline_records(
 ) -> Option<EquivalenceMatch> {
     if let Some(reference_index) = reference
         .iter()
-        .position(|record| record.function == *candidate)
+        .position(|record| &record.function == candidate)
     {
         return Some(EquivalenceMatch {
             reference_index,
