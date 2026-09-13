@@ -8,9 +8,7 @@ use std::fmt;
 
 use booleanlab_core::DynamicMaskError;
 
-use crate::sparsity_exhaustive_search::{
-    ExhaustiveRuleSearchError, propose_exhaustive_rules,
-};
+use crate::sparsity_exhaustive_search::{ExhaustiveRuleSearchError, propose_exhaustive_rules};
 use crate::sparsity_function_mask::materialize_boolean_function_mask;
 
 /// Exact fit evidence for one exhaustively enumerated Boolean sparsity rule.
@@ -26,7 +24,10 @@ pub struct ExhaustiveMaskFit {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExhaustiveMaskFitError {
     EmptyTarget,
-    TargetLengthMismatch { predicate_rows: usize, target: usize },
+    TargetLengthMismatch {
+        predicate_rows: usize,
+        target: usize,
+    },
     Search(ExhaustiveRuleSearchError),
     Mask(DynamicMaskError),
     CounterOverflow,
