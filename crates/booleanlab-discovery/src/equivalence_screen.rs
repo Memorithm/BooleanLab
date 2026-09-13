@@ -6,7 +6,7 @@
 //! CCZ, affine, permutation, circuit, or algebraic equivalence.
 
 use crate::BooleanFunction;
-use crate::baseline::BaselineRecord;
+use crate::baseline::{BaselineRecord, BaselineSummary};
 
 /// The strongest equivalence relation actually demonstrated by this screen.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -102,6 +102,24 @@ pub fn screen_baseline_records(
         })
 }
 
+/// Screens a candidate against the complete exact-deduplicated population retained
+/// by a Boolean-only baseline campaign.
+///
+/// This is the BL-13.2.1 bridge between the frozen BL-13.1.2 search result and the
+/// equivalence screen. It deliberately uses [`BaselineSummary::population`], not
+/// the Pareto projection, so a candidate cannot appear absent merely because an
+/// equivalent reference function was dominated on cost/metric objectives.
+///
+/// A `None` result remains bounded to the supplied baseline population and the two
+/// declared relations. It is not a novelty verdict.
+#[must_use]
+pub fn screen_full_baseline(
+    candidate: &BooleanFunction,
+    baseline: &BaselineSummary,
+) -> Option<EquivalenceMatch> {
+    screen_baseline_records(candidate, &baseline.population)
+}
+
 /// Screens a candidate set without collapsing individual provenance.
 ///
 /// The output order exactly matches `candidates`; each entry is independently
@@ -120,6 +138,7 @@ pub fn screen_candidate_set(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::baseline::{BaselineConfig, run_boolean_baseline};
 
     fn function(bits: &[u8]) -> BooleanFunction {
         BooleanFunction::new(2, bits.to_vec()).unwrap()
@@ -185,6 +204,33 @@ mod tests {
             Some(EquivalenceMatch {
                 reference_index: 0,
                 relation: ScreenedEquivalence::OutputComplement,
+            })
+        );
+    }
+
+    #[test]
+    fn full_baseline_screen_uses_non_pareto_population_records() {
+        let summary = run_boolean_baseline(BaselineConfig {
+            input_bits: 2,
+            candidates: 64,
+            min_gates: 2,
+            max_gates: 6,
+            seed: 11,
+        })
+        .unwrap();
+        let non_pareto = summary
+            .population
+            .iter()
+            .enumerate()
+            .find(|(_, record)| !summary.pareto_front.contains(record))
+            .map(|(index, record)| (index, record.function.clone()))
+            .expect("bounded fixture should retain at least one dominated function");
+
+        assert_eq!(
+            screen_full_baseline(&non_pareto.1, &summary),
+            Some(EquivalenceMatch {
+                reference_index: non_pareto.0,
+                relation: ScreenedEquivalence::Exact,
             })
         );
     }
