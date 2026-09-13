@@ -25,6 +25,10 @@ pub struct FrozenSparsitySelection {
 pub enum SparsityFreezeError {
     Search(SparsityRuleSearchError),
     EmptyFrozenSelection,
+    SearchPhaseRequired {
+        candidate_id: String,
+        actual: SparsityEvaluationPhase,
+    },
     HoldoutIsEmpty,
     HoldoutPhaseRequired {
         candidate_id: String,
@@ -34,6 +38,11 @@ pub enum SparsityFreezeError {
         candidate_id: String,
         expected_total_units: u64,
         actual_total_units: u64,
+    },
+    HoldoutRetainedUnitsExceedTotal {
+        candidate_id: String,
+        retained_units: u64,
+        total_units: u64,
     },
     DuplicateHoldoutCandidate {
         candidate_id: String,
@@ -56,12 +65,22 @@ impl FrozenSparsitySelection {
     ///
     /// # Errors
     ///
-    /// Propagates [`SparsityRuleSearchError`] when SEARCH evidence is malformed.
-    /// Returns [`SparsityFreezeError::EmptyFrozenSelection`] if the validated
-    /// search population unexpectedly yields no frontier candidate.
+    /// Rejects any non-SEARCH row before objective values can influence the
+    /// frozen selection. Propagates [`SparsityRuleSearchError`] when SEARCH
+    /// evidence is malformed. Returns [`SparsityFreezeError::EmptyFrozenSelection`]
+    /// if the validated search population unexpectedly yields no frontier candidate.
     pub fn from_search_frontier(
         candidates: &[SparsityRuleCandidate],
     ) -> Result<Self, SparsityFreezeError> {
+        for candidate in candidates {
+            if candidate.phase != SparsityEvaluationPhase::Search {
+                return Err(SparsityFreezeError::SearchPhaseRequired {
+                    candidate_id: candidate.candidate_id.clone(),
+                    actual: candidate.phase,
+                });
+            }
+        }
+
         let frontier = pareto_frontier_indices(candidates).map_err(SparsityFreezeError::Search)?;
         let Some(first_index) = frontier.first().copied() else {
             return Err(SparsityFreezeError::EmptyFrozenSelection);
@@ -100,8 +119,8 @@ impl FrozenSparsitySelection {
     /// # Errors
     ///
     /// Rejects an empty batch, non-HOLDOUT evidence, changed domain size,
-    /// duplicate identities, newly introduced candidates, or missing frozen
-    /// candidates.
+    /// impossible retained cardinality, duplicate identities, newly introduced
+    /// candidates, or missing frozen candidates.
     pub fn validate_holdout(
         &self,
         candidates: &[SparsityRuleCandidate],
@@ -129,6 +148,13 @@ impl FrozenSparsitySelection {
                     candidate_id: candidate.candidate_id.clone(),
                     expected_total_units: self.total_units,
                     actual_total_units: candidate.total_units,
+                });
+            }
+            if candidate.retained_units > candidate.total_units {
+                return Err(SparsityFreezeError::HoldoutRetainedUnitsExceedTotal {
+                    candidate_id: candidate.candidate_id.clone(),
+                    retained_units: candidate.retained_units,
+                    total_units: candidate.total_units,
                 });
             }
             if !observed.insert(candidate.candidate_id.as_str()) {
@@ -209,6 +235,24 @@ mod tests {
     }
 
     #[test]
+    fn freeze_rejects_holdout_evidence_before_frontier_selection() {
+        let holdout = vec![candidate(
+            "final-only",
+            SparsityEvaluationPhase::Holdout,
+            -10,
+            1,
+            1,
+        )];
+        assert_eq!(
+            FrozenSparsitySelection::from_search_frontier(&holdout),
+            Err(SparsityFreezeError::SearchPhaseRequired {
+                candidate_id: "final-only".to_owned(),
+                actual: SparsityEvaluationPhase::Holdout,
+            })
+        );
+    }
+
+    #[test]
     fn holdout_cannot_add_or_drop_search_selected_candidates() {
         let search = vec![
             candidate("a", SparsityEvaluationPhase::Search, 0, 80, 5),
@@ -238,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn holdout_rejects_phase_domain_and_duplicate_drift() {
+    fn holdout_rejects_phase_domain_cardinality_and_duplicate_drift() {
         let search = vec![candidate("only", SparsityEvaluationPhase::Search, 0, 50, 1)];
         let frozen = FrozenSparsitySelection::from_search_frontier(&search).unwrap();
 
@@ -254,6 +298,16 @@ mod tests {
             frozen.validate_holdout(&[wrong_domain]),
             Err(SparsityFreezeError::HoldoutDomainSizeMismatch { .. })
         ));
+
+        let impossible = candidate("only", SparsityEvaluationPhase::Holdout, 0, 101, 1);
+        assert_eq!(
+            frozen.validate_holdout(&[impossible]),
+            Err(SparsityFreezeError::HoldoutRetainedUnitsExceedTotal {
+                candidate_id: "only".to_owned(),
+                retained_units: 101,
+                total_units: 100,
+            })
+        );
 
         let duplicate = candidate("only", SparsityEvaluationPhase::Holdout, 0, 50, 1);
         assert!(matches!(
