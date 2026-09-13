@@ -216,7 +216,10 @@ mod tests {
         assert_eq!(evidence.rejected_pairs().unwrap(), 768);
         assert_eq!(evidence.kv_bytes_not_consumed().unwrap(), 49_152);
         assert_eq!(evidence.boolean_metadata_bytes, 512);
-        assert_eq!(evidence.traffic_kind, TrafficEvidenceKind::LogicalAccounting);
+        assert_eq!(
+            evidence.traffic_kind,
+            TrafficEvidenceKind::LogicalAccounting
+        );
     }
 
     #[test]
