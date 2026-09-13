@@ -12,6 +12,7 @@ pub mod hybrid;
 pub mod sparsity;
 pub mod sparsity_dynamic;
 pub mod sparsity_ranking;
+pub mod sparsity_relational;
 pub mod sparsity_static;
 pub mod sparsity_structured;
 pub mod state;
@@ -43,6 +44,7 @@ pub use sparsity_ranking::{
     StructuredSparsityError, deterministic_random_keys, deterministic_random_mask,
     mask_from_descending_u64_scores, rank_descending_u64, structured_nm_mask_from_u64_scores,
 };
+pub use sparsity_relational::{RedundancyEdge, RelationalMaskError, relational_component_mask};
 pub use sparsity_static::{
     StaticMaskError, static_mask_from_index_bits, static_mask_from_truth_table,
 };
