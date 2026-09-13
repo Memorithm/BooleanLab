@@ -250,8 +250,12 @@ pub fn score_admission(
     let mut false_negative = 0_usize;
 
     for (&keep, &oracle_positive) in candidate.iter().zip(reference) {
-        admitted += usize::from(keep);
-        reference_positive += usize::from(oracle_positive);
+        if keep {
+            admitted += 1;
+        }
+        if oracle_positive {
+            reference_positive += 1;
+        }
 
         match (keep, oracle_positive) {
             (true, true) => true_positive += 1,
