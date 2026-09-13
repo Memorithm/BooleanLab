@@ -41,7 +41,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "OUTPUT_COMPLEMENT"
                 }
             };
-            println!("{coordinate}\t{status}\t{}\tidentity", screened.reference_index);
+            println!(
+                "{coordinate}\t{status}\t{}\tidentity",
+                screened.reference_index
+            );
             continue;
         }
 
@@ -100,7 +103,9 @@ fn build_reference_indexes(
     let mut exact = BTreeMap::new();
     let mut complement = BTreeMap::new();
     for (index, record) in records.iter().enumerate() {
-        exact.entry(record.function.truth_table().to_vec()).or_insert(index);
+        exact
+            .entry(record.function.truth_table().to_vec())
+            .or_insert(index);
         let complemented = record
             .function
             .truth_table()
