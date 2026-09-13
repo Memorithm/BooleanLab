@@ -94,6 +94,11 @@ impl AttentionWorkEvidence {
     /// For [`TrafficEvidenceKind::LogicalAccounting`] this remains a logical
     /// byte reduction, not evidence that physical memory traffic fell by the
     /// same amount.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the work evidence violates subset or traffic
+    /// invariants.
     pub fn kv_bytes_not_consumed(self) -> Result<u64, SystemsEvidenceError> {
         self.validate()?;
         Ok(self.dense_kv_bytes - self.candidate_kv_bytes)
@@ -130,6 +135,11 @@ impl AttentionTimingEvidence {
     }
 
     /// Validate that both matched paths have non-zero observable duration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when timing arithmetic overflows or either matched
+    /// interval is zero.
     pub fn validate(self) -> Result<(), SystemsEvidenceError> {
         let candidate = self.candidate_total_ns()?;
         if candidate == 0 || self.dense_baseline_ns == 0 {
@@ -140,6 +150,10 @@ impl AttentionTimingEvidence {
 
     /// Signed nanosecond delta `candidate - dense` without converting the
     /// evidence into a rounded floating-point speedup ratio.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the timing evidence is invalid or overflows.
     pub fn candidate_minus_dense_ns(self) -> Result<i128, SystemsEvidenceError> {
         self.validate()?;
         Ok(i128::from(self.candidate_total_ns()?) - i128::from(self.dense_baseline_ns))
@@ -149,12 +163,18 @@ impl AttentionTimingEvidence {
 /// Complete BL-4.6 evidence record for one matched workload observation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct AttentionSystemsEvidence {
+    /// Exact logical work and byte-accounting evidence.
     pub work: AttentionWorkEvidence,
+    /// Matched timing evidence and timing provenance.
     pub timing: AttentionTimingEvidence,
 }
 
 impl AttentionSystemsEvidence {
     /// Validate the two independent evidence planes.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first work-accounting or timing validation error.
     pub fn validate(self) -> Result<(), SystemsEvidenceError> {
         self.work.validate()?;
         self.timing.validate()
@@ -165,9 +185,18 @@ impl AttentionSystemsEvidence {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SystemsEvidenceError {
     ZeroDensePairs,
-    AdmittedPairsExceedDense { admitted: u64, dense: u64 },
-    ExactWorkExceedsAdmission { exact: u64, admitted: u64 },
-    CandidateKvBytesExceedDense { candidate: u64, dense: u64 },
+    AdmittedPairsExceedDense {
+        admitted: u64,
+        dense: u64,
+    },
+    ExactWorkExceedsAdmission {
+        exact: u64,
+        admitted: u64,
+    },
+    CandidateKvBytesExceedDense {
+        candidate: u64,
+        dense: u64,
+    },
     TimingOverflow,
     ZeroTimingInterval,
 }
