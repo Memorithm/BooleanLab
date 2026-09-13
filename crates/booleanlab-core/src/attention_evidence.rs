@@ -156,7 +156,9 @@ impl AttentionTimingEvidence {
     /// Returns an error when the timing evidence is invalid or overflows.
     pub fn candidate_minus_dense_ns(self) -> Result<i128, SystemsEvidenceError> {
         self.validate()?;
-        Ok(i128::from(self.candidate_total_ns()?) - i128::from(self.dense_baseline_ns))
+        Ok(
+            i128::from(self.candidate_total_ns()?) - i128::from(self.dense_baseline_ns),
+        )
     }
 }
 
