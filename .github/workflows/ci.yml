@@ -47,3 +47,5 @@ jobs:
         run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_control --release
       - name: BL-13.2.1 sedenion full-baseline equivalence screen
         run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_baseline_screen --release
+      - name: BL-13.2.1 sedenion input-permutation screen
+        run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_permutation_screen --release
