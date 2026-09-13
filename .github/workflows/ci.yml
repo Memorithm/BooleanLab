@@ -24,6 +24,8 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: BL-0 deterministic smoke experiment
         run: cargo run -p booleanlab-runner --release
+      - name: BL-4.4.2 deterministic Hamming frontier calibration
+        run: cargo run -p booleanlab-discovery --bin bl4_hamming_frontier --release
       - name: BL-13 exact metric calibration
         run: cargo run -p booleanlab-discovery --bin bl13_calibrate --release
       - name: BL-13 Boolean-only reference and Pareto campaign
