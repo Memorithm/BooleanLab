@@ -25,5 +25,7 @@ pub use sparsity_ranking::{
     StructuredSparsityError, deterministic_random_keys, deterministic_random_mask,
     mask_from_descending_u64_scores, rank_descending_u64, structured_nm_mask_from_u64_scores,
 };
-pub use sparsity_static::{StaticMaskError, static_mask_from_truth_table};
+pub use sparsity_static::{
+    StaticMaskError, static_mask_from_index_bits, static_mask_from_truth_table,
+};
 pub use state::{BitState, StateError};
