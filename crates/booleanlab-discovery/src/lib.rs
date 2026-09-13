@@ -319,6 +319,7 @@ mod tests {
         let mut index = DedupIndex::new();
         assert_eq!(index.insert(and.clone()), DedupOutcome::New);
         assert_eq!(index.insert(and), DedupOutcome::Existing);
+        assert_eq!(index.insert(or), DedupOutcome::New);
         assert_eq!(index.unique_functions(), 2);
     }
 }
