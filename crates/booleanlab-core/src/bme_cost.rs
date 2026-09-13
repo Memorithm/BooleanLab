@@ -59,25 +59,32 @@ impl BmeShape {
         if self.rows == 0 || self.inner == 0 || self.cols == 0 {
             return Err(BmeCostError::ZeroDimension);
         }
-        (self.rows as u128)
-            .checked_mul(self.cols as u128)
+        u128::from(self.rows)
+            .checked_mul(u128::from(self.cols))
             .ok_or(BmeCostError::ArithmeticOverflow)
     }
 
     fn pairs(self) -> Result<u128, BmeCostError> {
         self.cells()?
-            .checked_mul(self.inner as u128)
+            .checked_mul(u128::from(self.inner))
             .ok_or(BmeCostError::ArithmeticOverflow)
     }
 
     fn reductions(self) -> Result<u128, BmeCostError> {
         self.cells()?
-            .checked_mul(self.inner.saturating_sub(1) as u128)
+            .checked_mul(u128::from(self.inner.saturating_sub(1)))
             .ok_or(BmeCostError::ArithmeticOverflow)
     }
 }
 
 /// Returns exact abstract operation counts for one canonical BME baseline.
+///
+/// # Errors
+///
+/// Returns [`BmeCostError::ZeroDimension`] when any matrix dimension is zero,
+/// [`BmeCostError::ThresholdOutOfRange`] when a threshold exceeds the inner
+/// dimension, and [`BmeCostError::ArithmeticOverflow`] if an exact operation
+/// count cannot be represented in `u128`.
 pub fn logical_cost(
     equation: CanonicalBmeEquation,
     shape: BmeShape,
