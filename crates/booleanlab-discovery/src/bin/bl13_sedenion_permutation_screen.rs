@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use booleanlab_discovery::BooleanFunction;
 use booleanlab_discovery::baseline::{BaselineConfig, run_boolean_baseline};
-use booleanlab_discovery::equivalence_screen::{ScreenedEquivalence, screen_full_baseline};
+use booleanlab_discovery::equivalence_screen::{
+    AffineInvariantScreen, ScreenedEquivalence, screen_affine_invariants, screen_full_baseline,
+};
 use booleanlab_discovery::sedenion::control_component_functions;
 
 const MAX_EXHAUSTIVE_PERMUTATION_BITS: u32 = 8;
@@ -11,14 +13,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let baseline = run_boolean_baseline(BaselineConfig::bl13_reference())?;
     let functions = control_component_functions()?;
     let (exact_index, complement_index) = build_reference_indexes(&baseline.population);
+    let reference_functions = baseline
+        .population
+        .iter()
+        .map(|record| record.function.clone())
+        .collect::<Vec<_>>();
 
     let mut exact_matches = 0_usize;
     let mut complement_matches = 0_usize;
     let mut permutation_matches = 0_usize;
     let mut permutation_complement_matches = 0_usize;
+    let mut affine_excluded = 0_usize;
+    let mut affine_inconclusive = 0_usize;
+    let mut affine_compatible_references = 0_usize;
     let mut not_found = 0_usize;
 
-    println!("coordinate\tstatus\treference_index\tpermutation");
+    println!(
+        "coordinate\tstatus\treference_index\tpermutation\taffine_screen\taffine_compatible_references"
+    );
 
     for (coordinate, function) in functions.iter().enumerate() {
         if function.input_bits() > MAX_EXHAUSTIVE_PERMUTATION_BITS {
@@ -42,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
             println!(
-                "{coordinate}\t{status}\t{}\tidentity",
+                "{coordinate}\t{status}\t{}\tidentity\tNOT_APPLICABLE\t0",
                 screened.reference_index
             );
             continue;
@@ -56,7 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }) => {
                 permutation_matches += 1;
                 println!(
-                    "{coordinate}\tINPUT_PERMUTATION\t{reference_index}\t{}",
+                    "{coordinate}\tINPUT_PERMUTATION\t{reference_index}\t{}\tNOT_APPLICABLE\t0",
                     format_permutation(&permutation)
                 );
             }
@@ -67,24 +79,44 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }) => {
                 permutation_complement_matches += 1;
                 println!(
-                    "{coordinate}\tINPUT_PERMUTATION_OUTPUT_COMPLEMENT\t{reference_index}\t{}",
+                    "{coordinate}\tINPUT_PERMUTATION_OUTPUT_COMPLEMENT\t{reference_index}\t{}\tNOT_APPLICABLE\t0",
                     format_permutation(&permutation)
                 );
             }
             None => {
                 not_found += 1;
-                println!("{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-");
+                match screen_affine_invariants(function, &reference_functions) {
+                    AffineInvariantScreen::Excluded => {
+                        affine_excluded += 1;
+                        println!(
+                            "{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-\tAFFINE_INVARIANTS_EXCLUDED\t0"
+                        );
+                    }
+                    AffineInvariantScreen::Inconclusive {
+                        compatible_reference_indices,
+                    } => {
+                        affine_inconclusive += 1;
+                        affine_compatible_references += compatible_reference_indices.len();
+                        println!(
+                            "{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-\tAFFINE_INVARIANTS_INCONCLUSIVE\t{}",
+                            compatible_reference_indices.len()
+                        );
+                    }
+                }
             }
         }
     }
 
     println!(
-        "summary\tbaseline_unique={}\texact_matches={}\tcomplement_matches={}\tinput_permutation_matches={}\tinput_permutation_complement_matches={}\tnot_found={}\tnovelty_claim=false",
+        "summary\tbaseline_unique={}\texact_matches={}\tcomplement_matches={}\tinput_permutation_matches={}\tinput_permutation_complement_matches={}\taffine_excluded={}\taffine_inconclusive={}\taffine_compatible_references={}\tnot_found={}\tnovelty_claim=false",
         baseline.unique_functions,
         exact_matches,
         complement_matches,
         permutation_matches,
         permutation_complement_matches,
+        affine_excluded,
+        affine_inconclusive,
+        affine_compatible_references,
         not_found,
     );
     Ok(())
