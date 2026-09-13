@@ -197,10 +197,7 @@ pub fn affine_invariant_signature(function: &BooleanFunction) -> AffineInvariant
         }
         stride = step;
     }
-    let mut walsh_abs_spectrum = walsh
-        .into_iter()
-        .map(i64::unsigned_abs)
-        .collect::<Vec<_>>();
+    let mut walsh_abs_spectrum = walsh.into_iter().map(i64::unsigned_abs).collect::<Vec<_>>();
     walsh_abs_spectrum.sort_unstable();
 
     AffineInvariantSignature {
@@ -373,10 +370,10 @@ mod tests {
 
     #[test]
     fn affine_signature_is_output_complement_invariant() {
-        let function = function(&[0, 0, 0, 1]);
+        let original = function(&[0, 0, 0, 1]);
         let complement = function(&[1, 1, 1, 0]);
         assert_eq!(
-            affine_invariant_signature(&function),
+            affine_invariant_signature(&original),
             affine_invariant_signature(&complement)
         );
     }
