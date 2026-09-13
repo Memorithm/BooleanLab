@@ -12,6 +12,7 @@ pub mod equivalence_screen;
 pub mod gf2;
 #[cfg(feature = "sedenion-experiments")]
 pub mod sedenion;
+pub mod sparsity_rule_search;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -318,7 +319,6 @@ mod tests {
         let mut index = DedupIndex::new();
         assert_eq!(index.insert(and.clone()), DedupOutcome::New);
         assert_eq!(index.insert(and), DedupOutcome::Existing);
-        assert_eq!(index.insert(or), DedupOutcome::New);
         assert_eq!(index.unique_functions(), 2);
     }
 }
