@@ -35,6 +35,7 @@ pub struct ExhaustiveRuleProposal {
 pub enum ExhaustiveRuleSearchError {
     ZeroInputs,
     InputWidthTooLarge { requested: u32, maximum: u32 },
+    PopulationTooLarge { function_count: u64 },
     Function(FunctionError),
 }
 
@@ -53,8 +54,10 @@ pub enum ExhaustiveRuleSearchError {
 ///
 /// Returns [`ExhaustiveRuleSearchError::ZeroInputs`] for zero predicates,
 /// [`ExhaustiveRuleSearchError::InputWidthTooLarge`] above the declared bounded
-/// exhaustive-search cap, or propagates an exact [`FunctionError`] if function
-/// construction fails unexpectedly.
+/// exhaustive-search cap, [`ExhaustiveRuleSearchError::PopulationTooLarge`] if
+/// the exact population cannot be represented by the host allocation index, or
+/// propagates an exact [`FunctionError`] if function construction fails
+/// unexpectedly.
 pub fn propose_exhaustive_rules(
     input_bits: u32,
 ) -> Result<Vec<ExhaustiveRuleProposal>, ExhaustiveRuleSearchError> {
@@ -70,19 +73,19 @@ pub fn propose_exhaustive_rules(
 
     let rows = 1_u32 << input_bits;
     let function_count = 1_u64 << rows;
-    let mut proposals = Vec::with_capacity(function_count as usize);
+    let capacity = usize::try_from(function_count)
+        .map_err(|_| ExhaustiveRuleSearchError::PopulationTooLarge { function_count })?;
+    let mut proposals = Vec::with_capacity(capacity);
 
     for truth_table_code in 0..function_count {
         let truth_table = (0..rows)
-            .map(|row| ((truth_table_code >> row) & 1) as u8)
+            .map(|row| u8::from(((truth_table_code >> row) & 1) != 0))
             .collect::<Vec<_>>();
         let output_ones = truth_table_code.count_ones();
         let function = BooleanFunction::new(input_bits, truth_table)
             .map_err(ExhaustiveRuleSearchError::Function)?;
         proposals.push(ExhaustiveRuleProposal {
-            proposal_id: format!(
-                "bl14-exhaustive-n{input_bits}-{truth_table_code:016x}"
-            ),
+            proposal_id: format!("bl14-exhaustive-n{input_bits}-{truth_table_code:016x}"),
             function,
             truth_table_code,
             output_ones,
@@ -147,10 +150,7 @@ mod tests {
         assert_eq!(xor.function.truth_table(), &[0, 1, 1, 0]);
         assert_eq!(xor.output_ones, 2);
         assert_eq!(xor.truth_table_code, 0b0110);
-        assert_eq!(
-            xor.proposal_id,
-            "bl14-exhaustive-n2-0000000000000006"
-        );
+        assert_eq!(xor.proposal_id, "bl14-exhaustive-n2-0000000000000006");
     }
 
     #[test]
@@ -159,7 +159,23 @@ mod tests {
         assert_eq!(proposals.len(), 65_536);
         assert_eq!(proposals.first().unwrap().output_ones, 0);
         assert_eq!(proposals.last().unwrap().output_ones, 16);
-        assert!(proposals.first().unwrap().function.truth_table().iter().all(|&x| x == 0));
-        assert!(proposals.last().unwrap().function.truth_table().iter().all(|&x| x == 1));
+        assert!(
+            proposals
+                .first()
+                .unwrap()
+                .function
+                .truth_table()
+                .iter()
+                .all(|&x| x == 0)
+        );
+        assert!(
+            proposals
+                .last()
+                .unwrap()
+                .function
+                .truth_table()
+                .iter()
+                .all(|&x| x == 1)
+        );
     }
 }
