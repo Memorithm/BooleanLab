@@ -19,5 +19,10 @@ name = "bl13_sedenion_control"
 path = "src/bin/bl13_sedenion_control.rs"
 required-features = ["sedenion-experiments"]
 
+[[bin]]
+name = "bl13_sedenion_baseline_screen"
+path = "src/bin/bl13_sedenion_baseline_screen.rs"
+required-features = ["sedenion-experiments"]
+
 [lints]
 workspace = true
