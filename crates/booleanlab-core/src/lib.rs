@@ -29,7 +29,5 @@ pub use sparsity_ranking::{
 pub use sparsity_static::{
     StaticMaskError, static_mask_from_index_bits, static_mask_from_truth_table,
 };
-pub use sparsity_structured::{
-    StructuredBooleanMaskError, structured_group_mask_from_truth_table,
-};
+pub use sparsity_structured::{StructuredBooleanMaskError, structured_group_mask_from_truth_table};
 pub use state::{BitState, StateError};
