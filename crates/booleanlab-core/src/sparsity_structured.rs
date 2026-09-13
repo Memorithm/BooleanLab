@@ -64,12 +64,13 @@ pub fn structured_group_mask_from_truth_table(
         return Err(StructuredBooleanMaskError::ZeroGroupWidth);
     }
 
-    let total = groups
-        .checked_mul(group_width)
-        .ok_or(StructuredBooleanMaskError::TotalWidthOverflow {
-            groups,
-            group_width,
-        })?;
+    let total =
+        groups
+            .checked_mul(group_width)
+            .ok_or(StructuredBooleanMaskError::TotalWidthOverflow {
+                groups,
+                group_width,
+            })?;
     let group_mask = static_mask_from_truth_table(groups, truth_table)?;
 
     let mut retained_indices = Vec::with_capacity(
