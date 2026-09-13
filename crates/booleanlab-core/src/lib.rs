@@ -21,7 +21,7 @@ pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
 pub use sparsity_ranking::{
-    deterministic_random_keys, deterministic_random_mask, mask_from_descending_u64_scores,
-    rank_descending_u64,
+    StructuredSparsityError, deterministic_random_keys, deterministic_random_mask,
+    mask_from_descending_u64_scores, rank_descending_u64, structured_nm_mask_from_u64_scores,
 };
 pub use state::{BitState, StateError};
