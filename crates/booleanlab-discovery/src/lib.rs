@@ -12,6 +12,7 @@ pub mod equivalence_screen;
 pub mod gf2;
 #[cfg(feature = "sedenion-experiments")]
 pub mod sedenion;
+pub mod sparsity_rule_search;
 
 use std::collections::BTreeMap;
 use std::fmt;
