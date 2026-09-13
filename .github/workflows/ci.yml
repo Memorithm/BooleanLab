@@ -6,7 +6,8 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
+  pull-requests: write
 
 jobs:
   rust:
@@ -16,15 +17,20 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Apply exact repository rustfmt
+      - name: Report exact repository rustfmt diff
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cargo fmt --all
           if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add crates/booleanlab-core/src/bme_packed.rs crates/booleanlab-core/src/lib.rs
-            git commit -m "chore: apply repository rustfmt"
-            git push origin HEAD:${GITHUB_HEAD_REF}
+            {
+              echo 'Temporary rustfmt diagnostic for this PR:'
+              echo '```diff'
+              git diff -- crates/booleanlab-core/src/bme_packed.rs crates/booleanlab-core/src/lib.rs
+              echo '```'
+            } > /tmp/rustfmt-comment.md
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/rustfmt-comment.md
+            exit 1
           fi
       - name: Format
         run: cargo fmt --all -- --check
