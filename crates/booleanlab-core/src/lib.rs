@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod attention;
 pub mod bme;
 pub mod bme_cost;
 pub mod bme_equation;
@@ -13,6 +14,10 @@ pub mod sparsity_static;
 pub mod sparsity_structured;
 pub mod state;
 
+pub use attention::{
+    AdmissionScore, AttentionRouterError, BitSignature, admit_by_hamming, hamming_admission_row,
+    hamming_distance, score_admission,
+};
 pub use bme::{BmeError, or_and_cell, thresholded_xnor_cell, xnor_popcount_cell, xor_and_cell};
 pub use bme_cost::{BmeCostError, BmeLogicalCost, BmeShape, logical_cost};
 pub use bme_equation::{CanonicalBmeEquation, CanonicalBmeOutput};
