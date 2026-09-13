@@ -98,6 +98,67 @@ impl MaskCardinality {
     }
 }
 
+/// Exact Boolean mask reconstructed from an explicit set of retained indices.
+///
+/// This is the common correctness boundary for BL-14 baseline generators:
+/// random, magnitude, structured, and Boolean policies may choose indices by
+/// different rules, but all must materialize an unambiguous mask before their
+/// quality or systems measurements are compared.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExactMask {
+    values: Vec<bool>,
+    cardinality: MaskCardinality,
+}
+
+impl ExactMask {
+    /// Build a mask from retained indices.
+    ///
+    /// Index order has no semantic meaning. Every index must be unique and
+    /// strictly smaller than `total`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SparsityError::EmptyMask`] when `total` is zero,
+    /// [`SparsityError::SelectionIndexOutOfRange`] when an index is outside the
+    /// declared mask, and [`SparsityError::DuplicateSelectionIndex`] when the
+    /// same retained index is supplied more than once.
+    pub fn from_retained_indices(
+        total: usize,
+        retained_indices: &[usize],
+    ) -> Result<Self, SparsityError> {
+        if total == 0 {
+            return Err(SparsityError::EmptyMask);
+        }
+
+        let mut values = vec![false; total];
+        for &index in retained_indices {
+            if index >= total {
+                return Err(SparsityError::SelectionIndexOutOfRange { index, total });
+            }
+            if values[index] {
+                return Err(SparsityError::DuplicateSelectionIndex { index });
+            }
+            values[index] = true;
+        }
+
+        let cardinality = MaskCardinality::new(retained_indices.len(), total)?;
+        Ok(Self {
+            values,
+            cardinality,
+        })
+    }
+
+    #[must_use]
+    pub fn as_slice(&self) -> &[bool] {
+        &self.values
+    }
+
+    #[must_use]
+    pub const fn cardinality(&self) -> MaskCardinality {
+        self.cardinality
+    }
+}
+
 /// Fail-closed errors for BL-14 mask accounting.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SparsityError {
@@ -115,6 +176,13 @@ pub enum SparsityError {
         right_retained: usize,
         total: usize,
     },
+    SelectionIndexOutOfRange {
+        index: usize,
+        total: usize,
+    },
+    DuplicateSelectionIndex {
+        index: usize,
+    },
 }
 
 impl fmt::Display for SparsityError {
@@ -127,7 +195,7 @@ impl std::error::Error for SparsityError {}
 
 #[cfg(test)]
 mod tests {
-    use super::{MaskCardinality, SparsityError};
+    use super::{ExactMask, MaskCardinality, SparsityError};
 
     #[test]
     fn counts_mask_exactly() {
@@ -184,5 +252,41 @@ mod tests {
                 total: 8,
             })
         );
+    }
+
+    #[test]
+    fn retained_indices_materialize_exact_mask_independent_of_input_order() {
+        let left = ExactMask::from_retained_indices(8, &[7, 1, 3]).unwrap();
+        let right = ExactMask::from_retained_indices(8, &[1, 3, 7]).unwrap();
+
+        assert_eq!(left, right);
+        assert_eq!(
+            left.as_slice(),
+            &[false, true, false, true, false, false, false, true]
+        );
+        assert_eq!(left.cardinality(), MaskCardinality::new(3, 8).unwrap());
+    }
+
+    #[test]
+    fn retained_indices_fail_closed_on_duplicate_and_out_of_range_values() {
+        assert_eq!(
+            ExactMask::from_retained_indices(8, &[1, 1]),
+            Err(SparsityError::DuplicateSelectionIndex { index: 1 })
+        );
+        assert_eq!(
+            ExactMask::from_retained_indices(8, &[8]),
+            Err(SparsityError::SelectionIndexOutOfRange { index: 8, total: 8 })
+        );
+        assert_eq!(
+            ExactMask::from_retained_indices(0, &[]),
+            Err(SparsityError::EmptyMask)
+        );
+    }
+
+    #[test]
+    fn zero_retained_indices_is_a_valid_all_drop_control() {
+        let mask = ExactMask::from_retained_indices(4, &[]).unwrap();
+        assert_eq!(mask.as_slice(), &[false, false, false, false]);
+        assert_eq!(mask.cardinality(), MaskCardinality::new(0, 4).unwrap());
     }
 }
