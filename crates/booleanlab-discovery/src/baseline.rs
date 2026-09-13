@@ -442,9 +442,11 @@ mod tests {
         .unwrap();
         assert_eq!(summary.population.len(), summary.unique_functions);
         for (index, left) in summary.population.iter().enumerate() {
-            assert!(summary.population[index + 1..]
-                .iter()
-                .all(|right| left.function != right.function));
+            assert!(
+                summary.population[index + 1..]
+                    .iter()
+                    .all(|right| left.function != right.function)
+            );
         }
     }
 
