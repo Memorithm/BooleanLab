@@ -149,7 +149,10 @@ fn validate_binding_set(
             function: binding.function.clone(),
             predicate_schema: binding.predicate_schema.clone(),
         };
-        if rules.insert(binding.candidate_id.clone(), semantics).is_some() {
+        if rules
+            .insert(binding.candidate_id.clone(), semantics)
+            .is_some()
+        {
             return Err(SparsitySemanticFreezeError::DuplicateBinding {
                 candidate_id: binding.candidate_id.clone(),
             });
