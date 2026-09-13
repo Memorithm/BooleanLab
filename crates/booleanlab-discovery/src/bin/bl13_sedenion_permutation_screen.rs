@@ -16,7 +16,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reference_functions = baseline
         .population
         .iter()
-        .map(|record| record.function.clone())
+        .map(|record| &record.function)
+        .cloned()
         .collect::<Vec<_>>();
 
     let mut exact_matches = 0_usize;
