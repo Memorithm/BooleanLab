@@ -148,6 +148,47 @@ impl ExactMask {
         })
     }
 
+    /// Build a mask from a complete declared ranking of all mask indices.
+    ///
+    /// The ranking is baseline-agnostic: a caller may derive it from frozen
+    /// random keys, magnitudes, structured scores, or Boolean policy evidence.
+    /// This function only enforces that every baseline supplies one exact
+    /// permutation of `0..total`, then retains the first `retained` entries.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same cardinality/index errors as [`Self::from_retained_indices`],
+    /// plus [`SparsityError::RankingLengthMismatch`] when the ranking is not a
+    /// complete permutation of the declared mask width. Duplicate or out-of-range
+    /// values anywhere in the ranking fail closed, including after the retained
+    /// prefix.
+    pub fn from_ranked_indices(
+        total: usize,
+        retained: usize,
+        ranking: &[usize],
+    ) -> Result<Self, SparsityError> {
+        let _ = MaskCardinality::new(retained, total)?;
+        if ranking.len() != total {
+            return Err(SparsityError::RankingLengthMismatch {
+                ranking_len: ranking.len(),
+                total,
+            });
+        }
+
+        let mut seen = vec![false; total];
+        for &index in ranking {
+            if index >= total {
+                return Err(SparsityError::SelectionIndexOutOfRange { index, total });
+            }
+            if seen[index] {
+                return Err(SparsityError::DuplicateSelectionIndex { index });
+            }
+            seen[index] = true;
+        }
+
+        Self::from_retained_indices(total, &ranking[..retained])
+    }
+
     #[must_use]
     pub fn as_slice(&self) -> &[bool] {
         &self.values
@@ -182,6 +223,10 @@ pub enum SparsityError {
     },
     DuplicateSelectionIndex {
         index: usize,
+    },
+    RankingLengthMismatch {
+        ranking_len: usize,
+        total: usize,
     },
 }
 
@@ -288,5 +333,43 @@ mod tests {
         let mask = ExactMask::from_retained_indices(4, &[]).unwrap();
         assert_eq!(mask.as_slice(), &[false, false, false, false]);
         assert_eq!(mask.cardinality(), MaskCardinality::new(0, 4).unwrap());
+    }
+
+    #[test]
+    fn complete_ranking_materializes_exact_retained_prefix() {
+        let mask = ExactMask::from_ranked_indices(6, 3, &[4, 1, 5, 0, 2, 3]).unwrap();
+        assert_eq!(mask.as_slice(), &[false, true, false, false, true, true]);
+        assert_eq!(mask.cardinality(), MaskCardinality::new(3, 6).unwrap());
+    }
+
+    #[test]
+    fn ranking_requires_a_complete_permutation_even_beyond_retained_prefix() {
+        assert_eq!(
+            ExactMask::from_ranked_indices(4, 2, &[0, 1, 2]),
+            Err(SparsityError::RankingLengthMismatch {
+                ranking_len: 3,
+                total: 4,
+            })
+        );
+        assert_eq!(
+            ExactMask::from_ranked_indices(4, 2, &[0, 1, 2, 2]),
+            Err(SparsityError::DuplicateSelectionIndex { index: 2 })
+        );
+        assert_eq!(
+            ExactMask::from_ranked_indices(4, 2, &[0, 1, 2, 4]),
+            Err(SparsityError::SelectionIndexOutOfRange { index: 4, total: 4 })
+        );
+    }
+
+    #[test]
+    fn zero_retained_ranking_still_validates_the_full_ordering() {
+        let mask = ExactMask::from_ranked_indices(4, 0, &[3, 2, 1, 0]).unwrap();
+        assert_eq!(mask.as_slice(), &[false, false, false, false]);
+        assert_eq!(mask.cardinality(), MaskCardinality::new(0, 4).unwrap());
+
+        assert_eq!(
+            ExactMask::from_ranked_indices(4, 0, &[3, 2, 1, 1]),
+            Err(SparsityError::DuplicateSelectionIndex { index: 1 })
+        );
     }
 }
