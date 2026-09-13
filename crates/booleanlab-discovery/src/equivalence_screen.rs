@@ -45,15 +45,18 @@ pub fn screen_exact_or_complement(
     }
 
     let canonical = candidate.canonical_under_complement();
-    reference.iter().enumerate().find_map(|(reference_index, known)| {
-        if known.input_bits() != candidate.input_bits() {
-            return None;
-        }
-        (known.canonical_under_complement() == canonical).then_some(EquivalenceMatch {
-            reference_index,
-            relation: ScreenedEquivalence::OutputComplement,
+    reference
+        .iter()
+        .enumerate()
+        .find_map(|(reference_index, known)| {
+            if known.input_bits() != candidate.input_bits() {
+                return None;
+            }
+            (known.canonical_under_complement() == canonical).then_some(EquivalenceMatch {
+                reference_index,
+                relation: ScreenedEquivalence::OutputComplement,
+            })
         })
-    })
 }
 
 /// Screens a candidate set without collapsing individual provenance.
