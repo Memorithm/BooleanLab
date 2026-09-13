@@ -9,6 +9,7 @@ pub mod hybrid;
 pub mod sparsity;
 pub mod sparsity_ranking;
 pub mod sparsity_static;
+pub mod sparsity_structured;
 pub mod state;
 
 pub use bme::{BmeError, or_and_cell, thresholded_xnor_cell, xnor_popcount_cell, xor_and_cell};
@@ -27,5 +28,8 @@ pub use sparsity_ranking::{
 };
 pub use sparsity_static::{
     StaticMaskError, static_mask_from_index_bits, static_mask_from_truth_table,
+};
+pub use sparsity_structured::{
+    StructuredBooleanMaskError, structured_group_mask_from_truth_table,
 };
 pub use state::{BitState, StateError};
