@@ -155,4 +155,22 @@ mod tests {
             (24, 16, 8)
         );
     }
+
+    #[test]
+    fn invalid_inputs_fail_closed() {
+        assert_eq!(
+            logical_cost(CanonicalBmeEquation::OrAnd, BmeShape::new(0, 3, 4)),
+            Err(BmeCostError::ZeroDimension)
+        );
+        assert_eq!(
+            logical_cost(
+                CanonicalBmeEquation::ThresholdedXnor { threshold: 4 },
+                BmeShape::new(2, 3, 4),
+            ),
+            Err(BmeCostError::ThresholdOutOfRange {
+                threshold: 4,
+                width: 3,
+            })
+        );
+    }
 }
