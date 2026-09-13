@@ -67,6 +67,55 @@ x(t+1) = G_{b(t+1)}(x(t), u(t))
 
 where `b ∈ {0,1}^m`, `x ∈ X^n`, `P_X` extracts explicit predicates from the mathematical domain, and the Boolean state may select, mask, route, constrain or verify operations in `X`.
 
+### Canonical extended contract
+
+The two-equation contract above remains the stable minimal notation. Experiments that require explicit observation, outputs, transition-sensitive dynamics, parameters, noise, nondeterminism or multi-objective evaluation use the following canonical extension:
+
+```text
+p(t)   = P_X(x(t))
+b(t+1) = F_bool(b(t), p(t), u(t); theta_B)
+x(t+1) = G(x(t), u(t), b(t), b(t+1); theta_X)
+y(t)   = H_bool(b(t), p(t), x(t); theta_H)
+J      = E(b(0:T), x(0:T), y(0:T), u(0:T))
+```
+
+with the typed maps, suppressing fixed parameters in the signatures,
+
+```text
+P_X    : X^n × U              -> {0,1}^p
+F_bool : {0,1}^m × {0,1}^p × U -> {0,1}^m
+G      : X^n × U × {0,1}^m × {0,1}^m -> X^n
+H_bool : {0,1}^m × {0,1}^p × X^n -> {0,1}^q
+E      : trajectories -> R^k
+```
+
+`P_X` is the declared Boolean observation boundary between the mathematical domain and the Boolean plane. The update order is intentionally causal: predicates are extracted from `x(t)`, the Boolean decision `b(t+1)` is formed, and that newly formed decision may gate, mask, route, constrain, verify or otherwise select the update applied to `x`. Dependence of `G` on both `b(t)` and `b(t+1)` permits transition-sensitive behavior; the minimal `G_{b(t+1)}` notation is the special case in which the previous Boolean state is irrelevant to the `X` update.
+
+`H_bool` makes the observable Boolean output explicit. This is the canonical boundary for truth-table extraction and Boolean-function characterization in BL-13. `E` is an evaluation map, not an assumption of scalar optimality: `J ∈ R^k` may retain several declared objectives such as correctness, nonlinearity, algebraic degree, latency, memory, traffic, energy or robustness without silently collapsing them into one score.
+
+For noisy or stochastic experiments, disturbances must be explicit rather than hidden inside the deterministic notation:
+
+```text
+b(t+1) = F_bool(b(t), p(t), u(t), eta(t); theta_B)
+x(t+1) = G(x(t), u(t), b(t), b(t+1), xi(t); theta_X)
+```
+
+where the experiment declares the domains and sampling law, adversarial rule or perturbation schedule for `eta(t)` and `xi(t)`. If an experiment genuinely admits several legal successors rather than a sampled deterministic successor, it may use set-valued transitions:
+
+```text
+b(t+1) in F_set(b(t), p(t), u(t))
+x(t+1) in G_set(x(t), u(t), b(t), b(t+1))
+```
+
+The pure-Boolean specialization is obtained by removing `X` and its predicate boundary:
+
+```text
+b(t+1) = F_bool(b(t), u(t))
+y(t)   = H_bool(b(t))
+```
+
+Every experiment must state which specialization of this contract it implements. Deterministic, stochastic, set-valued and learned/parameterized variants are not interchangeable, and claims must be limited to the declared semantics and measured evidence.
+
 The central question is not whether Boolean × X is automatically superior. It is:
 
 > For which domains X, tasks and resource envelopes does coupling an explicit Boolean state/control plane to X provide a measurable capability, efficiency, verifiability or interpretability advantage over matched Boolean-only and X-only baselines?
