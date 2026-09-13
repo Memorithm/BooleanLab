@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   rust:
@@ -17,21 +16,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Report exact repository rustfmt diff
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cargo fmt --all
-          if ! git diff --quiet; then
-            {
-              echo 'Temporary rustfmt diagnostic for this PR:'
-              echo '```diff'
-              git diff -- crates/booleanlab-core/src/bme_packed.rs crates/booleanlab-core/src/lib.rs
-              echo '```'
-            } > /tmp/rustfmt-comment.md
-            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/rustfmt-comment.md
-            exit 1
-          fi
       - name: Format
         run: cargo fmt --all -- --check
       - name: Test
