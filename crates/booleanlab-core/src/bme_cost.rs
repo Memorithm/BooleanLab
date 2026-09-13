@@ -33,12 +33,8 @@ pub enum BmeCostError {
 impl fmt::Display for BmeCostError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ZeroDimension => {
-                f.write_str("BME cost accounting requires non-zero dimensions")
-            }
-            Self::ArithmeticOverflow => {
-                f.write_str("BME logical-operation count overflowed u128")
-            }
+            Self::ZeroDimension => f.write_str("BME cost accounting requires non-zero dimensions"),
+            Self::ArithmeticOverflow => f.write_str("BME logical-operation count overflowed u128"),
             Self::ThresholdOutOfRange { threshold, width } => write!(
                 f,
                 "BME threshold {threshold} exceeds inner dimension {width}"
