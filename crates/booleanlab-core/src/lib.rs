@@ -7,6 +7,7 @@ pub mod bme_packed;
 pub mod circuit;
 pub mod hybrid;
 pub mod sparsity;
+pub mod sparsity_dynamic;
 pub mod sparsity_ranking;
 pub mod sparsity_static;
 pub mod sparsity_structured;
@@ -22,6 +23,7 @@ pub use bme_packed::{
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
+pub use sparsity_dynamic::{DynamicMaskError, dynamic_mask_from_predicates};
 pub use sparsity_ranking::{
     StructuredSparsityError, deterministic_random_keys, deterministic_random_mask,
     mask_from_descending_u64_scores, rank_descending_u64, structured_nm_mask_from_u64_scores,
