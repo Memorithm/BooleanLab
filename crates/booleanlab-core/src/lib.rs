@@ -6,6 +6,7 @@ pub mod bme_equation;
 pub mod bme_packed;
 pub mod circuit;
 pub mod hybrid;
+pub mod sparsity;
 pub mod state;
 
 pub use bme::{BmeError, or_and_cell, thresholded_xnor_cell, xnor_popcount_cell, xor_and_cell};
@@ -17,4 +18,5 @@ pub use bme_packed::{
 };
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
+pub use sparsity::{MaskCardinality, SparsityError};
 pub use state::{BitState, StateError};
