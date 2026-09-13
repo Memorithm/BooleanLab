@@ -45,3 +45,5 @@ jobs:
         run: cargo clippy -p booleanlab-discovery --features sedenion-experiments --all-targets -- -D warnings
       - name: BL-13.2.0 sedenion predicate control
         run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_control --release
+      - name: BL-13.2.1 sedenion full-baseline equivalence screen
+        run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_baseline_screen --release
