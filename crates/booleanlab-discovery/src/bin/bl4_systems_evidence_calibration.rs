@@ -43,19 +43,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .into());
     }
 
-    println!("BL-4.6.1 systems-evidence contract calibration (SYNTHETIC; NOT A FLAT PERFORMANCE RESULT)");
+    println!(
+        "BL-4.6.1 systems-evidence contract calibration (SYNTHETIC; NOT A FLAT PERFORMANCE RESULT)"
+    );
     println!("field\tvalue");
     println!("dense_pairs\t{}", evidence.work.dense_pairs);
     println!("admitted_pairs\t{}", evidence.work.admitted_pairs);
     println!("rejected_pairs\t{rejected_pairs}");
-    println!("exact_qk_evaluations\t{}", evidence.work.exact_qk_evaluations);
+    println!(
+        "exact_qk_evaluations\t{}",
+        evidence.work.exact_qk_evaluations
+    );
     println!("dense_kv_bytes\t{}", evidence.work.dense_kv_bytes);
     println!("candidate_kv_bytes\t{}", evidence.work.candidate_kv_bytes);
     println!("kv_bytes_not_consumed\t{kv_bytes_not_consumed}");
-    println!("boolean_metadata_bytes\t{}", evidence.work.boolean_metadata_bytes);
+    println!(
+        "boolean_metadata_bytes\t{}",
+        evidence.work.boolean_metadata_bytes
+    );
     println!("traffic_kind\t{:?}", evidence.work.traffic_kind);
     println!("timing_kind\t{:?}", evidence.timing.timing_kind);
-    println!("boolean_front_end_ns\t{}", evidence.timing.boolean_front_end_ns);
+    println!(
+        "boolean_front_end_ns\t{}",
+        evidence.timing.boolean_front_end_ns
+    );
     println!("exact_survivor_ns\t{}", evidence.timing.exact_survivor_ns);
     println!("dispatch_sync_ns\t{}", evidence.timing.dispatch_sync_ns);
     println!("candidate_total_ns\t{candidate_total_ns}");
