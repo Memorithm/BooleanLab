@@ -20,5 +20,8 @@ pub use bme_packed::{
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
-pub use sparsity_ranking::{mask_from_descending_u64_scores, rank_descending_u64};
+pub use sparsity_ranking::{
+    deterministic_random_keys, deterministic_random_mask, mask_from_descending_u64_scores,
+    rank_descending_u64,
+};
 pub use state::{BitState, StateError};
