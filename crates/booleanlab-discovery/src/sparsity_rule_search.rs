@@ -53,9 +53,15 @@ pub struct SparsityRuleCandidate {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SparsityRuleSearchError {
     EmptyCandidates,
-    EmptyCandidateId { index: usize },
-    DuplicateCandidateId { candidate_id: String },
-    ZeroTotalUnits { candidate_id: String },
+    EmptyCandidateId {
+        index: usize,
+    },
+    DuplicateCandidateId {
+        candidate_id: String,
+    },
+    ZeroTotalUnits {
+        candidate_id: String,
+    },
     RetainedUnitsExceedTotal {
         candidate_id: String,
         retained_units: u64,
@@ -99,7 +105,9 @@ pub fn pareto_frontier_indices(
         .collect())
 }
 
-fn validate_candidates(candidates: &[SparsityRuleCandidate]) -> Result<(), SparsityRuleSearchError> {
+fn validate_candidates(
+    candidates: &[SparsityRuleCandidate],
+) -> Result<(), SparsityRuleSearchError> {
     let Some(first) = candidates.first() else {
         return Err(SparsityRuleSearchError::EmptyCandidates);
     };
