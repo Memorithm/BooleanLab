@@ -82,7 +82,7 @@ J      = E(b(0:T), x(0:T), y(0:T), u(0:T))
 with the typed maps, suppressing fixed parameters in the signatures,
 
 ```text
-P_X    : X^n × U              -> {0,1}^p
+P_X    : X^n -> {0,1}^p
 F_bool : {0,1}^m × {0,1}^p × U -> {0,1}^m
 G      : X^n × U × {0,1}^m × {0,1}^m -> X^n
 H_bool : {0,1}^m × {0,1}^p × X^n -> {0,1}^q
