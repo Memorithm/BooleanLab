@@ -35,10 +35,14 @@ impl fmt::Display for BmeCostError {
         match self {
             Self::ZeroDimension => f.write_str("BME cost accounting requires non-zero dimensions"),
             Self::ArithmeticOverflow => f.write_str("BME logical-operation count overflowed u128"),
-            Self::ThresholdOutOfRange { threshold, width } => write!(f, "BME threshold {threshold} exceeds inner dimension {width}"),
+            Self::ThresholdOutOfRange { threshold, width } => write!(
+                f,
+                "BME threshold {threshold} exceeds inner dimension {width}"
+            ),
         }
     }
 }
+
 impl std::error::Error for BmeCostError {}
 
 fn count_from_usize(value: usize) -> Result<u128, BmeCostError> {
@@ -47,36 +51,76 @@ fn count_from_usize(value: usize) -> Result<u128, BmeCostError> {
 
 impl BmeShape {
     #[must_use]
-    pub const fn new(rows: usize, inner: usize, cols: usize) -> Self { Self { rows, inner, cols } }
+    pub const fn new(rows: usize, inner: usize, cols: usize) -> Self {
+        Self { rows, inner, cols }
+    }
 
     fn cells(self) -> Result<u128, BmeCostError> {
-        if self.rows == 0 || self.inner == 0 || self.cols == 0 { return Err(BmeCostError::ZeroDimension); }
-        count_from_usize(self.rows)?.checked_mul(count_from_usize(self.cols)?).ok_or(BmeCostError::ArithmeticOverflow)
+        if self.rows == 0 || self.inner == 0 || self.cols == 0 {
+            return Err(BmeCostError::ZeroDimension);
+        }
+        count_from_usize(self.rows)?
+            .checked_mul(count_from_usize(self.cols)?)
+            .ok_or(BmeCostError::ArithmeticOverflow)
     }
+
     fn pairs(self) -> Result<u128, BmeCostError> {
-        self.cells()?.checked_mul(count_from_usize(self.inner)?).ok_or(BmeCostError::ArithmeticOverflow)
+        self.cells()?
+            .checked_mul(count_from_usize(self.inner)?)
+            .ok_or(BmeCostError::ArithmeticOverflow)
     }
+
     fn reductions(self) -> Result<u128, BmeCostError> {
-        self.cells()?.checked_mul(count_from_usize(self.inner.saturating_sub(1))?).ok_or(BmeCostError::ArithmeticOverflow)
+        self.cells()?
+            .checked_mul(count_from_usize(self.inner.saturating_sub(1))?)
+            .ok_or(BmeCostError::ArithmeticOverflow)
     }
 }
 
 /// Returns exact abstract operation counts for one canonical BME baseline.
 ///
 /// # Errors
-/// Returns `ZeroDimension` for zero dimensions, `ThresholdOutOfRange` for an
-/// invalid threshold, and `ArithmeticOverflow` when an exact count cannot fit.
-pub fn logical_cost(equation: CanonicalBmeEquation, shape: BmeShape) -> Result<BmeLogicalCost, BmeCostError> {
+///
+/// Returns [`BmeCostError::ZeroDimension`] when any matrix dimension is zero,
+/// [`BmeCostError::ThresholdOutOfRange`] when a threshold exceeds the inner
+/// dimension, and [`BmeCostError::ArithmeticOverflow`] if an exact operation
+/// count cannot be represented in `u128`.
+pub fn logical_cost(
+    equation: CanonicalBmeEquation,
+    shape: BmeShape,
+) -> Result<BmeLogicalCost, BmeCostError> {
     let pairs = shape.pairs()?;
     let reductions = shape.reductions()?;
     let cells = shape.cells()?;
     Ok(match equation {
-        CanonicalBmeEquation::OrAnd => BmeLogicalCost { and_ops: pairs, or_reductions: reductions, ..Default::default() },
-        CanonicalBmeEquation::XorAnd => BmeLogicalCost { and_ops: pairs, xor_reductions: reductions, ..Default::default() },
-        CanonicalBmeEquation::XnorPopcount => BmeLogicalCost { xnor_ops: pairs, popcount_accumulations: reductions, ..Default::default() },
+        CanonicalBmeEquation::OrAnd => BmeLogicalCost {
+            and_ops: pairs,
+            or_reductions: reductions,
+            ..Default::default()
+        },
+        CanonicalBmeEquation::XorAnd => BmeLogicalCost {
+            and_ops: pairs,
+            xor_reductions: reductions,
+            ..Default::default()
+        },
+        CanonicalBmeEquation::XnorPopcount => BmeLogicalCost {
+            xnor_ops: pairs,
+            popcount_accumulations: reductions,
+            ..Default::default()
+        },
         CanonicalBmeEquation::ThresholdedXnor { threshold } => {
-            if threshold > shape.inner { return Err(BmeCostError::ThresholdOutOfRange { threshold, width: shape.inner }); }
-            BmeLogicalCost { xnor_ops: pairs, popcount_accumulations: reductions, threshold_comparisons: cells, ..Default::default() }
+            if threshold > shape.inner {
+                return Err(BmeCostError::ThresholdOutOfRange {
+                    threshold,
+                    width: shape.inner,
+                });
+            }
+            BmeLogicalCost {
+                xnor_ops: pairs,
+                popcount_accumulations: reductions,
+                threshold_comparisons: cells,
+                ..Default::default()
+            }
         }
     })
 }
@@ -84,16 +128,31 @@ pub fn logical_cost(equation: CanonicalBmeEquation, shape: BmeShape) -> Result<B
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn counts_reference_families() {
         let shape = BmeShape::new(2, 3, 4);
         let or_and = logical_cost(CanonicalBmeEquation::OrAnd, shape).unwrap();
         assert_eq!((or_and.and_ops, or_and.or_reductions), (24, 16));
+
         let xor_and = logical_cost(CanonicalBmeEquation::XorAnd, shape).unwrap();
         assert_eq!((xor_and.and_ops, xor_and.xor_reductions), (24, 16));
+
         let xnor = logical_cost(CanonicalBmeEquation::XnorPopcount, shape).unwrap();
         assert_eq!((xnor.xnor_ops, xnor.popcount_accumulations), (24, 16));
-        let thresholded = logical_cost(CanonicalBmeEquation::ThresholdedXnor { threshold: 2 }, shape).unwrap();
-        assert_eq!((thresholded.xnor_ops, thresholded.popcount_accumulations, thresholded.threshold_comparisons), (24, 16, 8));
+
+        let thresholded = logical_cost(
+            CanonicalBmeEquation::ThresholdedXnor { threshold: 2 },
+            shape,
+        )
+        .unwrap();
+        assert_eq!(
+            (
+                thresholded.xnor_ops,
+                thresholded.popcount_accumulations,
+                thresholded.threshold_comparisons,
+            ),
+            (24, 16, 8)
+        );
     }
 }
