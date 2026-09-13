@@ -156,9 +156,7 @@ impl AttentionTimingEvidence {
     /// Returns an error when the timing evidence is invalid or overflows.
     pub fn candidate_minus_dense_ns(self) -> Result<i128, SystemsEvidenceError> {
         self.validate()?;
-        Ok(
-            i128::from(self.candidate_total_ns()?) - i128::from(self.dense_baseline_ns),
-        )
+        Ok(i128::from(self.candidate_total_ns()?) - i128::from(self.dense_baseline_ns))
     }
 }
 
@@ -187,18 +185,9 @@ impl AttentionSystemsEvidence {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SystemsEvidenceError {
     ZeroDensePairs,
-    AdmittedPairsExceedDense {
-        admitted: u64,
-        dense: u64,
-    },
-    ExactWorkExceedsAdmission {
-        exact: u64,
-        admitted: u64,
-    },
-    CandidateKvBytesExceedDense {
-        candidate: u64,
-        dense: u64,
-    },
+    AdmittedPairsExceedDense { admitted: u64, dense: u64 },
+    ExactWorkExceedsAdmission { exact: u64, admitted: u64 },
+    CandidateKvBytesExceedDense { candidate: u64, dense: u64 },
     TimingOverflow,
     ZeroTimingInterval,
 }
