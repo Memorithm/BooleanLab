@@ -22,28 +22,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     for (coordinate, function) in functions.iter().enumerate() {
-        match screen_full_baseline(function, &baseline) {
-            Some(screened) => {
-                let reference = &baseline.population[screened.reference_index];
-                match screened.relation {
-                    ScreenedEquivalence::Exact => exact_matches += 1,
-                    ScreenedEquivalence::OutputComplement => complement_matches += 1,
-                }
-                println!(
-                    "{coordinate}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                    relation_name(screened.relation),
-                    screened.reference_index,
-                    reference.gate_count,
-                    reference.depth,
-                    reference.imbalance,
-                    reference.metrics.nonlinearity,
-                    reference.metrics.algebraic_degree,
-                );
+        if let Some(screened) = screen_full_baseline(function, &baseline) {
+            let reference = &baseline.population[screened.reference_index];
+            match screened.relation {
+                ScreenedEquivalence::Exact => exact_matches += 1,
+                ScreenedEquivalence::OutputComplement => complement_matches += 1,
             }
-            None => {
-                not_found += 1;
-                println!("{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-\t-\t-\t-\t-");
-            }
+            println!(
+                "{coordinate}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                relation_name(screened.relation),
+                screened.reference_index,
+                reference.gate_count,
+                reference.depth,
+                reference.imbalance,
+                reference.metrics.nonlinearity,
+                reference.metrics.algebraic_degree,
+            );
+        } else {
+            not_found += 1;
+            println!("{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-\t-\t-\t-\t-");
         }
     }
 
