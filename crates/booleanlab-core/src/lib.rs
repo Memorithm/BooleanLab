@@ -8,6 +8,7 @@ pub mod circuit;
 pub mod hybrid;
 pub mod sparsity;
 pub mod sparsity_ranking;
+pub mod sparsity_static;
 pub mod state;
 
 pub use bme::{BmeError, or_and_cell, thresholded_xnor_cell, xnor_popcount_cell, xor_and_cell};
@@ -24,4 +25,5 @@ pub use sparsity_ranking::{
     StructuredSparsityError, deterministic_random_keys, deterministic_random_mask,
     mask_from_descending_u64_scores, rank_descending_u64, structured_nm_mask_from_u64_scores,
 };
+pub use sparsity_static::{StaticMaskError, static_mask_from_truth_table};
 pub use state::{BitState, StateError};
