@@ -50,8 +50,12 @@ pub struct FrozenSparsityRuleSelection {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SparsitySemanticFreezeError {
     Selection(SparsityFreezeError),
-    EmptyBindingId { index: usize },
-    EmptyPredicateSchema { candidate_id: String },
+    EmptyBindingId {
+        index: usize,
+    },
+    EmptyPredicateSchema {
+        candidate_id: String,
+    },
     EmptyResolvedParameterField {
         candidate_id: String,
         parameter_index: usize,
@@ -61,12 +65,24 @@ pub enum SparsitySemanticFreezeError {
         predicate_id: String,
         parameter_name: String,
     },
-    DuplicateBinding { candidate_id: String },
-    UnfrozenBinding { candidate_id: String },
-    MissingFrozenBinding { candidate_id: String },
-    RuleSemanticMismatch { candidate_id: String },
-    PredicateSchemaMismatch { candidate_id: String },
-    ResolvedPredicateParametersMismatch { candidate_id: String },
+    DuplicateBinding {
+        candidate_id: String,
+    },
+    UnfrozenBinding {
+        candidate_id: String,
+    },
+    MissingFrozenBinding {
+        candidate_id: String,
+    },
+    RuleSemanticMismatch {
+        candidate_id: String,
+    },
+    PredicateSchemaMismatch {
+        candidate_id: String,
+    },
+    ResolvedPredicateParametersMismatch {
+        candidate_id: String,
+    },
 }
 
 impl FrozenSparsityRuleSelection {
@@ -227,7 +243,11 @@ mod tests {
     use super::*;
     use crate::sparsity_rule_search::{SparsityEvaluationPhase, SparsityRuleCandidate};
 
-    fn candidate(candidate_id: &str, phase: SparsityEvaluationPhase, retained: u64) -> SparsityRuleCandidate {
+    fn candidate(
+        candidate_id: &str,
+        phase: SparsityEvaluationPhase,
+        retained: u64,
+    ) -> SparsityRuleCandidate {
         SparsityRuleCandidate {
             candidate_id: candidate_id.to_owned(),
             phase,
@@ -371,9 +391,11 @@ mod tests {
         ];
         assert_eq!(
             frozen.validate_holdout(&holdout, &bindings),
-            Err(SparsitySemanticFreezeError::ResolvedPredicateParametersMismatch {
-                candidate_id: "a".to_owned(),
-            })
+            Err(
+                SparsitySemanticFreezeError::ResolvedPredicateParametersMismatch {
+                    candidate_id: "a".to_owned(),
+                }
+            )
         );
     }
 
