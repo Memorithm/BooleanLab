@@ -1,7 +1,7 @@
 //! BL-13.2.1 exact first-stage equivalence screen.
 //!
 //! This module answers only whether a candidate is already present in a declared
-//! reference corpus under exact truth-table equality or BooleanLab's currently
+//! reference corpus under exact truth-table equality or `BooleanLab`'s currently
 //! declared output-complement equivalence. It intentionally does not claim EA,
 //! CCZ, affine, permutation, circuit, or algebraic equivalence.
 
@@ -12,7 +12,7 @@ use crate::BooleanFunction;
 pub enum ScreenedEquivalence {
     /// Same complete truth table.
     Exact,
-    /// Equal only after BooleanLab's declared output-complement canonicalisation.
+    /// Equal only after `BooleanLab`'s declared output-complement canonicalisation.
     OutputComplement,
 }
 
@@ -27,7 +27,7 @@ pub struct EquivalenceMatch {
 ///
 /// Exact equality is checked first. If no exact match exists, the function is
 /// canonicalised only under `f ~ f XOR 1`, matching the equivalence relation
-/// already declared by BooleanLab. Functions with different input widths are
+/// already declared by `BooleanLab`. Functions with different input widths are
 /// incomparable here and are skipped rather than coerced.
 ///
 /// A `None` result means only "not found under these two declared relations in
