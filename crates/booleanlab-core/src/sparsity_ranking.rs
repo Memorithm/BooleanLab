@@ -165,16 +165,15 @@ pub fn structured_nm_mask_from_u64_scores(
     if scores.is_empty() {
         return Err(SparsityError::EmptyMask.into());
     }
-    if scores.len() % group_size != 0 {
+    if !scores.len().is_multiple_of(group_size) {
         return Err(StructuredSparsityError::GroupSizeDoesNotDivideTotal {
             total: scores.len(),
             group_size,
         });
     }
 
-    let mut retained_indices = Vec::with_capacity(
-        (scores.len() / group_size).saturating_mul(retained_per_group),
-    );
+    let mut retained_indices =
+        Vec::with_capacity((scores.len() / group_size).saturating_mul(retained_per_group));
 
     for group_start in (0..scores.len()).step_by(group_size) {
         let mut group_indices: Vec<usize> = (group_start..group_start + group_size).collect();
@@ -283,7 +282,8 @@ mod tests {
 
     #[test]
     fn nm_structured_mask_keeps_exactly_n_per_group() {
-        let mask = structured_nm_mask_from_u64_scores(&[9, 1, 8, 7, 2, 5, 6, 4], 2, 4).unwrap();
+        let mask =
+            structured_nm_mask_from_u64_scores(&[9, 1, 8, 7, 2, 5, 6, 4], 2, 4).unwrap();
         assert_eq!(
             mask.as_slice(),
             &[true, false, true, false, false, true, true, false]
