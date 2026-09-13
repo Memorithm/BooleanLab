@@ -157,7 +157,7 @@ mod tests {
         SparsityRuleCandidate {
             candidate_id: candidate_id.to_owned(),
             phase,
-            quality_loss_units: 0,
+            quality_loss_units: if retained >= 80 { 0 } else { 4 },
             retained_units: retained,
             total_units: 100,
             controller_cost_units: 1,
