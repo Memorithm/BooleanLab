@@ -206,7 +206,12 @@ mod tests {
             );
             let threshold = width / 2;
             assert_eq!(
-                packed_thresholded_xnor_cell(&packed_left, &packed_right, width, threshold),
+                packed_thresholded_xnor_cell(
+                    &packed_left,
+                    &packed_right,
+                    width,
+                    threshold,
+                ),
                 Ok(thresholded_xnor_cell(&left, &right, threshold).unwrap())
             );
         }
