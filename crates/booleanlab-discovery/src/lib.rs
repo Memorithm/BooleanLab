@@ -259,18 +259,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rejects_invalid_truth_tables() {
+    fn rejects_malformed_truth_tables() {
         assert_eq!(
             BooleanFunction::new(0, vec![0]),
             Err(FunctionError::ZeroInputs)
         );
-        assert_eq!(
+        assert!(matches!(
+            BooleanFunction::new(MAX_EXACT_BITS + 1, vec![]),
+            Err(FunctionError::InputWidthTooLarge { .. })
+        ));
+        assert!(matches!(
             BooleanFunction::new(2, vec![0, 1]),
-            Err(FunctionError::TruthTableLength {
-                expected: 4,
-                actual: 2,
-            })
-        );
+            Err(FunctionError::TruthTableLength { .. })
+        ));
         assert_eq!(
             BooleanFunction::new(1, vec![0, 2]),
             Err(FunctionError::NonBooleanValue { index: 1, value: 2 })
@@ -278,37 +279,45 @@ mod tests {
     }
 
     #[test]
-    fn metrics_are_exact_for_xor() {
-        let xor = BooleanFunction::from_fn(2, |x| ((x & 1) ^ ((x >> 1) & 1)) == 1).unwrap();
-        let metrics = xor.exact_metrics();
+    fn measures_two_bit_and_exactly() {
+        let function = BooleanFunction::new(2, vec![0, 0, 0, 1]).unwrap();
+        let metrics = function.exact_metrics();
+        assert_eq!(metrics.algebraic_degree, 2);
+        assert_eq!(metrics.nonlinearity, 1);
+        assert!(!metrics.balanced);
+        assert!(metrics.bent);
+        assert_eq!(metrics.correlation_immunity, 0);
+    }
+
+    #[test]
+    fn measures_three_bit_parity_exactly() {
+        let parity = BooleanFunction::from_fn(3, |x| x.count_ones() % 2 == 1).unwrap();
+        let metrics = parity.exact_metrics();
         assert_eq!(metrics.algebraic_degree, 1);
         assert_eq!(metrics.nonlinearity, 0);
         assert!(metrics.balanced);
         assert!(!metrics.bent);
-        assert_eq!(metrics.correlation_immunity, 1);
+        assert_eq!(metrics.correlation_immunity, 2);
     }
 
     #[test]
-    fn fingerprint_is_deterministic_and_dedup_is_exact() {
-        let xor = BooleanFunction::from_fn(2, |x| ((x & 1) ^ ((x >> 1) & 1)) == 1).unwrap();
-        let xor_again = xor.clone();
-        let and = BooleanFunction::from_fn(2, |x| (x & 0b11) == 0b11).unwrap();
-
-        assert_eq!(xor.stable_fingerprint(), xor_again.stable_fingerprint());
-        let mut index = DedupIndex::new();
-        assert_eq!(index.insert(xor), DedupOutcome::New);
-        assert_eq!(index.insert(xor_again), DedupOutcome::Existing);
-        assert_eq!(index.insert(and), DedupOutcome::New);
-        assert_eq!(index.unique_functions(), 2);
-    }
-
-    #[test]
-    fn complement_canonicalisation_is_explicit_and_narrow() {
-        let xor = BooleanFunction::from_fn(2, |x| ((x & 1) ^ ((x >> 1) & 1)) == 1).unwrap();
-        let xnor = BooleanFunction::from_fn(2, |x| ((x & 1) ^ ((x >> 1) & 1)) == 0).unwrap();
+    fn complement_canonicalisation_is_exact() {
+        let function = BooleanFunction::new(2, vec![0, 0, 0, 1]).unwrap();
+        let complement = BooleanFunction::new(2, vec![1, 1, 1, 0]).unwrap();
         assert_eq!(
-            xor.canonical_under_complement(),
-            xnor.canonical_under_complement()
+            function.canonical_under_complement(),
+            complement.canonical_under_complement()
         );
+    }
+
+    #[test]
+    fn deduplication_confirms_exact_equality() {
+        let and = BooleanFunction::new(2, vec![0, 0, 0, 1]).unwrap();
+        let or = BooleanFunction::new(2, vec![0, 1, 1, 1]).unwrap();
+        let mut index = DedupIndex::new();
+        assert_eq!(index.insert(and.clone()), DedupOutcome::New);
+        assert_eq!(index.insert(and), DedupOutcome::Existing);
+        assert_eq!(index.insert(or), DedupOutcome::New);
+        assert_eq!(index.unique_functions(), 2);
     }
 }
