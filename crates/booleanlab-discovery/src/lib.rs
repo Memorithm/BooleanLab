@@ -6,6 +6,7 @@
 //! Exact Boolean metrics are delegated to `SciRust` so there is one mathematical
 //! implementation of ANF and Walsh analysis across the `Memorithm` ecosystem.
 
+pub mod attention_frontier;
 pub mod baseline;
 pub mod equivalence_screen;
 pub mod gf2;
