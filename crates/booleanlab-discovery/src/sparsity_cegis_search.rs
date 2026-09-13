@@ -26,7 +26,10 @@ pub struct CegisSearchResult {
 pub enum CegisSearchError {
     EmptyCandidateSet,
     EmptyExamples,
-    ExampleLengthMismatch { predicate_rows: usize, target: usize },
+    ExampleLengthMismatch {
+        predicate_rows: usize,
+        target: usize,
+    },
     PredicateArityMismatch {
         row: usize,
         expected: usize,
@@ -76,7 +79,8 @@ pub fn search_cegis(
     }
 
     let input_bits = candidates[0].function.input_bits();
-    let expected_arity = usize::try_from(input_bits).map_err(|_| CegisSearchError::CounterOverflow)?;
+    let expected_arity =
+        usize::try_from(input_bits).map_err(|_| CegisSearchError::CounterOverflow)?;
     for (candidate_index, candidate) in candidates.iter().enumerate() {
         if candidate.function.input_bits() != input_bits {
             return Err(CegisSearchError::MixedCandidateArity {
@@ -187,7 +191,10 @@ mod tests {
 
         let result = search_cegis(&candidates, &rows, &target).unwrap();
         assert_eq!(candidates[result.candidate_index].truth_table_code, 0b0110);
-        assert_eq!(result.candidate_id, "bl14-exhaustive-n2-0000000000000006");
+        assert_eq!(
+            result.candidate_id,
+            "bl14-exhaustive-n2-0000000000000006"
+        );
         assert!(!result.counterexample_rows.is_empty());
         assert!(result.synthesis_candidate_checks > 0);
         assert!(result.verification_row_checks > 0);
