@@ -44,3 +44,9 @@ BL-13.4.1	BL-13	Tropical-semiring	PREDICATE	Can tropical path or threshold struc
 BL-13.5.1	BL-13	Dynamical-system	PREDICATE	Can regime boundaries from controlled dynamics induce reusable Boolean construction families after exact discretization?	PROPOSED
 BL-13.6.1	BL-13	Cross-domain	SYNTHESIZE	Do different X domains independently induce equivalent Boolean functions revealing a common construction principle?	PROPOSED
 BL-13.7.1	BL-13	Vectorial-Boolean	SYNTHESIZE	Can hybrid systems induce F_2^n to F_2^m functions with new non-dominated differential spectral and implementation trade-offs after declared equivalence screening?	PROPOSED
+BL-14.0.1	BL-14	Sparsity-system	VERIFY	Does the BL-14 harness reproduce dense random magnitude and declared structured sparsity baselines at exactly matched retained densities?	PROPOSED
+BL-14.1.1	BL-14	Static-sparsity	MASK	Can an explicit Boolean equation produce a frozen sparse mask that preserves more task quality than density-matched random and magnitude baselines?	PROPOSED
+BL-14.2.1	BL-14	Structured-sparsity	MASK	Can Boolean equations select blocks channels heads or other hardware-relevant groups with a better quality-resource trade-off than matched structured baselines?	PROPOSED
+BL-14.3.1	BL-14	Dynamic-sparsity	MASK	Can an input-conditioned Boolean controller vary the active sparse structure cheaply enough that avoided work exceeds controller overhead while preserving the declared quality threshold?	PROPOSED
+BL-14.4.1	BL-14	Relational-sparsity	SELECT	Can explicit Boolean relations identify functionally redundant groups better than independent per-group scores at the same retained density?	PROPOSED
+BL-14.5.1	BL-14	Sparsity-rule-search	SYNTHESIZE	Can discrete search discover compact Boolean sparsity rules on a Pareto frontier of quality retained density rule complexity and measured resource cost?	PROPOSED

@@ -1,12 +1,13 @@
 # BooleanLab
 
-BooleanLab is the Memorithm research bench for **pure Boolean AI**, **Boolean-function discovery**, and **Boolean × mathematical-domain hybrid systems**.
+BooleanLab is the Memorithm research bench for **pure Boolean AI**, **Boolean-function discovery**, **Boolean sparsity control**, and **Boolean × mathematical-domain hybrid systems**.
 
-The bench studies three connected programmes:
+The bench studies four connected programmes:
 
 1. **Pure Boolean systems** — state, transitions, inference and execution represented in `{0,1}` and composed from discrete logical operators.
 2. **Boolean × X systems** — a Boolean control/state plane interacting with a richer mathematical domain `X`: finite fields, real/complex systems, quaternions, octonions, sedenions, tensors, graphs, semirings, dynamical systems and other mathematical structures.
 3. **Boolean-function discovery** — systematic generation, exact characterization, deduplication and equivalence screening of Boolean functions induced either by Boolean-only search or by Boolean × X constructions.
+4. **Boolean sparsity control** — explicit Boolean equations used as a control plane for deciding which parts of an existing numerical model or computational graph remain active, without replacing the complete model with Boolean logic.
 
 BooleanLab is a research bench, not a production inference runtime. Scientific claims require reproducible evidence and must remain narrower than the experiments that support them.
 
@@ -15,6 +16,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | Experiment / track | Status | Verified result or current question |
 | --- | --- | --- |
 | **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
+| **BL-14 Boolean Sparsity Control** | ACTIVE / PROPOSED | Determine whether compact Boolean equations can select static, structured, dynamic or relational sparse structure with a better verified quality/resource trade-off than matched sparsification baselines after controller overhead is included. |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
 | BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
 | BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
@@ -22,7 +24,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | BL-13.2.1 | EQUIVALENCE_SCREENED | Against the full 1,685-function BL-13.1.2 population, all 16 sedenion coordinates had 0 exact, 0 output-complement, 0 input-permutation and 0 input-permutation-plus-output-complement matches. Exact necessary invariants also excluded the declared affine relation `g(x)=f(Ax+b) XOR c` against every corpus member. EA/CCZ, matched construction cost and prior-art review remain pending. No novelty claim. |
 | BL-13.3.1 | VALIDATED | Two `GF(2^8)` inversion constructions each produced eight distinct component functions with degree 7, nonlinearity 112 and balanced outputs. Pipeline validation only; no novelty claim. |
 
-The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/), including the frozen [`BL-13.1 Boolean baseline`](experiments/results/BL-13.1-BOOLEAN-BASELINE.md) and the bounded [`BL-13.2.1 sedenion baseline screen`](experiments/results/BL-13.2.1-SEDENION-BASELINE-SCREEN.md).
+The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/), including the frozen [`BL-13.1 Boolean baseline`](experiments/results/BL-13.1-BOOLEAN-BASELINE.md) and the bounded [`BL-13.2.1 sedenion baseline screen`](experiments/results/BL-13.2.1-SEDENION-BASELINE-SCREEN.md). The BL-14 protocol is defined in [`experiments/BL-14-BOOLEAN-SPARSITY-CONTROL.md`](experiments/BL-14-BOOLEAN-SPARSITY-CONTROL.md).
 
 ## Priority programme: Boolean Attention Control Plane
 
@@ -55,6 +57,31 @@ Current BL-4 additions:
 - `BL-4.7.1`: 1-bit QK only after the router path is qualified, compared against exact FLAT, low-precision QK and Boolean-prefilter-plus-exact-QK.
 
 No acceleration claim is accepted from theoretical operation counts alone. Hardware evidence must include Boolean front-end time, retained density, K/V bytes avoided, metadata cost, first-token latency, steady-state decode, prefill, tokens/s and quality/false-negative metrics.
+
+## Priority programme: Boolean Sparsity Control
+
+BL-14 studies Boolean equations as a **sparsity control plane inside an existing model**, not as a proposal to replace the whole model with Boolean computation.
+
+For a declared group `g`—for example a weight group, channel, block, head, edge, expert or activation group—the minimal contract is:
+
+```text
+p_g = P_g(state, statistics, input, structure)
+z_g = F_bool(p_g, context)
+y_g = z_g * G_g(x)
+```
+
+with `z_g in {0,1}`. The Boolean equation therefore decides whether existing numerical work is retained or skipped.
+
+BL-14 starts with six controlled experiments:
+
+- `BL-14.0.1`: calibrate dense, random, magnitude and structured sparsity baselines at exactly matched retained densities.
+- `BL-14.1.1`: static Boolean sparsity with a frozen final mask.
+- `BL-14.2.1`: structured Boolean sparsity over hardware-relevant groups such as blocks, channels or heads.
+- `BL-14.3.1`: dynamic input-conditioned Boolean sparsity with controller overhead measured separately.
+- `BL-14.4.1`: relational Boolean sparsity based on explicit redundancy relations rather than independent scalar scores alone.
+- `BL-14.5.1`: discrete synthesis/search of compact Boolean sparsity rules under a frozen multi-objective evaluation contract.
+
+The evaluation is explicitly multi-objective: task quality, retained density, Boolean-rule complexity, controller cost, effective compute, memory traffic and measured latency/throughput remain separate evidence. More zeros alone are not a positive result.
 
 ## Core hybrid contract
 
@@ -142,6 +169,7 @@ For Boolean-function discovery, a second question is equally important:
 | BL-11 | Automatic synthesis of cognitive/logical circuits |
 | BL-12 | CPU SIMD / GPU / FPGA execution and measured resource comparison |
 | **BL-13** | **Boolean-function discovery: exact metrics, Boolean-only baselines, Boolean × X generators, equivalence screening and novelty candidates** |
+| **BL-14** | **Boolean sparsity control: static, structured, dynamic and relational sparsity plus discrete rule synthesis** |
 
 ## BL-13 discovery pipeline
 
@@ -186,7 +214,7 @@ The stable BooleanLab core remains on stable Rust. Experiments requiring SciRust
 
 ## Immediate research direction
 
-Two active tracks now run in parallel:
+Three active tracks now run in parallel:
 
 ```text
 BL-13 function discovery:
@@ -200,6 +228,14 @@ BL-4.4 block-admission + bitpacked signature experiments
   -> BL-4.5 first-token KV-page routing
   -> BL-4.6 measured FLAT systems comparison
   -> BL-4.7 gated 1-bit QK research
+
+BL-14 Boolean Sparsity Control:
+BL-14.0 matched-baseline calibration
+  -> BL-14.1 static Boolean masks
+  -> BL-14.2 structured hardware-relevant sparsity
+  -> BL-14.3 dynamic input-conditioned sparsity
+  -> BL-14.4 relational redundancy-aware sparsity
+  -> BL-14.5 discrete Boolean rule synthesis
 ```
 
 The bounded BL-13 comparison already demonstrates why stronger gates matter: the Boolean-only population reached nonlinearity 96, while some sedenion-induced control functions reached 98–100 and the known `GF(2^8)` inversion components reached 112. The expanded declared screen found no match for the 16 tested sedenion coordinates in the bounded 1,685-function Boolean-only population under exact equality, output complement, any permutation of the eight input variables, or input permutation followed by output complement. The subsequent exact necessary-invariant screen excluded the declared affine relation `g(x)=f(Ax+b) XOR c` against every member of that bounded corpus for all 16 coordinates. These observations do **not** establish novelty or superiority. The search population is bounded, EA/CCZ and prior-art screening remain pending, and construction costs are not yet matched.
