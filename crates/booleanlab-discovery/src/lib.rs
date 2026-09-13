@@ -7,6 +7,7 @@
 //! implementation of ANF and Walsh analysis across the `Memorithm` ecosystem.
 
 pub mod baseline;
+pub mod equivalence_screen;
 pub mod gf2;
 #[cfg(feature = "sedenion-experiments")]
 pub mod sedenion;
