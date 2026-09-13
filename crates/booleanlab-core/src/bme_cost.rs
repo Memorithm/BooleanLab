@@ -45,6 +45,10 @@ impl fmt::Display for BmeCostError {
 
 impl std::error::Error for BmeCostError {}
 
+fn count_from_usize(value: usize) -> Result<u128, BmeCostError> {
+    u128::try_from(value).map_err(|_| BmeCostError::ArithmeticOverflow)
+}
+
 impl BmeShape {
     #[must_use]
     pub const fn new(rows: usize, inner: usize, cols: usize) -> Self {
@@ -55,20 +59,20 @@ impl BmeShape {
         if self.rows == 0 || self.inner == 0 || self.cols == 0 {
             return Err(BmeCostError::ZeroDimension);
         }
-        u128::from(self.rows)
-            .checked_mul(u128::from(self.cols))
+        count_from_usize(self.rows)?
+            .checked_mul(count_from_usize(self.cols)?)
             .ok_or(BmeCostError::ArithmeticOverflow)
     }
 
     fn pairs(self) -> Result<u128, BmeCostError> {
         self.cells()?
-            .checked_mul(u128::from(self.inner))
+            .checked_mul(count_from_usize(self.inner)?)
             .ok_or(BmeCostError::ArithmeticOverflow)
     }
 
     fn reductions(self) -> Result<u128, BmeCostError> {
         self.cells()?
-            .checked_mul(u128::from(self.inner.saturating_sub(1)))
+            .checked_mul(count_from_usize(self.inner.saturating_sub(1))?)
             .ok_or(BmeCostError::ArithmeticOverflow)
     }
 }
