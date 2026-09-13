@@ -156,9 +156,7 @@ pub fn static_mask_from_index_bits(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        StaticMaskError, static_mask_from_index_bits, static_mask_from_truth_table,
-    };
+    use super::{StaticMaskError, static_mask_from_index_bits, static_mask_from_truth_table};
     use crate::sparsity::SparsityError;
 
     #[test]
@@ -186,12 +184,8 @@ mod tests {
     #[test]
     fn projects_declared_nonconsecutive_address_bits_exactly() {
         // XOR over index bits [0, 2]. address_bits[0] is the truth-table LSB.
-        let mask = static_mask_from_index_bits(
-            8,
-            &[false, true, true, false],
-            &[0, 2],
-        )
-        .unwrap();
+        let mask =
+            static_mask_from_index_bits(8, &[false, true, true, false], &[0, 2]).unwrap();
         assert_eq!(
             mask.as_slice(),
             &[false, true, false, true, true, false, true, false]
