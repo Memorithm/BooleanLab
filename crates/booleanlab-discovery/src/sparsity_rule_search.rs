@@ -11,6 +11,8 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
+use booleanlab_core::{DynamicMaskError, ExactMask, dynamic_mask_from_predicates};
+
 use crate::BooleanFunction;
 use crate::baseline::{BaselineConfig, BaselineError, run_boolean_baseline};
 
@@ -70,6 +72,32 @@ pub fn propose_bounded_rules(
             }
         })
         .collect())
+}
+
+/// Apply one exact Boolean proposal to explicit BL-14.3 predicate rows.
+///
+/// Predicate extraction remains outside this function. The proposal truth
+/// table is converted losslessly from the exact `0/1` representation owned by
+/// [`BooleanFunction`] and evaluated by the existing BL-14.3 dynamic-mask
+/// implementation. This step records only the exact retain/drop mask; it does
+/// not fabricate quality, latency, memory-traffic, or controller-cost evidence.
+///
+/// # Errors
+///
+/// Propagates [`DynamicMaskError`] when the predicate rows are empty, their
+/// arity does not match the proposal input width, or exact mask construction
+/// otherwise fails closed.
+pub fn materialize_proposal_mask(
+    proposal: &BoundedRuleProposal,
+    predicate_rows: &[&[bool]],
+) -> Result<ExactMask, DynamicMaskError> {
+    let truth_table = proposal
+        .function
+        .truth_table()
+        .iter()
+        .map(|&bit| bit == 1)
+        .collect::<Vec<_>>();
+    dynamic_mask_from_predicates(&truth_table, predicate_rows)
 }
 
 /// Exact objective vector for one already-evaluated Boolean sparsity rule.
@@ -262,6 +290,15 @@ mod tests {
         }
     }
 
+    fn xor_proposal() -> BoundedRuleProposal {
+        BoundedRuleProposal {
+            proposal_id: "xor-control".to_owned(),
+            function: BooleanFunction::new(2, vec![0, 1, 1, 0]).unwrap(),
+            generated_gate_count: 1,
+            generated_depth: 1,
+        }
+    }
+
     #[test]
     fn bounded_rule_proposals_are_deterministic_and_use_full_population() {
         let config = BaselineConfig {
@@ -291,6 +328,34 @@ mod tests {
                     .ends_with(&format!("{:016x}", proposal.function.stable_fingerprint()))
             );
         }
+    }
+
+    #[test]
+    fn proposal_materialization_reuses_bl14_dynamic_mask_semantics() {
+        let rows: [&[bool]; 4] = [
+            &[false, false],
+            &[true, false],
+            &[false, true],
+            &[true, true],
+        ];
+        let mask = materialize_proposal_mask(&xor_proposal(), &rows).unwrap();
+        assert_eq!(mask.as_slice(), &[false, true, true, false]);
+        assert_eq!(mask.cardinality().retained(), 2);
+        assert_eq!(mask.cardinality().total(), 4);
+    }
+
+    #[test]
+    fn proposal_materialization_propagates_predicate_arity_failure() {
+        let one = [true];
+        let rows: [&[bool]; 1] = [&one];
+        assert_eq!(
+            materialize_proposal_mask(&xor_proposal(), &rows),
+            Err(DynamicMaskError::PredicateArityMismatch {
+                index: 0,
+                expected: 2,
+                actual: 1,
+            })
+        );
     }
 
     #[test]
