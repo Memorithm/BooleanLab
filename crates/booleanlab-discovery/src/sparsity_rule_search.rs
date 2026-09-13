@@ -285,9 +285,11 @@ mod tests {
             assert!(proposal.generated_gate_count >= config.min_gates);
             assert!(proposal.generated_gate_count <= config.max_gates);
             assert!(proposal.generated_depth <= proposal.generated_gate_count);
-            assert!(proposal
-                .proposal_id
-                .ends_with(&format!("{:016x}", proposal.function.stable_fingerprint())));
+            assert!(
+                proposal
+                    .proposal_id
+                    .ends_with(&format!("{:016x}", proposal.function.stable_fingerprint()))
+            );
         }
     }
 
