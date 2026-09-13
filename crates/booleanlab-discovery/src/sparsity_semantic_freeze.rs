@@ -1,36 +1,52 @@
 //! BL-14.5 exact rule-semantic freeze boundary.
 //!
 //! Candidate identifiers alone are not semantic identities. This layer binds a
-//! frozen SEARCH selection to both the complete [`BooleanFunction`] truth table
-//! and the canonical predicate-schema/configuration definition used to construct
-//! its Boolean inputs. Final HOLDOUT must present exactly the same mapping.
-//! Equality is exact; the non-cryptographic proposal fingerprint is never
-//! treated as proof of rule identity.
+//! frozen SEARCH selection to the complete [`BooleanFunction`] truth table, the
+//! canonical predicate-schema/configuration definition, and the resolved
+//! predicate parameters used to construct its Boolean inputs. Final HOLDOUT
+//! must present exactly the same mapping. Equality is exact; the
+//! non-cryptographic proposal fingerprint is never treated as proof of rule
+//! identity.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::BooleanFunction;
 use crate::sparsity_freeze::{FrozenSparsitySelection, SparsityFreezeError};
 use crate::sparsity_rule_search::SparsityRuleCandidate;
 
+/// One resolved predicate parameter frozen after SEARCH.
+///
+/// `resolved_value` is the canonical experiment-owned representation of the
+/// value actually used by predicate extraction (for example a numeric cutoff,
+/// quantizer boundary, or categorical split). It is compared byte-for-byte at
+/// HOLDOUT and therefore must not be re-fitted from HOLDOUT data.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ResolvedPredicateParameter {
+    pub predicate_id: String,
+    pub parameter_name: String,
+    pub resolved_value: String,
+}
+
 /// Exact experiment-owned binding between one screening id and one Boolean rule.
 ///
 /// `predicate_schema` is the canonical serialized experimental definition of
-/// the ordered Boolean inputs, including predicate order and any thresholds,
-/// quantizers, or categorical boundaries that determine those inputs. It is
-/// compared byte-for-byte between SEARCH and HOLDOUT.
+/// the ordered Boolean inputs. `resolved_parameters` records the concrete
+/// SEARCH-resolved thresholds, quantizer state, and categorical boundaries that
+/// determine those inputs. Both are compared exactly between SEARCH and HOLDOUT.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExactSparsityRuleBinding {
     pub candidate_id: String,
     pub function: BooleanFunction,
     pub predicate_schema: String,
+    pub resolved_parameters: Vec<ResolvedPredicateParameter>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct FrozenRuleSemantics {
     function: BooleanFunction,
     predicate_schema: String,
+    resolved_parameters: Vec<ResolvedPredicateParameter>,
 }
 
 /// Frozen id-to-rule mapping that must survive unchanged into final HOLDOUT.
@@ -46,25 +62,37 @@ pub enum SparsitySemanticFreezeError {
     Selection(SparsityFreezeError),
     EmptyBindingId { index: usize },
     EmptyPredicateSchema { candidate_id: String },
+    EmptyResolvedParameterField {
+        candidate_id: String,
+        parameter_index: usize,
+    },
+    DuplicateResolvedParameter {
+        candidate_id: String,
+        predicate_id: String,
+        parameter_name: String,
+    },
     DuplicateBinding { candidate_id: String },
     UnfrozenBinding { candidate_id: String },
     MissingFrozenBinding { candidate_id: String },
     RuleSemanticMismatch { candidate_id: String },
     PredicateSchemaMismatch { candidate_id: String },
+    ResolvedPredicateParametersMismatch { candidate_id: String },
 }
 
 impl FrozenSparsityRuleSelection {
-    /// Bind an already-frozen SEARCH frontier to exact Boolean truth tables and
-    /// canonical predicate schemas.
+    /// Bind an already-frozen SEARCH frontier to exact Boolean truth tables,
+    /// canonical predicate schemas, and concrete SEARCH-resolved parameters.
     ///
     /// Binding order is irrelevant; identity is by candidate id, exact
-    /// [`BooleanFunction`] equality, and byte-exact predicate schema. The
-    /// supplied set must contain every frozen id exactly once and no other id.
+    /// [`BooleanFunction`] equality, byte-exact predicate schema, and exact
+    /// resolved parameter state. The supplied set must contain every frozen id
+    /// exactly once and no other id.
     ///
     /// # Errors
     ///
-    /// Rejects empty/duplicate ids, empty predicate schemas, ids not present in
-    /// the frozen SEARCH frontier, and missing frozen ids.
+    /// Rejects empty/duplicate ids, empty predicate schemas, malformed or
+    /// duplicate resolved parameters, ids not present in the frozen SEARCH
+    /// frontier, and missing frozen ids.
     pub fn bind_search_rules(
         selection: FrozenSparsitySelection,
         bindings: &[ExactSparsityRuleBinding],
@@ -83,14 +111,15 @@ impl FrozenSparsityRuleSelection {
     ///
     /// This first applies the ordinary SEARCH->HOLDOUT identity/domain gate,
     /// then verifies that every candidate id is still bound to the exact same
-    /// Boolean truth table and predicate schema frozen after SEARCH selection.
-    /// No HOLDOUT objective is used to alter the frozen set or rule semantics.
+    /// Boolean truth table, predicate schema, and resolved predicate state
+    /// frozen after SEARCH selection. No HOLDOUT objective is used to alter the
+    /// frozen set or rule semantics.
     ///
     /// # Errors
     ///
     /// Propagates [`SparsityFreezeError`] for invalid HOLDOUT evidence and
     /// rejects missing/extra/duplicate bindings, truth-table drift, predicate
-    /// schema drift, or an empty predicate schema.
+    /// schema drift, resolved-parameter drift, or malformed predicate state.
     pub fn validate_holdout(
         &self,
         candidates: &[SparsityRuleCandidate],
@@ -117,6 +146,13 @@ impl FrozenSparsityRuleSelection {
                     candidate_id: candidate_id.clone(),
                 });
             }
+            if holdout_semantics.resolved_parameters != frozen_semantics.resolved_parameters {
+                return Err(
+                    SparsitySemanticFreezeError::ResolvedPredicateParametersMismatch {
+                        candidate_id: candidate_id.clone(),
+                    },
+                );
+            }
         }
         Ok(())
     }
@@ -136,6 +172,7 @@ fn validate_binding_set(
                 candidate_id: binding.candidate_id.clone(),
             });
         }
+        validate_resolved_parameters(binding)?;
         if !selection
             .candidate_ids()
             .iter()
@@ -148,6 +185,7 @@ fn validate_binding_set(
         let semantics = FrozenRuleSemantics {
             function: binding.function.clone(),
             predicate_schema: binding.predicate_schema.clone(),
+            resolved_parameters: binding.resolved_parameters.clone(),
         };
         if rules
             .insert(binding.candidate_id.clone(), semantics)
@@ -167,6 +205,35 @@ fn validate_binding_set(
         }
     }
     Ok(rules)
+}
+
+fn validate_resolved_parameters(
+    binding: &ExactSparsityRuleBinding,
+) -> Result<(), SparsitySemanticFreezeError> {
+    let mut keys = BTreeSet::new();
+    for (parameter_index, parameter) in binding.resolved_parameters.iter().enumerate() {
+        if parameter.predicate_id.is_empty()
+            || parameter.parameter_name.is_empty()
+            || parameter.resolved_value.is_empty()
+        {
+            return Err(SparsitySemanticFreezeError::EmptyResolvedParameterField {
+                candidate_id: binding.candidate_id.clone(),
+                parameter_index,
+            });
+        }
+        let key = (
+            parameter.predicate_id.clone(),
+            parameter.parameter_name.clone(),
+        );
+        if !keys.insert(key.clone()) {
+            return Err(SparsitySemanticFreezeError::DuplicateResolvedParameter {
+                candidate_id: binding.candidate_id.clone(),
+                predicate_id: key.0,
+                parameter_name: key.1,
+            });
+        }
+    }
+    Ok(())
 }
 
 impl fmt::Display for SparsitySemanticFreezeError {
@@ -201,23 +268,41 @@ mod tests {
         }
     }
 
-    fn binding_with_schema(
+    fn resolved_parameters(q75: &str) -> Vec<ResolvedPredicateParameter> {
+        vec![
+            ResolvedPredicateParameter {
+                predicate_id: "magnitude".to_owned(),
+                parameter_name: "threshold".to_owned(),
+                resolved_value: q75.to_owned(),
+            },
+            ResolvedPredicateParameter {
+                predicate_id: "activity".to_owned(),
+                parameter_name: "window".to_owned(),
+                resolved_value: "32".to_owned(),
+            },
+        ]
+    }
+
+    fn binding_with_semantics(
         candidate_id: &str,
         truth_table: Vec<u8>,
         predicate_schema: &str,
+        parameters: Vec<ResolvedPredicateParameter>,
     ) -> ExactSparsityRuleBinding {
         ExactSparsityRuleBinding {
             candidate_id: candidate_id.to_owned(),
             function: BooleanFunction::new(2, truth_table).unwrap(),
             predicate_schema: predicate_schema.to_owned(),
+            resolved_parameters: parameters,
         }
     }
 
     fn binding(candidate_id: &str, truth_table: Vec<u8>) -> ExactSparsityRuleBinding {
-        binding_with_schema(
+        binding_with_semantics(
             candidate_id,
             truth_table,
             "v1:[magnitude>=q75,activity_window=32]",
+            resolved_parameters("0.750000"),
         )
     }
 
@@ -278,10 +363,11 @@ mod tests {
             candidate("b", SparsityEvaluationPhase::Holdout, 39),
         ];
         let bindings = vec![
-            binding_with_schema(
+            binding_with_semantics(
                 "a",
                 vec![0, 0, 0, 1],
                 "v1:[activity_window=32,magnitude>=q75]",
+                resolved_parameters("0.750000"),
             ),
             binding("b", vec![0, 1, 1, 0]),
         ];
@@ -294,16 +380,95 @@ mod tests {
     }
 
     #[test]
+    fn rejects_same_schema_with_refit_resolved_threshold() {
+        let frozen = frozen_rules();
+        let holdout = vec![
+            candidate("a", SparsityEvaluationPhase::Holdout, 81),
+            candidate("b", SparsityEvaluationPhase::Holdout, 39),
+        ];
+        let bindings = vec![
+            binding_with_semantics(
+                "a",
+                vec![0, 0, 0, 1],
+                "v1:[magnitude>=q75,activity_window=32]",
+                resolved_parameters("0.812500"),
+            ),
+            binding("b", vec![0, 1, 1, 0]),
+        ];
+        assert_eq!(
+            frozen.validate_holdout(&holdout, &bindings),
+            Err(
+                SparsitySemanticFreezeError::ResolvedPredicateParametersMismatch {
+                    candidate_id: "a".to_owned(),
+                }
+            )
+        );
+    }
+
+    #[test]
     fn rejects_empty_predicate_schema() {
         let search = vec![candidate("a", SparsityEvaluationPhase::Search, 80)];
         let selection = FrozenSparsitySelection::from_search_frontier(&search).unwrap();
         assert_eq!(
             FrozenSparsityRuleSelection::bind_search_rules(
                 selection,
-                &[binding_with_schema("a", vec![0, 0, 0, 1], "")],
+                &[binding_with_semantics(
+                    "a",
+                    vec![0, 0, 0, 1],
+                    "",
+                    resolved_parameters("0.750000"),
+                )],
             ),
             Err(SparsitySemanticFreezeError::EmptyPredicateSchema {
                 candidate_id: "a".to_owned(),
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_empty_and_duplicate_resolved_parameters() {
+        let search = vec![candidate("a", SparsityEvaluationPhase::Search, 80)];
+        let selection = FrozenSparsitySelection::from_search_frontier(&search).unwrap();
+        let malformed = vec![ResolvedPredicateParameter {
+            predicate_id: "magnitude".to_owned(),
+            parameter_name: "threshold".to_owned(),
+            resolved_value: String::new(),
+        }];
+        assert_eq!(
+            FrozenSparsityRuleSelection::bind_search_rules(
+                selection.clone(),
+                &[binding_with_semantics(
+                    "a",
+                    vec![0, 0, 0, 1],
+                    "v1:[magnitude>=q75]",
+                    malformed,
+                )],
+            ),
+            Err(SparsitySemanticFreezeError::EmptyResolvedParameterField {
+                candidate_id: "a".to_owned(),
+                parameter_index: 0,
+            })
+        );
+
+        let duplicate = ResolvedPredicateParameter {
+            predicate_id: "magnitude".to_owned(),
+            parameter_name: "threshold".to_owned(),
+            resolved_value: "0.750000".to_owned(),
+        };
+        assert_eq!(
+            FrozenSparsityRuleSelection::bind_search_rules(
+                selection,
+                &[binding_with_semantics(
+                    "a",
+                    vec![0, 0, 0, 1],
+                    "v1:[magnitude>=q75]",
+                    vec![duplicate.clone(), duplicate],
+                )],
+            ),
+            Err(SparsitySemanticFreezeError::DuplicateResolvedParameter {
+                candidate_id: "a".to_owned(),
+                predicate_id: "magnitude".to_owned(),
+                parameter_name: "threshold".to_owned(),
             })
         );
     }
