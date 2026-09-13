@@ -25,10 +25,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let frontier_thresholds: Vec<u64> = frontier.iter().map(|point| point.threshold()).collect();
     if frontier_thresholds != [0, 1, 2] {
-        return Err(format!(
-            "unexpected BL-4 calibration frontier: {frontier_thresholds:?}"
-        )
-        .into());
+        return Err(
+            format!("unexpected BL-4 calibration frontier: {frontier_thresholds:?}").into(),
+        );
     }
 
     println!("BL-4.4.2 deterministic Hamming-frontier calibration");
