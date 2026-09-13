@@ -85,9 +85,11 @@ impl FrozenSparsityRuleSelection {
 
         let holdout_rules = validate_binding_set(&self.selection, bindings)?;
         for (candidate_id, frozen_function) in &self.rules {
-            let holdout_function = holdout_rules
-                .get(candidate_id)
-                .expect("validated binding set contains every frozen id");
+            let holdout_function = holdout_rules.get(candidate_id).ok_or_else(|| {
+                SparsitySemanticFreezeError::MissingFrozenBinding {
+                    candidate_id: candidate_id.clone(),
+                }
+            })?;
             if holdout_function != frozen_function {
                 return Err(SparsitySemanticFreezeError::RuleSemanticMismatch {
                     candidate_id: candidate_id.clone(),
