@@ -12,6 +12,7 @@ pub mod equivalence_screen;
 pub mod gf2;
 #[cfg(feature = "sedenion-experiments")]
 pub mod sedenion;
+pub mod sparsity_exhaustive_search;
 pub mod sparsity_freeze;
 pub mod sparsity_rule_search;
 pub mod sparsity_semantic_freeze;
