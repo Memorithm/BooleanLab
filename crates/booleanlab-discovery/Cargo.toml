@@ -24,5 +24,10 @@ name = "bl13_sedenion_baseline_screen"
 path = "src/bin/bl13_sedenion_baseline_screen.rs"
 required-features = ["sedenion-experiments"]
 
+[[bin]]
+name = "bl13_sedenion_permutation_screen"
+path = "src/bin/bl13_sedenion_permutation_screen.rs"
+required-features = ["sedenion-experiments"]
+
 [lints]
 workspace = true
