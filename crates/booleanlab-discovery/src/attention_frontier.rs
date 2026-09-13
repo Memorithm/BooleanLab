@@ -192,7 +192,10 @@ mod tests {
         let frontier = density_false_negative_frontier(&points);
 
         assert_eq!(
-            frontier.iter().map(|point| point.threshold()).collect::<Vec<_>>(),
+            frontier
+                .iter()
+                .map(|point| point.threshold())
+                .collect::<Vec<_>>(),
             vec![0, 1, 2]
         );
     }
