@@ -35,6 +35,10 @@ pub struct BaselineSummary {
     pub balanced_functions: usize,
     pub bent_functions: usize,
     pub best_nonlinearity: u64,
+    /// Complete exact-deduplicated population retained in deterministic
+    /// generation order. BL-13.2.1 equivalence screening must compare against
+    /// this population rather than only against the Pareto projection.
+    pub population: Vec<BaselineRecord>,
     pub pareto_front: Vec<BaselineRecord>,
 }
 
@@ -197,6 +201,7 @@ pub fn run_boolean_baseline(config: BaselineConfig) -> Result<BaselineSummary, B
         .map(|record| record.metrics.nonlinearity)
         .max()
         .unwrap_or(0);
+    let unique_functions = unique.len();
 
     pareto_front.sort_by_key(|record| {
         (
@@ -212,10 +217,11 @@ pub fn run_boolean_baseline(config: BaselineConfig) -> Result<BaselineSummary, B
     Ok(BaselineSummary {
         config,
         generated: config.candidates,
-        unique_functions: unique.len(),
+        unique_functions,
         balanced_functions,
         bent_functions,
         best_nonlinearity,
+        population: unique,
         pareto_front,
     })
 }
@@ -422,6 +428,24 @@ mod tests {
             run_boolean_baseline(config).unwrap(),
             run_boolean_baseline(config).unwrap()
         );
+    }
+
+    #[test]
+    fn retained_population_matches_exact_unique_count() {
+        let summary = run_boolean_baseline(BaselineConfig {
+            input_bits: 5,
+            candidates: 128,
+            min_gates: 2,
+            max_gates: 10,
+            seed: 13,
+        })
+        .unwrap();
+        assert_eq!(summary.population.len(), summary.unique_functions);
+        for (index, left) in summary.population.iter().enumerate() {
+            assert!(summary.population[index + 1..]
+                .iter()
+                .all(|right| left.function != right.function));
+        }
     }
 
     #[test]
