@@ -80,10 +80,7 @@ mod tests {
 
     #[test]
     fn empty_or_impossible_requests_fail_closed() {
-        assert_eq!(
-            rank_descending_u64(&[]),
-            Err(SparsityError::EmptyMask)
-        );
+        assert_eq!(rank_descending_u64(&[]), Err(SparsityError::EmptyMask));
         assert_eq!(
             mask_from_descending_u64_scores(&[], 0),
             Err(SparsityError::EmptyMask)
