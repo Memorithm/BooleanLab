@@ -1,13 +1,18 @@
-//! BL-14.5 exact multi-objective screening for already-evaluated sparsity rules.
+//! BL-14.5 exact multi-objective screening and bounded rule proposal support.
 //!
-//! This module does not synthesize rules by itself. It provides the common,
-//! deterministic evidence boundary that SAT/MaxSAT, CEGIS, Forge-style search
-//! or another declared discrete search method can feed after evaluating a
-//! candidate under one frozen contract. Search evidence and final holdout
-//! evidence are deliberately separate and may not be pooled into one frontier.
+//! This module provides the deterministic evidence boundary that SAT/MaxSAT,
+//! CEGIS, Forge-style search or another declared discrete search method can feed
+//! after evaluating a candidate under one frozen contract. It also exposes a
+//! bounded proposal adapter over BooleanLab's existing deterministic circuit
+//! generator. Proposal generation does not evaluate sparsity quality or select
+//! using holdout evidence. Search evidence and final holdout evidence are
+//! deliberately separate and may not be pooled into one frontier.
 
 use std::collections::BTreeSet;
 use std::fmt;
+
+use crate::BooleanFunction;
+use crate::baseline::{BaselineConfig, BaselineError, run_boolean_baseline};
 
 /// Evidence partition used by BL-14.5.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -16,6 +21,55 @@ pub enum SparsityEvaluationPhase {
     Search,
     /// Frozen final evidence that must not feed back into rule selection.
     Holdout,
+}
+
+/// One deterministic rule proposal generated before sparsity evaluation.
+///
+/// `generated_gate_count` and `generated_depth` describe the concrete retained
+/// sampled circuit that produced `function`. They are not proofs of the minimum
+/// circuit complexity of that Boolean function.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BoundedRuleProposal {
+    /// Deterministic proposal identifier containing population order and a
+    /// non-cryptographic function fingerprint.
+    pub proposal_id: String,
+    /// Exact Boolean controller truth table.
+    pub function: BooleanFunction,
+    /// Gate count of the retained generated circuit.
+    pub generated_gate_count: usize,
+    /// Depth of the retained generated circuit.
+    pub generated_depth: usize,
+}
+
+/// Generate a deterministic, exactly deduplicated population of candidate
+/// sparsity rules from the existing bounded Boolean circuit generator.
+///
+/// This deliberately consumes the complete generated population rather than
+/// the BL-13 cryptographic Pareto projection. BL-14 objectives are evaluated
+/// later through [`SparsityRuleCandidate`].
+///
+/// # Errors
+///
+/// Propagates [`BaselineError`] when the bounded circuit configuration or an
+/// exact generated circuit/function is invalid.
+pub fn propose_bounded_rules(
+    config: BaselineConfig,
+) -> Result<Vec<BoundedRuleProposal>, BaselineError> {
+    let summary = run_boolean_baseline(config)?;
+    Ok(summary
+        .population
+        .into_iter()
+        .enumerate()
+        .map(|(index, record)| {
+            let fingerprint = record.function.stable_fingerprint();
+            BoundedRuleProposal {
+                proposal_id: format!("bl14-bounded-{index:08}-{fingerprint:016x}"),
+                function: record.function,
+                generated_gate_count: record.gate_count,
+                generated_depth: record.depth,
+            }
+        })
+        .collect())
 }
 
 /// Exact objective vector for one already-evaluated Boolean sparsity rule.
@@ -205,6 +259,35 @@ mod tests {
             memory_traffic_bytes: retained_units * 64,
             latency_ns: retained_units * 100 + controller_cost_units,
             rule_complexity_units: controller_cost_units,
+        }
+    }
+
+    #[test]
+    fn bounded_rule_proposals_are_deterministic_and_use_full_population() {
+        let config = BaselineConfig {
+            input_bits: 4,
+            candidates: 64,
+            min_gates: 2,
+            max_gates: 8,
+            seed: 0x424c_3134_5f50_524f,
+        };
+        let summary = run_boolean_baseline(config).unwrap();
+        let proposals = propose_bounded_rules(config).unwrap();
+        let repeated = propose_bounded_rules(config).unwrap();
+
+        assert_eq!(proposals, repeated);
+        assert_eq!(proposals.len(), summary.population.len());
+        assert!(proposals.len() >= summary.pareto_front.len());
+        for (proposal, record) in proposals.iter().zip(summary.population.iter()) {
+            assert_eq!(proposal.function, record.function);
+            assert_eq!(proposal.generated_gate_count, record.gate_count);
+            assert_eq!(proposal.generated_depth, record.depth);
+            assert!(proposal.generated_gate_count >= config.min_gates);
+            assert!(proposal.generated_gate_count <= config.max_gates);
+            assert!(proposal.generated_depth <= proposal.generated_gate_count);
+            assert!(proposal
+                .proposal_id
+                .ends_with(&format!("{:016x}", proposal.function.stable_fingerprint())));
         }
     }
 
