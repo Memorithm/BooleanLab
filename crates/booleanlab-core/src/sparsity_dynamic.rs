@@ -13,7 +13,9 @@ use crate::sparsity::{ExactMask, SparsityError};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DynamicMaskError {
     EmptyTruthTable,
-    TruthTableLengthNotPowerOfTwo { length: usize },
+    TruthTableLengthNotPowerOfTwo {
+        length: usize,
+    },
     EmptyPredicateRows,
     PredicateArityMismatch {
         index: usize,
@@ -102,7 +104,12 @@ mod tests {
     #[test]
     fn evaluates_each_predicate_row_exactly() {
         // XOR over two predicates, with predicate 0 as the truth-table LSB.
-        let rows: [&[bool]; 4] = [&[false, false], &[true, false], &[false, true], &[true, true]];
+        let rows: [&[bool]; 4] = [
+            &[false, false],
+            &[true, false],
+            &[false, true],
+            &[true, true],
+        ];
         let mask = dynamic_mask_from_predicates(&[false, true, true, false], &rows).unwrap();
 
         assert_eq!(mask.as_slice(), &[false, true, true, false]);
