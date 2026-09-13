@@ -38,7 +38,10 @@ impl fmt::Display for RelationalMaskError {
         match self {
             Self::EmptyCandidateSet => write!(f, "BL-14.4 candidate set must be non-empty"),
             Self::SelfRelation { index } => {
-                write!(f, "BL-14.4 redundancy relation contains self-edge at {index}")
+                write!(
+                    f,
+                    "BL-14.4 redundancy relation contains self-edge at {index}"
+                )
             }
             Self::RelationIndexOutOfRange { index, total } => write!(
                 f,
@@ -166,33 +169,29 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(mask.as_slice(), &[true, true, false, false, true, true, false]);
+        assert_eq!(
+            mask.as_slice(),
+            &[true, true, false, false, true, true, false]
+        );
         assert_eq!(mask.cardinality().retained(), 4);
         assert_eq!(mask.cardinality().total(), 7);
     }
 
     #[test]
     fn edge_order_does_not_change_the_mask() {
-        let first = relational_component_mask(
-            5,
-            &[RedundancyEdge::new(4, 2), RedundancyEdge::new(2, 1)],
-        )
-        .unwrap();
-        let second = relational_component_mask(
-            5,
-            &[RedundancyEdge::new(1, 2), RedundancyEdge::new(2, 4)],
-        )
-        .unwrap();
+        let first =
+            relational_component_mask(5, &[RedundancyEdge::new(4, 2), RedundancyEdge::new(2, 1)])
+                .unwrap();
+        let second =
+            relational_component_mask(5, &[RedundancyEdge::new(1, 2), RedundancyEdge::new(2, 4)])
+                .unwrap();
         assert_eq!(first, second);
     }
 
     #[test]
     fn rejects_duplicate_undirected_relations() {
         assert_eq!(
-            relational_component_mask(
-                4,
-                &[RedundancyEdge::new(1, 3), RedundancyEdge::new(3, 1)],
-            ),
+            relational_component_mask(4, &[RedundancyEdge::new(1, 3), RedundancyEdge::new(3, 1)],),
             Err(RelationalMaskError::DuplicateRelation { left: 1, right: 3 })
         );
     }
