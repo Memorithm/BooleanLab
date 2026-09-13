@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
 use booleanlab_discovery::BooleanFunction;
-use booleanlab_discovery::baseline::{BaselineConfig, run_boolean_baseline};
-use booleanlab_discovery::equivalence_screen::{ScreenedEquivalence, screen_full_baseline};
+use booleanlab_discovery::baseline::{BaselineConfig, BaselineSummary, run_boolean_baseline};
+use booleanlab_discovery::equivalence_screen::{
+    AffineInvariantScreen, ScreenedEquivalence, screen_affine_invariants, screen_full_baseline,
+};
 use booleanlab_discovery::sedenion::control_component_functions;
 
 const MAX_EXHAUSTIVE_PERMUTATION_BITS: u32 = 8;
@@ -11,83 +13,147 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let baseline = run_boolean_baseline(BaselineConfig::bl13_reference())?;
     let functions = control_component_functions()?;
     let (exact_index, complement_index) = build_reference_indexes(&baseline.population);
+    let reference_functions = baseline
+        .population
+        .iter()
+        .map(|record| &record.function)
+        .cloned()
+        .collect::<Vec<_>>();
+    let screens = Screens {
+        baseline: &baseline,
+        reference_functions: &reference_functions,
+        exact_index: &exact_index,
+        complement_index: &complement_index,
+    };
+    let mut counts = ScreenCounts::default();
 
-    let mut exact_matches = 0_usize;
-    let mut complement_matches = 0_usize;
-    let mut permutation_matches = 0_usize;
-    let mut permutation_complement_matches = 0_usize;
-    let mut not_found = 0_usize;
-
-    println!("coordinate\tstatus\treference_index\tpermutation");
-
+    println!(
+        "coordinate\tstatus\treference_index\tpermutation\taffine_screen\taffine_compatible_references"
+    );
     for (coordinate, function) in functions.iter().enumerate() {
-        if function.input_bits() > MAX_EXHAUSTIVE_PERMUTATION_BITS {
-            return Err(format!(
-                "input width {} exceeds exhaustive permutation bound {}",
-                function.input_bits(),
-                MAX_EXHAUSTIVE_PERMUTATION_BITS
-            )
-            .into());
-        }
-
-        if let Some(screened) = screen_full_baseline(function, &baseline) {
-            let status = match screened.relation {
-                ScreenedEquivalence::Exact => {
-                    exact_matches += 1;
-                    "EXACT"
-                }
-                ScreenedEquivalence::OutputComplement => {
-                    complement_matches += 1;
-                    "OUTPUT_COMPLEMENT"
-                }
-            };
-            println!(
-                "{coordinate}\t{status}\t{}\tidentity",
-                screened.reference_index
-            );
-            continue;
-        }
-
-        match screen_input_permutations(function, &exact_index, &complement_index) {
-            Some(PermutationMatch {
-                reference_index,
-                permutation,
-                complemented: false,
-            }) => {
-                permutation_matches += 1;
-                println!(
-                    "{coordinate}\tINPUT_PERMUTATION\t{reference_index}\t{}",
-                    format_permutation(&permutation)
-                );
-            }
-            Some(PermutationMatch {
-                reference_index,
-                permutation,
-                complemented: true,
-            }) => {
-                permutation_complement_matches += 1;
-                println!(
-                    "{coordinate}\tINPUT_PERMUTATION_OUTPUT_COMPLEMENT\t{reference_index}\t{}",
-                    format_permutation(&permutation)
-                );
-            }
-            None => {
-                not_found += 1;
-                println!("{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-");
-            }
-        }
+        screen_coordinate(coordinate, function, &screens, &mut counts)?;
     }
 
     println!(
-        "summary\tbaseline_unique={}\texact_matches={}\tcomplement_matches={}\tinput_permutation_matches={}\tinput_permutation_complement_matches={}\tnot_found={}\tnovelty_claim=false",
+        "summary\tbaseline_unique={}\texact_matches={}\tcomplement_matches={}\tinput_permutation_matches={}\tinput_permutation_complement_matches={}\taffine_excluded={}\taffine_inconclusive={}\taffine_compatible_references={}\tnot_found={}\tnovelty_claim=false",
         baseline.unique_functions,
-        exact_matches,
-        complement_matches,
-        permutation_matches,
-        permutation_complement_matches,
-        not_found,
+        counts.exact_matches,
+        counts.complement_matches,
+        counts.permutation_matches,
+        counts.permutation_complement_matches,
+        counts.affine_excluded,
+        counts.affine_inconclusive,
+        counts.affine_compatible_references,
+        counts.not_found,
     );
     Ok(())
+}
+
+#[derive(Default)]
+struct ScreenCounts {
+    exact_matches: usize,
+    complement_matches: usize,
+    permutation_matches: usize,
+    permutation_complement_matches: usize,
+    affine_excluded: usize,
+    affine_inconclusive: usize,
+    affine_compatible_references: usize,
+    not_found: usize,
+}
+
+struct Screens<'a> {
+    baseline: &'a BaselineSummary,
+    reference_functions: &'a [BooleanFunction],
+    exact_index: &'a BTreeMap<Vec<u8>, usize>,
+    complement_index: &'a BTreeMap<Vec<u8>, usize>,
+}
+
+fn screen_coordinate(
+    coordinate: usize,
+    function: &BooleanFunction,
+    screens: &Screens<'_>,
+    counts: &mut ScreenCounts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if function.input_bits() > MAX_EXHAUSTIVE_PERMUTATION_BITS {
+        return Err(format!(
+            "input width {} exceeds exhaustive permutation bound {}",
+            function.input_bits(),
+            MAX_EXHAUSTIVE_PERMUTATION_BITS
+        )
+        .into());
+    }
+
+    if let Some(screened) = screen_full_baseline(function, screens.baseline) {
+        let status = match screened.relation {
+            ScreenedEquivalence::Exact => {
+                counts.exact_matches += 1;
+                "EXACT"
+            }
+            ScreenedEquivalence::OutputComplement => {
+                counts.complement_matches += 1;
+                "OUTPUT_COMPLEMENT"
+            }
+        };
+        println!(
+            "{coordinate}\t{status}\t{}\tidentity\tNOT_APPLICABLE\t0",
+            screened.reference_index
+        );
+        return Ok(());
+    }
+
+    match screen_input_permutations(function, screens.exact_index, screens.complement_index) {
+        Some(PermutationMatch {
+            reference_index,
+            permutation,
+            complemented: false,
+        }) => {
+            counts.permutation_matches += 1;
+            println!(
+                "{coordinate}\tINPUT_PERMUTATION\t{reference_index}\t{}\tNOT_APPLICABLE\t0",
+                format_permutation(&permutation)
+            );
+        }
+        Some(PermutationMatch {
+            reference_index,
+            permutation,
+            complemented: true,
+        }) => {
+            counts.permutation_complement_matches += 1;
+            println!(
+                "{coordinate}\tINPUT_PERMUTATION_OUTPUT_COMPLEMENT\t{reference_index}\t{}\tNOT_APPLICABLE\t0",
+                format_permutation(&permutation)
+            );
+        }
+        None => report_affine_screen(coordinate, function, screens.reference_functions, counts),
+    }
+    Ok(())
+}
+
+fn report_affine_screen(
+    coordinate: usize,
+    function: &BooleanFunction,
+    reference_functions: &[BooleanFunction],
+    counts: &mut ScreenCounts,
+) {
+    counts.not_found += 1;
+    match screen_affine_invariants(function, reference_functions) {
+        AffineInvariantScreen::Excluded => {
+            counts.affine_excluded += 1;
+            println!(
+                "{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-\tAFFINE_INVARIANTS_EXCLUDED\t0"
+            );
+        }
+        AffineInvariantScreen::Inconclusive {
+            compatible_reference_indices,
+        } => {
+            counts.affine_inconclusive += 1;
+            counts.affine_compatible_references += compatible_reference_indices.len();
+            println!(
+                "{coordinate}\tNOT_FOUND_DECLARED_EQUIVALENCE\t-\t-\tAFFINE_INVARIANTS_INCONCLUSIVE\t{}",
+                compatible_reference_indices.len()
+            );
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -166,10 +232,12 @@ fn next_permutation(values: &mut [u32]) -> bool {
     else {
         return false;
     };
-    let successor = (pivot + 1..values.len())
+    let Some(successor) = (pivot + 1..values.len())
         .rev()
         .find(|&index| values[pivot] < values[index])
-        .expect("pivot guarantees a successor");
+    else {
+        return false;
+    };
     values.swap(pivot, successor);
     values[pivot + 1..].reverse();
     true
