@@ -21,6 +21,17 @@ jobs:
       - name: Format and validate
         run: |
           cargo fmt --all
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('crates/booleanlab-core/src/kleene_conjunction_words.rs')
+          text = path.read_text()
+          old = 'compiled.evaluate(&vec![KleeneValue::False; 64])'
+          new = 'compiled.evaluate(&[KleeneValue::False; 64])'
+          if old not in text:
+              raise SystemExit('expected useless vec expression not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          cargo fmt --all
           rm .github/workflows/tmp-pr67-rustfmt.yml
           cargo fmt --all -- --check
           cargo test --workspace
@@ -30,5 +41,5 @@ jobs:
           git config user.name "MEMOPERF"
           git config user.email "contact@checkupauto.fr"
           git add -A
-          git commit -m "style(bl-be2): satisfy rustfmt gate"
+          git commit -m "fix(bl-be2): satisfy formatting and clippy gates"
           git push origin HEAD:feat/bl-be2-multiword-kleene
