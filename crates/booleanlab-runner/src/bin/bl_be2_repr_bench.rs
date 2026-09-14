@@ -11,7 +11,11 @@ const ASSIGNMENTS: [[KleeneValue; 3]; 9] = [
     [KleeneValue::False, KleeneValue::Unknown, KleeneValue::True],
     [KleeneValue::False, KleeneValue::True, KleeneValue::Unknown],
     [KleeneValue::Unknown, KleeneValue::False, KleeneValue::True],
-    [KleeneValue::Unknown, KleeneValue::Unknown, KleeneValue::Unknown],
+    [
+        KleeneValue::Unknown,
+        KleeneValue::Unknown,
+        KleeneValue::Unknown,
+    ],
     [KleeneValue::Unknown, KleeneValue::True, KleeneValue::False],
     [KleeneValue::True, KleeneValue::False, KleeneValue::Unknown],
     [KleeneValue::True, KleeneValue::Unknown, KleeneValue::False],
