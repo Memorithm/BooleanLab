@@ -62,7 +62,12 @@ fn direct_family(mask: ExactMask) -> MaskFamily {
 }
 
 // Population construction has no access to SEARCH or VALIDATION data.
-fn matched_population(keep: usize, budget: usize, seed: u64, anchor: &ExactMask) -> Result<Vec<MaskFamily>> {
+fn matched_population(
+    keep: usize,
+    budget: usize,
+    seed: u64,
+    anchor: &ExactMask,
+) -> Result<Vec<MaskFamily>> {
     let population = all_masks(keep)?;
     if budget == 0 || budget > population.len() {
         return Err("empty or impossible unique-topology budget".into());
@@ -71,7 +76,10 @@ fn matched_population(keep: usize, budget: usize, seed: u64, anchor: &ExactMask)
         return Err("invalid magnitude anchor".into());
     }
     let ranking = deterministic_random_keys(256, seed)?;
-    let mut others: Vec<ExactMask> = population.into_iter().filter(|mask| mask != anchor).collect();
+    let mut others: Vec<ExactMask> = population
+        .into_iter()
+        .filter(|mask| mask != anchor)
+        .collect();
     others.sort_unstable_by_key(|mask| {
         let code = mask_code(mask);
         (Reverse(ranking[usize::from(code)]), code)
@@ -91,7 +99,9 @@ fn boolean_population(predicates: &[Vec<bool>], keep: usize) -> Result<Vec<MaskF
     for rule in propose_exhaustive_rules(3)? {
         let mask = materialize_boolean_function_mask(&rule.function, &rows)?;
         if mask.cardinality().retained() == keep {
-            let group = groups.entry(mask_code(&mask)).or_insert_with(|| direct_family(mask));
+            let group = groups
+                .entry(mask_code(&mask))
+                .or_insert_with(|| direct_family(mask));
             group.codes.push(rule.truth_table_code);
             group.functions.push(rule.function);
         }
@@ -103,11 +113,18 @@ fn minimum_indices(choices: &[Choice]) -> Result<Vec<usize>> {
     for choice in choices {
         finite(choice.search.task_mse)?;
     }
-    let best = choices.iter().map(|choice| choice.search.task_mse)
-        .min_by(f64::total_cmp).ok_or("empty search population")?;
-    Ok(choices.iter().enumerate().filter_map(|(index, choice)| {
-        (choice.search.task_mse.total_cmp(&best) == Ordering::Equal).then_some(index)
-    }).collect())
+    let best = choices
+        .iter()
+        .map(|choice| choice.search.task_mse)
+        .min_by(f64::total_cmp)
+        .ok_or("empty search population")?;
+    Ok(choices
+        .iter()
+        .enumerate()
+        .filter_map(|(index, choice)| {
+            (choice.search.task_mse.total_cmp(&best) == Ordering::Equal).then_some(index)
+        })
+        .collect())
 }
 
 fn search_arm(
@@ -149,7 +166,13 @@ fn search_arm(
         });
     }
     let selected = minimum_indices(&choices)?;
-    Ok(SearchArm { name, choices, selected, candidate_examples, work })
+    Ok(SearchArm {
+        name,
+        choices,
+        selected,
+        candidate_examples,
+        work,
+    })
 }
 
 fn same_metrics(left: &Metrics, right: &Metrics) -> bool {
@@ -172,14 +195,21 @@ fn prepare_cell(
     let magnitude_keys = keys(&weights)?;
     let magnitude = mask_from_descending_u64_scores(&magnitude_keys, keep)?;
     let energetic = mask_from_descending_u64_scores(&keys(energy)?, keep)?;
-    let predicates: Vec<Vec<bool>> = (0..UNITS).map(|index| {
-        vec![magnitude.as_slice()[index], weights[index] < 0.0, energetic.as_slice()[index]]
-    }).collect();
+    let predicates: Vec<Vec<bool>> = (0..UNITS)
+        .map(|index| {
+            vec![
+                magnitude.as_slice()[index],
+                weights[index] < 0.0,
+                energetic.as_slice()[index],
+            ]
+        })
+        .collect();
     let population = boolean_population(&predicates, keep)?;
     let budget = population.len();
-    let direct_same = population.iter().map(|family| {
-        Ok(direct_family(from_code(mask_code(&family.mask))?))
-    }).collect::<Result<Vec<_>>>()?;
+    let direct_same = population
+        .iter()
+        .map(|family| Ok(direct_family(from_code(mask_code(&family.mask))?)))
+        .collect::<Result<Vec<_>>>()?;
     let direct_matched = matched_population(keep, budget, 0xB114_0023 + trial.seed, &magnitude)?;
     let complete = all_masks(keep)?.into_iter().map(direct_family).collect();
     let arms = vec![
@@ -189,7 +219,8 @@ fn prepare_cell(
         search_arm("direct_all_larger_budget", &weights, search, complete, keep)?,
     ];
     for arm in &arms[1..3] {
-        if arm.choices.len() != budget || arm.candidate_examples != arms[0].candidate_examples
+        if arm.choices.len() != budget
+            || arm.candidate_examples != arms[0].candidate_examples
             || arm.work != arms[0].work
         {
             return Err("matched scoring-budget drift".into());
@@ -215,8 +246,14 @@ fn prepare_cell(
     }
     let controls = vec![
         ("magnitude", magnitude),
-        ("unit_nm", structured_nm_mask_from_u64_scores(&magnitude_keys, keep / 2, 4)?),
-        ("activation_energy", mask_from_descending_u64_scores(&keys(&saliency)?, keep)?),
+        (
+            "unit_nm",
+            structured_nm_mask_from_u64_scores(&magnitude_keys, keep / 2, 4)?,
+        ),
+        (
+            "activation_energy",
+            mask_from_descending_u64_scores(&keys(&saliency)?, keep)?,
+        ),
     ];
     let mut heuristics = Vec::new();
     for (name, mask) in controls {
@@ -229,9 +266,13 @@ fn prepare_cell(
         });
     }
     Ok(FrozenCell {
-        trial, keep, weights, predicates,
+        trial,
+        keep,
+        weights,
+        predicates,
         dense_search: score(&weights, search, None)?,
-        heuristics, arms,
+        heuristics,
+        arms,
     })
 }
 
@@ -240,7 +281,9 @@ impl FrozenCell {
         require_batch(batch, self.trial, Split::Validation)?;
         let predicates: Vec<&[bool]> = self.predicates.iter().map(Vec::as_slice).collect();
         let mut rows = vec![ValidationRow {
-            arm: "dense", mask: 255, metrics: score(&self.weights, batch, None)?,
+            arm: "dense",
+            mask: 255,
+            metrics: score(&self.weights, batch, None)?,
         }];
         for choice in &self.heuristics {
             let arm = match choice.id.as_str() {
@@ -249,8 +292,11 @@ impl FrozenCell {
                 "activation_energy" => "activation_energy",
                 _ => return Err("unknown frozen heuristic".into()),
             };
-            rows.push(ValidationRow { arm, mask: mask_code(&choice.mask),
-                metrics: score(&self.weights, batch, Some(&choice.mask))? });
+            rows.push(ValidationRow {
+                arm,
+                mask: mask_code(&choice.mask),
+                metrics: score(&self.weights, batch, Some(&choice.mask))?,
+            });
         }
         for arm in &self.arms {
             for &index in &arm.selected {
@@ -263,15 +309,20 @@ impl FrozenCell {
                         return Err("frozen predicate/function/mask binding changed".into());
                     }
                 }
-                rows.push(ValidationRow { arm: arm.name, mask: mask_code(&choice.mask),
-                    metrics: score(&self.weights, batch, Some(&choice.mask))? });
+                rows.push(ValidationRow {
+                    arm: arm.name,
+                    mask: mask_code(&choice.mask),
+                    metrics: score(&self.weights, batch, Some(&choice.mask))?,
+                });
             }
         }
         let boolean: Vec<_> = rows.iter().filter(|row| row.arm == "boolean").collect();
         let direct: Vec<_> = rows.iter().filter(|row| row.arm == "direct_same").collect();
-        if boolean.len() != direct.len() || boolean.iter().zip(direct).any(|(left, right)| {
-            left.mask != right.mask || !same_metrics(&left.metrics, &right.metrics)
-        }) {
+        if boolean.len() != direct.len()
+            || boolean.iter().zip(direct).any(|(left, right)| {
+                left.mask != right.mask || !same_metrics(&left.metrics, &right.metrics)
+            })
+        {
             return Err("direct representation failed validation parity".into());
         }
         Ok(rows)
@@ -281,9 +332,14 @@ impl FrozenCell {
 fn emit(cell: &FrozenCell, stage: &str, arm: &str, code: u16, selected: bool, metrics: &Metrics) {
     println!(
         "{}\t{}\t{}\t{stage}\t{arm}\t{code}\t{selected}\t{:.17e}\t{:.17e}\t{}\t{}\t{}",
-        cell.trial.regime.name(), cell.trial.seed, cell.keep,
-        metrics.task_mse, metrics.reconstruction_mse,
-        metrics.work.multiplications, metrics.work.relus, metrics.work.mask_tests,
+        cell.trial.regime.name(),
+        cell.trial.seed,
+        cell.keep,
+        metrics.task_mse,
+        metrics.reconstruction_mse,
+        metrics.work.multiplications,
+        metrics.work.relus,
+        metrics.work.mask_tests,
     );
 }
 
@@ -308,24 +364,54 @@ pub(super) fn run() -> Result<()> {
     println!("# reuses previously observed BL-14.2.2 data; NOT independent validation");
     println!("# equal budget means unique-mask task scoring only; direct_all has a larger budget");
     println!("# work excludes training, predicates, enumeration, scoring, dense oracle and memory");
-    println!("regime\tseed\tkeep\tstage\tarm\tmask\tselected\ttask_mse\treconstruction_mse\tmuls\trelus\tmask_tests");
+    println!(
+        "regime\tseed\tkeep\tstage\tarm\tmask\tselected\ttask_mse\treconstruction_mse\tmuls\trelus\tmask_tests"
+    );
     for cell in &cells {
-        println!("# cell={}:{}:{}; weight_bits={:?}; predicates={:?}",
-            cell.trial.regime.name(), cell.trial.seed, cell.keep,
-            cell.weights.map(f64::to_bits), cell.predicates);
+        println!(
+            "# cell={}:{}:{}; weight_bits={:?}; predicates={:?}",
+            cell.trial.regime.name(),
+            cell.trial.seed,
+            cell.keep,
+            cell.weights.map(f64::to_bits),
+            cell.predicates
+        );
         emit(cell, "SEARCH", "dense", 255, true, &cell.dense_search);
         for choice in &cell.heuristics {
-            emit(cell, "SEARCH", &choice.id, mask_code(&choice.mask), true, &choice.search);
+            emit(
+                cell,
+                "SEARCH",
+                &choice.id,
+                mask_code(&choice.mask),
+                true,
+                &choice.search,
+            );
         }
         for arm in &cell.arms {
-            println!("# budget arm={}; masks={}; candidate_examples={}; muls={}; relus={}; mask_tests={}",
-                arm.name, arm.choices.len(), arm.candidate_examples,
-                arm.work.multiplications, arm.work.relus, arm.work.mask_tests);
+            println!(
+                "# budget arm={}; masks={}; candidate_examples={}; muls={}; relus={}; mask_tests={}",
+                arm.name,
+                arm.choices.len(),
+                arm.candidate_examples,
+                arm.work.multiplications,
+                arm.work.relus,
+                arm.work.mask_tests
+            );
             for (index, choice) in arm.choices.iter().enumerate() {
-                println!("# arm={}; mask={}; truth_table_codes={:?}", arm.name,
-                    mask_code(&choice.mask), choice.codes);
-                emit(cell, "SEARCH", arm.name, mask_code(&choice.mask),
-                    arm.selected.contains(&index), &choice.search);
+                println!(
+                    "# arm={}; mask={}; truth_table_codes={:?}",
+                    arm.name,
+                    mask_code(&choice.mask),
+                    choice.codes
+                );
+                emit(
+                    cell,
+                    "SEARCH",
+                    arm.name,
+                    mask_code(&choice.mask),
+                    arm.selected.contains(&index),
+                    &choice.search,
+                );
             }
         }
     }
@@ -348,7 +434,10 @@ mod tests {
         for (keep, expected) in [1, 8, 28, 56, 70, 56, 28, 8, 1].into_iter().enumerate() {
             let masks = all_masks(keep).unwrap();
             assert_eq!(masks.len(), expected);
-            assert_eq!(masks.iter().map(mask_code).collect::<BTreeSet<_>>().len(), expected);
+            assert_eq!(
+                masks.iter().map(mask_code).collect::<BTreeSet<_>>().len(),
+                expected
+            );
             for mask in masks {
                 assert_eq!(mask.cardinality().retained(), keep);
                 assert_eq!(from_code(mask_code(&mask)).unwrap(), mask);
@@ -370,7 +459,13 @@ mod tests {
                 assert_eq!(codes.iter().collect::<BTreeSet<_>>().len(), budget);
                 assert_eq!(population[0].mask, *anchor);
                 let repeat = matched_population(keep, budget, 99, anchor).unwrap();
-                assert_eq!(codes, repeat.iter().map(|row| mask_code(&row.mask)).collect::<Vec<_>>());
+                assert_eq!(
+                    codes,
+                    repeat
+                        .iter()
+                        .map(|row| mask_code(&row.mask))
+                        .collect::<Vec<_>>()
+                );
             }
             assert!(matched_population(keep, 0, 99, anchor).is_err());
             assert!(matched_population(keep, all.len() + 1, 99, anchor).is_err());
@@ -387,12 +482,16 @@ mod tests {
                 let k = u64::try_from(cell.arms[0].choices.len()).unwrap();
                 for arm in &cell.arms[..3] {
                     assert_eq!(arm.candidate_examples, k * 64);
-                    assert_eq!(arm.work.multiplications, k * 64 * u64::try_from(keep * 5).unwrap());
+                    assert_eq!(
+                        arm.work.multiplications,
+                        k * 64 * u64::try_from(keep * 5).unwrap()
+                    );
                     assert_eq!(arm.work.mask_tests, k * 64 * 8);
                     assert_eq!(arm.selected, minimum_indices(&arm.choices).unwrap());
                 }
                 assert_eq!(cell.arms[0].selected, cell.arms[1].selected);
-                cell.validate(&generate(trial, Split::Validation).unwrap()).unwrap();
+                cell.validate(&generate(trial, Split::Validation).unwrap())
+                    .unwrap();
             }
         }
     }
@@ -400,7 +499,11 @@ mod tests {
     #[test]
     fn all_search_ties_survive_instead_of_using_validation() {
         let search = generate(trials()[0], Split::Search).unwrap();
-        let population = all_masks(4).unwrap().into_iter().map(direct_family).collect();
+        let population = all_masks(4)
+            .unwrap()
+            .into_iter()
+            .map(direct_family)
+            .collect();
         let arm = search_arm("all", &[0.0; UNITS], &search, population, 4).unwrap();
         assert_eq!(arm.selected, (0..70).collect::<Vec<_>>());
     }
@@ -412,10 +515,28 @@ mod tests {
         let duplicate = vec![direct_family(mask.clone()), direct_family(mask.clone())];
         assert!(search_arm("bad", &[0.0; UNITS], &search, duplicate, 4).is_err());
         assert!(search_arm("bad", &[0.0; UNITS], &search, Vec::new(), 4).is_err());
-        assert!(search_arm("bad", &[0.0; UNITS], &search, vec![direct_family(mask.clone())], 2).is_err());
+        assert!(
+            search_arm(
+                "bad",
+                &[0.0; UNITS],
+                &search,
+                vec![direct_family(mask.clone())],
+                2
+            )
+            .is_err()
+        );
         let validation = generate(trials()[0], Split::Validation).unwrap();
-        assert!(search_arm("bad", &[0.0; UNITS], &validation, vec![direct_family(mask)], 4).is_err());
-        assert!(boolean_population(&[vec![false; 2]; 0], 4).is_err());
+        assert!(
+            search_arm(
+                "bad",
+                &[0.0; UNITS],
+                &validation,
+                vec![direct_family(mask)],
+                4
+            )
+            .is_err()
+        );
+        assert!(boolean_population(&[], 4).is_err());
     }
 
     #[test]
@@ -428,8 +549,12 @@ mod tests {
         let mut validation = generate(trial, Split::Validation).unwrap();
         let first = cell.validate(&validation).unwrap();
         assert_eq!(first, cell.validate(&validation).unwrap());
-        for sample in &mut validation.samples { sample.target += 100.0; }
-        assert!(cell.validate(&validation).unwrap()[0].metrics.task_mse > first[0].metrics.task_mse);
+        for sample in &mut validation.samples {
+            sample.target += 100.0;
+        }
+        assert!(
+            cell.validate(&validation).unwrap()[0].metrics.task_mse > first[0].metrics.task_mse
+        );
         assert_eq!(snapshot, format!("{cell:?}"));
         assert!(cell.validate(&search).is_err());
         validation.samples[0].id = 0;
@@ -441,8 +566,18 @@ mod tests {
         let trial = trials()[0];
         let legacy = prepare(trial).unwrap();
         let (weights, energy) = fit(&generate(trial, Split::Train).unwrap()).unwrap();
-        let cell = prepare_cell(trial, weights, &energy, &generate(trial, Split::Search).unwrap(), 4).unwrap();
-        assert_eq!(legacy.weights.map(f64::to_bits), cell.weights.map(f64::to_bits));
+        let cell = prepare_cell(
+            trial,
+            weights,
+            &energy,
+            &generate(trial, Split::Search).unwrap(),
+            4,
+        )
+        .unwrap();
+        assert_eq!(
+            legacy.weights.map(f64::to_bits),
+            cell.weights.map(f64::to_bits)
+        );
         assert_eq!(legacy.predicates, cell.predicates);
         assert_eq!(legacy.selected, cell.arms[0].selected);
         assert_eq!(legacy.boolean.len(), cell.arms[0].choices.len());
