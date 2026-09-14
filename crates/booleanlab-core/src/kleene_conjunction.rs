@@ -1,9 +1,8 @@
 //! Exact compiled conjunction masks for bounded Strong-Kleene differential tests.
 //!
-//! This module is an experimental BL-BE1 oracle. It provides a compact `u64`
-//! representation for conjunctions of positive and negative literals and is
-//! intended for exhaustive equivalence checks against generic expression
-//! evaluation. It makes no performance claim about production runtimes.
+//! This BL-BE1 oracle compiles positive and negative literals into `u64`
+//! masks for exhaustive equivalence checks against generic expression
+//! evaluation. It makes no production-runtime or performance claim.
 
 use crate::kleene::KleeneValue;
 
@@ -17,7 +16,7 @@ pub enum KleeneConjunctionError {
     InputArityTooLarge { input_arity: usize, max: usize },
     /// A literal references an input outside the declared arity.
     InputOutOfRange { input: usize, input_arity: usize },
-    /// Evaluation received fewer values than the compiled arity requires.
+    /// Evaluation input length differs from the compiled arity.
     InputLengthMismatch { expected: usize, actual: usize },
 }
 
@@ -26,7 +25,7 @@ pub enum KleeneConjunctionError {
 pub struct KleeneLiteral {
     /// Input index addressed by the literal.
     pub input: usize,
-    /// When true, require the input to be `True`; otherwise require `False`.
+    /// `true` requires `True`; `false` requires `False`.
     pub require_true: bool,
 }
 
@@ -51,10 +50,6 @@ impl KleeneLiteral {
 }
 
 /// Compiled conjunction of positive and negative Strong-Kleene literals.
-///
-/// `require_true_mask` and `require_false_mask` record which inputs are
-/// required to be respectively `True` or `False`. If the same bit appears in
-/// both masks, the conjunction is contradictory for every exhaustive row.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CompiledKleeneConjunction {
     input_arity: usize,
@@ -63,16 +58,17 @@ pub struct CompiledKleeneConjunction {
 }
 
 impl CompiledKleeneConjunction {
-    /// Compile a literal conjunction into two bounded `u64` masks.
+    /// Compile a literal conjunction into two bounded masks.
     ///
-    /// Duplicate literals are idempotent. Opposite literals for the same input
-    /// are preserved as an explicit contradiction rather than simplified away.
+    /// Duplicate literals are idempotent. Opposite literals remain explicit:
+    /// under Strong-Kleene semantics `x AND NOT(x)` is `Unknown` when `x` is
+    /// `Unknown`, so it must not be collapsed to constant `False`.
     ///
     /// # Errors
     ///
     /// Returns [`KleeneConjunctionError::InputArityTooLarge`] above the `u64`
-    /// bound, or [`KleeneConjunctionError::InputOutOfRange`] when a literal
-    /// addresses an undeclared input.
+    /// bound, or [`KleeneConjunctionError::InputOutOfRange`] for an undeclared
+    /// input.
     pub fn compile(
         input_arity: usize,
         literals: &[KleeneLiteral],
@@ -84,8 +80,8 @@ impl CompiledKleeneConjunction {
             });
         }
 
-        let mut require_true_mask = 0u64;
-        let mut require_false_mask = 0u64;
+        let mut require_true_mask = 0_u64;
+        let mut require_false_mask = 0_u64;
         for literal in literals {
             if literal.input >= input_arity {
                 return Err(KleeneConjunctionError::InputOutOfRange {
@@ -93,7 +89,7 @@ impl CompiledKleeneConjunction {
                     input_arity,
                 });
             }
-            let bit = 1u64 << literal.input;
+            let bit = 1_u64 << literal.input;
             if literal.require_true {
                 require_true_mask |= bit;
             } else {
@@ -126,24 +122,26 @@ impl CompiledKleeneConjunction {
         self.require_false_mask
     }
 
-    /// Whether the compiled conjunction contains both polarities of one input.
+    /// Whether at least one input appears with both polarities.
     #[must_use]
-    pub const fn is_contradictory(self) -> bool {
+    pub const fn has_opposing_literals(self) -> bool {
         (self.require_true_mask & self.require_false_mask) != 0
     }
 
     /// Evaluate the compiled conjunction under Strong-Kleene semantics.
     ///
-    /// Evaluation returns `False` as soon as any known input violates a
-    /// literal. Otherwise it returns `Unknown` when at least one required input
-    /// is unknown, and `True` only when every literal is known and satisfied.
-    /// The empty conjunction therefore evaluates to `True`.
+    /// Any known violated literal makes the result `False`. Otherwise any
+    /// required `Unknown` makes it `Unknown`; only fully satisfied known
+    /// literals produce `True`. The empty conjunction is therefore `True`.
     ///
     /// # Errors
     ///
-    /// Returns [`KleeneConjunctionError::InputLengthMismatch`] unless the input
-    /// slice length exactly matches the declared arity.
-    pub fn evaluate(self, inputs: &[KleeneValue]) -> Result<KleeneValue, KleeneConjunctionError> {
+    /// Returns [`KleeneConjunctionError::InputLengthMismatch`] unless the
+    /// supplied input length exactly matches the compiled arity.
+    pub fn evaluate(
+        self,
+        inputs: &[KleeneValue],
+    ) -> Result<KleeneValue, KleeneConjunctionError> {
         if inputs.len() != self.input_arity {
             return Err(KleeneConjunctionError::InputLengthMismatch {
                 expected: self.input_arity,
@@ -151,21 +149,17 @@ impl CompiledKleeneConjunction {
             });
         }
 
-        if self.is_contradictory() {
-            return Ok(KleeneValue::False);
-        }
-
         let mut saw_unknown = false;
         for (input, value) in inputs.iter().copied().enumerate() {
-            let bit = 1u64 << input;
-            if (self.require_true_mask & bit) != 0 {
+            let bit = 1_u64 << input;
+            if self.require_true_mask & bit != 0 {
                 match value {
                     KleeneValue::False => return Ok(KleeneValue::False),
                     KleeneValue::Unknown => saw_unknown = true,
                     KleeneValue::True => {}
                 }
             }
-            if (self.require_false_mask & bit) != 0 {
+            if self.require_false_mask & bit != 0 {
                 match value {
                     KleeneValue::True => return Ok(KleeneValue::False),
                     KleeneValue::Unknown => saw_unknown = true,
@@ -174,11 +168,11 @@ impl CompiledKleeneConjunction {
             }
         }
 
-        Ok(if saw_unknown {
-            KleeneValue::Unknown
+        if saw_unknown {
+            Ok(KleeneValue::Unknown)
         } else {
-            KleeneValue::True
-        })
+            Ok(KleeneValue::True)
+        }
     }
 }
 
@@ -198,36 +192,45 @@ mod tests {
 
     #[test]
     fn empty_conjunction_is_true() {
-        let compiled = CompiledKleeneConjunction::compile(2, &[]).expect("empty mask is valid");
+        let compiled =
+            CompiledKleeneConjunction::compile(2, &[]).expect("empty mask is valid");
         for row in 0..9 {
-            assert_eq!(compiled.evaluate(&assignment(row, 2)), Ok(KleeneValue::True));
+            assert_eq!(
+                compiled.evaluate(&assignment(row, 2)),
+                Ok(KleeneValue::True)
+            );
         }
     }
 
     #[test]
-    fn duplicates_are_idempotent_and_opposites_are_contradictory() {
-        let duplicate = CompiledKleeneConjunction::compile(
+    fn duplicates_are_idempotent() {
+        let compiled = CompiledKleeneConjunction::compile(
             2,
             &[KleeneLiteral::positive(0), KleeneLiteral::positive(0)],
         )
         .expect("duplicate literal is valid");
-        assert_eq!(duplicate.require_true_mask(), 1);
-        assert!(!duplicate.is_contradictory());
+        assert_eq!(compiled.require_true_mask(), 1);
+        assert!(!compiled.has_opposing_literals());
+    }
 
-        let opposite = CompiledKleeneConjunction::compile(
+    #[test]
+    fn opposing_literals_preserve_strong_kleene_unknown() {
+        let compiled = CompiledKleeneConjunction::compile(
             1,
             &[KleeneLiteral::positive(0), KleeneLiteral::negative(0)],
         )
-        .expect("opposite literals remain representable");
-        assert!(opposite.is_contradictory());
-        for value in KLEENE_VALUES {
-            assert_eq!(opposite.evaluate(&[value]), Ok(KleeneValue::False));
-        }
+        .expect("opposing literals remain representable");
+        assert!(compiled.has_opposing_literals());
+        assert_eq!(compiled.evaluate(&[KleeneValue::False]), Ok(KleeneValue::False));
+        assert_eq!(
+            compiled.evaluate(&[KleeneValue::Unknown]),
+            Ok(KleeneValue::Unknown)
+        );
+        assert_eq!(compiled.evaluate(&[KleeneValue::True]), Ok(KleeneValue::False));
     }
 
     #[test]
     fn compiled_conjunction_matches_generic_program_exhaustively() {
-        // x0 AND NOT(x1) AND x2
         let literals = [
             KleeneLiteral::positive(0),
             KleeneLiteral::negative(1),
@@ -246,11 +249,9 @@ mod tests {
 
         for row in 0..27 {
             let inputs = assignment(row, 3);
-            assert_eq!(
-                compiled.evaluate(&inputs),
-                Ok(evaluate_kleene_program(&generic, &inputs).expect("generic program is valid")),
-                "row {row}: {inputs:?}"
-            );
+            let expected =
+                evaluate_kleene_program(&generic, &inputs).expect("generic program is valid");
+            assert_eq!(compiled.evaluate(&inputs), Ok(expected), "row {row}: {inputs:?}");
         }
     }
 
@@ -276,7 +277,7 @@ mod tests {
         assert_eq!(
             CompiledKleeneConjunction::compile(
                 MAX_COMPILED_KLEENE_INPUTS + 1,
-                &[KleeneLiteral::positive(0)]
+                &[KleeneLiteral::positive(0)],
             ),
             Err(KleeneConjunctionError::InputArityTooLarge {
                 input_arity: MAX_COMPILED_KLEENE_INPUTS + 1,
