@@ -1,4 +1,4 @@
-//! BL-14.2.2 numerical development: fixed ReLU features, trained readout.
+//! BL-14.2.2 numerical development: fixed `ReLU` features, trained readout.
 //! Masks skip entire units before projection. This is not full MLP training.
 
 use std::cmp::Ordering;
@@ -155,7 +155,9 @@ fn count(value: usize) -> Result<f64> {
 }
 
 fn increment(total: &mut u64, value: u64) -> Result<()> {
-    *total = total.checked_add(value).ok_or("reference counter overflow")?;
+    *total = total
+        .checked_add(value)
+        .ok_or("reference counter overflow")?;
     Ok(())
 }
 
@@ -178,9 +180,12 @@ fn features(input: &[f64; INPUTS]) -> Result<[f64; UNITS]> {
 }
 
 fn dot(weights: &[f64; UNITS], values: &[f64; UNITS]) -> Result<f64> {
-    weights.iter().zip(values).try_fold(0.0, |sum, (&weight, &value)| {
-        finite(sum + finite(finite(weight)? * finite(value)?)?)
-    })
+    weights
+        .iter()
+        .zip(values)
+        .try_fold(0.0, |sum, (&weight, &value)| {
+            finite(sum + finite(finite(weight)? * finite(value)?)?)
+        })
 }
 
 fn trials() -> Vec<Trial> {
@@ -209,7 +214,11 @@ fn generate(trial: Trial, split: Split) -> Result<Batch> {
             input,
         });
     }
-    Ok(Batch { trial, split, samples })
+    Ok(Batch {
+        trial,
+        split,
+        samples,
+    })
 }
 
 fn require_batch(batch: &Batch, trial: Trial, split: Split) -> Result<()> {
@@ -235,8 +244,11 @@ fn require_batch(batch: &Batch, trial: Trial, split: Split) -> Result<()> {
 
 fn fit(train: &Batch) -> Result<([f64; UNITS], [f64; UNITS])> {
     require_batch(train, train.trial, Split::Train)?;
-    let rows: Vec<[f64; UNITS]> = train.samples.iter()
-        .map(|sample| features(&sample.input)).collect::<Result<_>>()?;
+    let rows: Vec<[f64; UNITS]> = train
+        .samples
+        .iter()
+        .map(|sample| features(&sample.input))
+        .collect::<Result<_>>()?;
     let divisor = count(rows.len())?;
     let mut energy = [0.0; UNITS];
     for row in &rows {
@@ -318,30 +330,47 @@ fn score(weights: &[f64; UNITS], batch: &Batch, mask: Option<&ExactMask>) -> Res
 }
 
 fn keys(values: &[f64; UNITS]) -> Result<Vec<u64>> {
-    values.iter().map(|&value| Ok(finite(value)?.abs().to_bits())).collect()
+    values
+        .iter()
+        .map(|&value| Ok(finite(value)?.abs().to_bits()))
+        .collect()
 }
 
 fn mask_code(mask: &ExactMask) -> u16 {
-    mask.as_slice().iter().enumerate().fold(0, |code, (bit, &keep)| {
-        code | (u16::from(keep) << bit)
-    })
+    mask.as_slice()
+        .iter()
+        .enumerate()
+        .fold(0, |code, (bit, &keep)| code | (u16::from(keep) << bit))
 }
 
-fn baseline_masks(weights: &[f64; UNITS], energy: &[f64; UNITS])
-    -> Result<Vec<(String, ExactMask)>>
-{
+fn baseline_masks(
+    weights: &[f64; UNITS],
+    energy: &[f64; UNITS],
+) -> Result<Vec<(String, ExactMask)>> {
     let magnitude = keys(weights)?;
     let mut saliency = [0.0; UNITS];
     for (unit, value) in saliency.iter_mut().enumerate() {
         *value = finite(weights[unit] * weights[unit] * energy[unit])?;
     }
     let mut masks = vec![
-        ("magnitude".to_owned(), mask_from_descending_u64_scores(&magnitude, KEEP)?),
-        ("unit_2_4".to_owned(), structured_nm_mask_from_u64_scores(&magnitude, 2, 4)?),
-        ("activation_energy".to_owned(), mask_from_descending_u64_scores(&keys(&saliency)?, KEEP)?),
+        (
+            "magnitude".to_owned(),
+            mask_from_descending_u64_scores(&magnitude, KEEP)?,
+        ),
+        (
+            "unit_2_4".to_owned(),
+            structured_nm_mask_from_u64_scores(&magnitude, 2, 4)?,
+        ),
+        (
+            "activation_energy".to_owned(),
+            mask_from_descending_u64_scores(&keys(&saliency)?, KEEP)?,
+        ),
     ];
     for seed in 0..4 {
-        masks.push((format!("random_{seed}"), deterministic_random_mask(UNITS, KEEP, seed)?));
+        masks.push((
+            format!("random_{seed}"),
+            deterministic_random_mask(UNITS, KEEP, seed)?,
+        ));
     }
     Ok(masks)
 }
@@ -354,11 +383,13 @@ fn group_rules(predicates: &[Vec<bool>]) -> Result<Vec<MaskFamily>> {
         if mask.cardinality().retained() != KEEP {
             continue;
         }
-        let group = groups.entry(mask_code(&mask)).or_insert_with(|| MaskFamily {
-            mask,
-            codes: Vec::new(),
-            functions: Vec::new(),
-        });
+        let group = groups
+            .entry(mask_code(&mask))
+            .or_insert_with(|| MaskFamily {
+                mask,
+                codes: Vec::new(),
+                functions: Vec::new(),
+            });
         group.codes.push(rule.truth_table_code);
         group.functions.push(rule.function);
     }
@@ -372,9 +403,15 @@ fn prepare(trial: Trial) -> Result<FrozenTrial> {
     let (weights, energy) = fit(&train)?;
     let masks = baseline_masks(&weights, &energy)?;
     let energetic = mask_from_descending_u64_scores(&keys(&energy)?, KEEP)?;
-    let predicates: Vec<Vec<bool>> = (0..UNITS).map(|unit| {
-        vec![masks[0].1.as_slice()[unit], weights[unit] < 0.0, energetic.as_slice()[unit]]
-    }).collect();
+    let predicates: Vec<Vec<bool>> = (0..UNITS)
+        .map(|unit| {
+            vec![
+                masks[0].1.as_slice()[unit],
+                weights[unit] < 0.0,
+                energetic.as_slice()[unit],
+            ]
+        })
+        .collect();
     let mut baselines = Vec::new();
     for (id, mask) in masks {
         baselines.push(Choice {
@@ -395,11 +432,18 @@ fn prepare(trial: Trial) -> Result<FrozenTrial> {
             functions: family.functions,
         });
     }
-    let best = boolean.iter().map(|choice| choice.search.task_mse)
-        .min_by(f64::total_cmp).ok_or("no eligible Boolean topology")?;
-    let selected = boolean.iter().enumerate().filter_map(|(index, choice)| {
-        (choice.search.task_mse.total_cmp(&best) == Ordering::Equal).then_some(index)
-    }).collect();
+    let best = boolean
+        .iter()
+        .map(|choice| choice.search.task_mse)
+        .min_by(f64::total_cmp)
+        .ok_or("no eligible Boolean topology")?;
+    let selected = boolean
+        .iter()
+        .enumerate()
+        .filter_map(|(index, choice)| {
+            (choice.search.task_mse.total_cmp(&best) == Ordering::Equal).then_some(index)
+        })
+        .collect();
     Ok(FrozenTrial {
         trial,
         train_before: score(&[0.0; UNITS], &train, None)?.task_mse,
@@ -418,7 +462,11 @@ impl FrozenTrial {
         require_batch(batch, self.trial, Split::Validation)?;
         let mut output = vec![("dense".to_owned(), score(&self.weights, batch, None)?)];
         let predicates: Vec<&[bool]> = self.predicates.iter().map(Vec::as_slice).collect();
-        for choice in self.baselines.iter().chain(self.selected.iter().map(|&i| &self.boolean[i])) {
+        for choice in self
+            .baselines
+            .iter()
+            .chain(self.selected.iter().map(|&i| &self.boolean[i]))
+        {
             if choice.mask.cardinality().retained() != KEEP {
                 return Err("frozen density changed".into());
             }
@@ -427,7 +475,10 @@ impl FrozenTrial {
                     return Err("frozen Boolean semantics changed".into());
                 }
             }
-            output.push((choice.id.clone(), score(&self.weights, batch, Some(&choice.mask))?));
+            output.push((
+                choice.id.clone(),
+                score(&self.weights, batch, Some(&choice.mask))?,
+            ));
         }
         Ok(output)
     }
@@ -436,8 +487,13 @@ impl FrozenTrial {
 fn emit(trial: Trial, stage: &str, id: &str, metrics: &Metrics) {
     println!(
         "{}\t{}\t{stage}\t{id}\t{:.17e}\t{:.17e}\t{}\t{}\t{}",
-        trial.regime.name(), trial.seed, metrics.task_mse, metrics.reconstruction_mse,
-        metrics.work.multiplications, metrics.work.relus, metrics.work.mask_tests,
+        trial.regime.name(),
+        trial.seed,
+        metrics.task_mse,
+        metrics.reconstruction_mse,
+        metrics.work.multiplications,
+        metrics.work.relus,
+        metrics.work.mask_tests,
     );
 }
 
@@ -449,22 +505,36 @@ fn main() -> Result<()> {
     let frozen: Vec<FrozenTrial> = trials().into_iter().map(prepare).collect::<Result<_>>()?;
     println!("# schema=bl14.structured-relu.v1; phase=NUMERICAL_DEVELOPMENT; trials=12");
     println!("# fixed ReLU features; trained readout; all sparse controls keep 4/8 units");
-    println!("# counts exclude training/search, statistics, predicates, checks, scoring and dense oracle");
+    println!(
+        "# counts exclude training/search, statistics, predicates, checks, scoring and dense oracle"
+    );
     println!("# no hardware timing, memory traffic, energy or final confirmation");
     println!("regime\tseed\tstage\tpolicy\ttask_mse\treconstruction_mse\tmuls\trelus\tmask_tests");
     for study in &frozen {
         let trial = study.trial;
         let bits = study.weights.map(f64::to_bits);
         let eligible: usize = study.boolean.iter().map(|choice| choice.codes.len()).sum();
-        println!("# trial={}:{}; train_before={:.17e}; train_after={:.17e}",
-            trial.regime.name(), trial.seed, study.train_before, study.train_after);
+        println!(
+            "# trial={}:{}; train_before={:.17e}; train_after={:.17e}",
+            trial.regime.name(),
+            trial.seed,
+            study.train_before,
+            study.train_after
+        );
         println!("# weight_bits={bits:?}; predicates={:?}", study.predicates);
-        println!("# eligible_rules={eligible}; unique_masks={}; selected_masks={:?}",
-            study.boolean.len(), study.selected);
+        println!(
+            "# eligible_rules={eligible}; unique_masks={}; selected_masks={:?}",
+            study.boolean.len(),
+            study.selected
+        );
         emit(trial, "SEARCH", "dense", &study.dense_search);
         for choice in study.baselines.iter().chain(&study.boolean) {
-            println!("# policy={}; mask={}; truth_table_codes={:?}",
-                choice.id, mask_code(&choice.mask), choice.codes);
+            println!(
+                "# policy={}; mask={}; truth_table_codes={:?}",
+                choice.id,
+                mask_code(&choice.mask),
+                choice.codes
+            );
             emit(trial, "SEARCH", &choice.id, &choice.search);
         }
     }
@@ -553,14 +623,21 @@ mod tests {
             for &code in &choice.codes {
                 assert!(codes.insert(code));
             }
-            assert_eq!(study.selected.contains(&index),
-                choice.search.task_mse.total_cmp(&best) == Ordering::Equal);
+            assert_eq!(
+                study.selected.contains(&index),
+                choice.search.task_mse.total_cmp(&best) == Ordering::Equal
+            );
         }
         for choice in &study.baselines {
             assert_eq!(choice.mask.cardinality().retained(), KEEP);
-            assert_eq!(choice.search.work, Work {
-                multiplications: 1280, relus: 256, mask_tests: 512,
-            });
+            assert_eq!(
+                choice.search.work,
+                Work {
+                    multiplications: 1280,
+                    relus: 256,
+                    mask_tests: 512,
+                }
+            );
         }
         assert_eq!(study.baselines.len(), 7);
     }
@@ -587,7 +664,14 @@ mod tests {
         let one = ExactMask::from_retained_indices(UNITS, &[0]).unwrap();
         let (output, work) = predict(&[1.0; UNITS], &[f64::MAX; INPUTS], Some(&drop)).unwrap();
         assert_eq!(output.to_bits(), 0.0f64.to_bits());
-        assert_eq!(work, Work { multiplications: 0, relus: 0, mask_tests: 8 });
+        assert_eq!(
+            work,
+            Work {
+                multiplications: 0,
+                relus: 0,
+                mask_tests: 8
+            }
+        );
         assert!(predict(&[1.0; UNITS], &[f64::MAX; INPUTS], Some(&one)).is_err());
         assert!(predict(&[f64::NAN; UNITS], &[0.0; INPUTS], Some(&drop)).is_err());
         let wrong = ExactMask::from_retained_indices(2, &[]).unwrap();
