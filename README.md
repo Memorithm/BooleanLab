@@ -92,10 +92,14 @@ The [numerical linear-layer calibration](experiments/results/BL-14-LINEAR-CALIBR
 The [BL-14.1.2 trained linear pilot](experiments/BL-14-TRAINED-LINEAR-PILOT.md) fits an eight-coefficient numerical regressor on 128 TRAIN examples, selects exact 4/8 Boolean masks on 64 SEARCH examples, then evaluates the frozen selection on 64 non-final VALIDATION examples. It includes magnitude, 2:4, activation-energy and four fixed random controls. Task loss and dense reconstruction loss are separate. This small synthetic pilot neither replaces the model nor establishes quality preservation on representative neural networks. Equal or negative Boolean outcomes must be retained.
 
 ```bash
+set -euo pipefail
+if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
 cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
 cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
 cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
 ```
+
+The workspace does not yet commit `Cargo.lock`: preserve the resolved lockfile, toolchain and source commit with each report, as shown in the pilot protocol. A fresh dependency resolution on another date is not an immutable reproduction of a previous run. An existing lockfile is not overwritten by the bootstrap above.
 
 The notation `y_g = z_g * G_g(x)` specifies the output, not an automatic execution saving: a runner must reject a group **before** evaluating its numerical work. Multiplying an already-computed result by zero does not skip that work. The numerical calibration tests this early-dispatch boundary. TDI-9.3 owns the corresponding action-policy calibration and its separate observation/final-evaluation contracts.
 
