@@ -2,7 +2,7 @@
 //!
 //! The helpers in this module are deliberately small-domain and exact. They
 //! provide deterministic differential evidence for BL-BE1 without turning
-//! BooleanLab into a production runtime or making performance claims.
+//! `BooleanLab` into a production runtime or making performance claims.
 
 use crate::kleene::{
     KLEENE_VALUES, KleeneEvalError, KleeneInstruction, KleeneValue, evaluate_kleene_program,
