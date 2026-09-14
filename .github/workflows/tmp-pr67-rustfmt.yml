@@ -1,0 +1,34 @@
+name: Temporary PR67 rustfmt cleanup
+
+on:
+  push:
+    branches:
+      - feat/bl-be2-multiword-kleene
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/bl-be2-multiword-kleene
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - name: Format and validate
+        run: |
+          cargo fmt --all
+          rm .github/workflows/tmp-pr67-rustfmt.yml
+          cargo fmt --all -- --check
+          cargo test --workspace
+          cargo clippy --workspace --all-targets -- -D warnings
+      - name: Commit cleanup
+        run: |
+          git config user.name "MEMOPERF"
+          git config user.email "contact@checkupauto.fr"
+          git add -A
+          git commit -m "style(bl-be2): satisfy rustfmt gate"
+          git push origin HEAD:feat/bl-be2-multiword-kleene
