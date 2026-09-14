@@ -12,6 +12,7 @@ pub mod hybrid;
 pub mod kleene;
 pub mod kleene_analysis;
 pub mod kleene_conjunction;
+pub mod kleene_conjunction_words;
 pub mod sparsity;
 pub mod sparsity_dynamic;
 pub mod sparsity_ranking;
@@ -48,6 +49,10 @@ pub use kleene::{
 pub use kleene_analysis::{KleeneAnalysisError, KleeneProgramAnalysis, analyze_kleene_program};
 pub use kleene_conjunction::{
     CompiledKleeneConjunction, KleeneConjunctionError, KleeneLiteral, MAX_COMPILED_KLEENE_INPUTS,
+};
+pub use kleene_conjunction_words::{
+    CompiledMultiwordKleeneConjunction, MAX_MULTIWORD_KLEENE_INPUTS,
+    MultiwordKleeneConjunctionError,
 };
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
 pub use sparsity_dynamic::{DynamicMaskError, dynamic_mask_from_predicates};
