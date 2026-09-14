@@ -5,6 +5,9 @@
 mod dynamic_routing;
 #[path = "support/bl14_matched_search.rs"]
 mod matched_search;
+#[path = "support/bl14_relational.rs"]
+#[allow(dead_code)]
+mod relational;
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -19,6 +22,12 @@ use booleanlab_discovery::sparsity_exhaustive_search::propose_exhaustive_rules;
 use booleanlab_discovery::sparsity_function_mask::materialize_boolean_function_mask;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+#[allow(dead_code)]
+pub(crate) fn run_relational_entry() -> Result<()> {
+    relational::run()
+}
+
 const INPUTS: usize = 4;
 const UNITS: usize = 8;
 const KEEP: usize = 4;
