@@ -14,7 +14,10 @@ pub enum KleeneAnalysisError {
     /// `3^input_arity` cannot be represented as `usize`.
     EnumerationOverflow { input_arity: usize },
     /// The requested exhaustive domain exceeds the caller-declared row budget.
-    EnumerationLimitExceeded { required_rows: usize, max_rows: usize },
+    EnumerationLimitExceeded {
+        required_rows: usize,
+        max_rows: usize,
+    },
     /// The underlying postfix program is structurally invalid.
     Evaluation(KleeneEvalError),
 }
@@ -73,8 +76,8 @@ pub fn analyze_kleene_program(
 
     for assignment in 0..rows {
         decode_assignment(assignment, &mut inputs);
-        let output = evaluate_kleene_program(program, &inputs)
-            .map_err(KleeneAnalysisError::Evaluation)?;
+        let output =
+            evaluate_kleene_program(program, &inputs).map_err(KleeneAnalysisError::Evaluation)?;
         outputs.push(output);
     }
 
@@ -157,22 +160,16 @@ mod tests {
 
     #[test]
     fn detects_three_valued_tautology_and_contradiction() {
-        let tautology = analyze_kleene_program(
-            &[KleeneInstruction::Constant(KleeneValue::True)],
-            2,
-            9,
-        )
-        .expect("constant true program is valid");
+        let tautology =
+            analyze_kleene_program(&[KleeneInstruction::Constant(KleeneValue::True)], 2, 9)
+                .expect("constant true program is valid");
         assert!(tautology.always_true);
         assert!(!tautology.always_false);
         assert_eq!(tautology.redundant_inputs, vec![0, 1]);
 
-        let contradiction = analyze_kleene_program(
-            &[KleeneInstruction::Constant(KleeneValue::False)],
-            2,
-            9,
-        )
-        .expect("constant false program is valid");
+        let contradiction =
+            analyze_kleene_program(&[KleeneInstruction::Constant(KleeneValue::False)], 2, 9)
+                .expect("constant false program is valid");
         assert!(!contradiction.always_true);
         assert!(contradiction.always_false);
         assert_eq!(contradiction.redundant_inputs, vec![0, 1]);
