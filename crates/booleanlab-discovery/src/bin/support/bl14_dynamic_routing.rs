@@ -12,7 +12,7 @@ use booleanlab_core::{ExactMask, deterministic_random_mask};
 use booleanlab_discovery::sparsity_function_mask::materialize_boolean_function_mask;
 
 use super::{
-    Batch, FrozenTrial, Metrics, Result, Split, Trial, Work, KEEP, UNITS, count, dot, features,
+    Batch, FrozenTrial, KEEP, Metrics, Result, Split, Trial, UNITS, Work, count, dot, features,
     finite, generate, increment, mask_code, predict, prepare, require_batch, trials,
 };
 
@@ -79,7 +79,9 @@ fn score_subset(
         if (sample.input[0] >= 0.0) != nonnegative {
             continue;
         }
-        samples = samples.checked_add(1).ok_or("partition sample count overflow")?;
+        samples = samples
+            .checked_add(1)
+            .ok_or("partition sample count overflow")?;
         let reference = dot(&study.weights, &features(&sample.input)?)?;
         let (actual, work) = predict(&study.weights, &sample.input, Some(mask))?;
         let task_error = finite(actual - finite(sample.target)?)?;
@@ -102,8 +104,7 @@ fn select_partition(study: &FrozenTrial, search: &Batch, nonnegative: bool) -> R
                 let quality = metrics.task_mse.total_cmp(&best_metrics.task_mse);
                 quality == Ordering::Less
                     || (quality == Ordering::Equal
-                        && mask_code(&choice.mask)
-                            < mask_code(&study.boolean[*best_index].mask))
+                        && mask_code(&choice.mask) < mask_code(&study.boolean[*best_index].mask))
             }
         };
         if replace {
@@ -205,7 +206,10 @@ fn prepare_dynamic(trial: Trial) -> Result<DynamicStudy> {
     let base = prepare(trial)?;
     let search = generate(trial, Split::Search)?;
     require_batch(&search, trial, Split::Search)?;
-    let static_boolean = *base.selected.first().ok_or("no frozen static Boolean winner")?;
+    let static_boolean = *base
+        .selected
+        .first()
+        .ok_or("no frozen static Boolean winner")?;
     let negative_boolean = select_partition(&base, &search, false)?;
     let nonnegative_boolean = select_partition(&base, &search, true)?;
     for index in [static_boolean, negative_boolean, nonnegative_boolean] {
@@ -314,7 +318,9 @@ pub(super) fn run() -> Result<()> {
     println!("# schema=bl14.dynamic-routing.v1; phase=NUMERICAL_DEVELOPMENT; trials=12");
     println!("# selector=(input[0] >= 0); every routed mask retains exactly 4/8 units");
     println!("# Boolean branch masks come only from the frozen BL-14.2.2 Boolean topology family");
-    println!("# controller_predicate_tests and mask_switches are reference counts, not elapsed time");
+    println!(
+        "# controller_predicate_tests and mask_switches are reference counts, not elapsed time"
+    );
     println!("# no hardware timing, memory traffic, energy, final holdout or speedup claim");
     println!(
         "regime\tseed\tstage\tpolicy\ttask_mse\treconstruction_mse\tmuls\trelus\tmask_tests\tcontroller_predicate_tests\tmask_switches"
@@ -363,8 +369,15 @@ mod tests {
                 study.search_candidate_sample_evaluations,
                 study.base.boolean.len() * 64
             );
-            for index in [study.static_boolean, study.negative_boolean, study.nonnegative_boolean] {
-                assert_eq!(study.base.boolean[index].mask.cardinality().retained(), KEEP);
+            for index in [
+                study.static_boolean,
+                study.negative_boolean,
+                study.nonnegative_boolean,
+            ] {
+                assert_eq!(
+                    study.base.boolean[index].mask.cardinality().retained(),
+                    KEEP
+                );
                 validate_boolean_choice(&study.base, index).unwrap();
             }
             assert_eq!(study.negative_random.cardinality().retained(), KEEP);
@@ -409,7 +422,10 @@ mod tests {
             mask_code(&study.negative_random),
             mask_code(&study.nonnegative_random),
         );
-        assert_eq!(study.rows(Split::Validation).unwrap(), study.rows(Split::Validation).unwrap());
+        assert_eq!(
+            study.rows(Split::Validation).unwrap(),
+            study.rows(Split::Validation).unwrap()
+        );
         assert_eq!(
             frozen,
             (
