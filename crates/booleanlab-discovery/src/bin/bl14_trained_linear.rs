@@ -2,6 +2,7 @@
 //! The numerical model remains intact; masks only control retained coefficients.
 
 use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::error::Error;
 
 use booleanlab_core::{
@@ -24,6 +25,16 @@ enum Partition {
     Train,
     Search,
     Validation,
+}
+
+impl Partition {
+    fn ids(self) -> std::ops::Range<usize> {
+        match self {
+            Self::Train => 0..128,
+            Self::Search => 128..192,
+            Self::Validation => 192..256,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -98,14 +109,10 @@ fn dense_dot(weights: &[f64; WIDTH], input: &[f64; WIDTH]) -> Result<f64> {
 }
 
 fn generate(partition: Partition) -> Result<Batch> {
-    let (first, end) = match partition {
-        Partition::Train => (0, 128),
-        Partition::Search => (128, 192),
-        Partition::Validation => (192, 256),
-    };
+    let ids = partition.ids();
     let keys = deterministic_random_keys(256 * WIDTH, DATA_SEED)?;
-    let mut examples = Vec::with_capacity(end - first);
-    for id in first..end {
+    let mut examples = Vec::with_capacity(ids.len());
+    for id in ids {
         let mut input = [0.0; WIDTH];
         for (column, value) in input.iter_mut().enumerate() {
             let integer = u32::try_from(keys[id * WIDTH + column] % 17)?;
@@ -127,7 +134,16 @@ fn require_partition(batch: &Batch, expected: Partition) -> Result<()> {
     if batch.partition != expected {
         return Err("wrong development partition".into());
     }
-    denominator(batch.examples.len())?;
+    let range = expected.ids();
+    if batch.examples.len() != range.len() {
+        return Err("incomplete or oversized development partition".into());
+    }
+    let mut seen = BTreeSet::new();
+    for example in &batch.examples {
+        if !range.contains(&example.id) || !seen.insert(example.id) {
+            return Err("duplicate or out-of-partition instance identity".into());
+        }
+    }
     Ok(())
 }
 
@@ -140,9 +156,8 @@ fn fit(train: &Batch) -> Result<Model> {
     for _ in 0..256 {
         let mut gradient = [0.0; WIDTH];
         for example in &train.examples {
-            let error = finite(
-                dense_dot(&model.weights, &example.input)? - finite(example.target)?,
-            )?;
+            let error =
+                finite(dense_dot(&model.weights, &example.input)? - finite(example.target)?)?;
             for (derivative, &input) in gradient.iter_mut().zip(&example.input) {
                 *derivative = finite(*derivative + finite(2.0 * error * input)?)?;
             }
@@ -224,9 +239,8 @@ fn score(model: &Model, batch: &Batch, mask: Option<&ExactMask>) -> Result<Metri
         let error = finite(actual - finite(example.target)?)?;
         let reconstruction = finite(actual - reference)?;
         result.task_mse = finite(result.task_mse + finite(error * error)?)?;
-        result.reconstruction_mse = finite(
-            result.reconstruction_mse + finite(reconstruction * reconstruction)?,
-        )?;
+        result.reconstruction_mse =
+            finite(result.reconstruction_mse + finite(reconstruction * reconstruction)?)?;
         increment(&mut result.examples, 1)?;
         increment(&mut result.multiplications, multiplications)?;
         increment(&mut result.mask_tests, tests)?;
@@ -270,9 +284,11 @@ fn fixed_baselines(model: &Model, energy: &[f64; WIDTH]) -> Result<Vec<(String, 
 fn freeze(model: Model, train: &Batch, search: &Batch) -> Result<FrozenStudy> {
     require_partition(train, Partition::Train)?;
     require_partition(search, Partition::Search)?;
-    if train.examples.iter().any(|left| {
-        search.examples.iter().any(|right| left.id == right.id)
-    }) {
+    if train
+        .examples
+        .iter()
+        .any(|left| search.examples.iter().any(|right| left.id == right.id))
+    {
         return Err("TRAIN/SEARCH instance overlap".into());
     }
     let energy = training_energy(train)?;
@@ -325,16 +341,17 @@ fn freeze(model: Model, train: &Batch, search: &Batch) -> Result<FrozenStudy> {
 impl FrozenStudy {
     fn validate(&self, validation: &Batch) -> Result<Vec<(String, usize, Metrics)>> {
         require_partition(validation, Partition::Validation)?;
-        if validation.examples.iter().any(|example| example.id < 192 || example.id >= 256) {
-            return Err("validation instance outside declared partition".into());
-        }
         let mut rows = vec![(
             "dense".to_owned(),
             WIDTH,
             score(&self.model, validation, None)?,
         )];
         for (id, mask) in &self.baselines {
-            rows.push((id.clone(), KEEP, score(&self.model, validation, Some(mask))?));
+            rows.push((
+                id.clone(),
+                KEEP,
+                score(&self.model, validation, Some(mask))?,
+            ));
         }
         let predicates: Vec<&[bool]> = self.predicate_rows.iter().map(Vec::as_slice).collect();
         for &index in &self.selected {
@@ -373,7 +390,9 @@ fn main() -> Result<()> {
     let model = fit(&train)?;
     println!("# schema=bl14.trained-linear.v1; evidence=NUMERICAL_DEVELOPMENT");
     println!("# fixed synthetic regression; 8 coefficients; no final holdout or hardware claim");
-    println!("# inference counters exclude training/search, scoring and the dense comparison oracle");
+    println!(
+        "# inference counters exclude training/search, scoring and the dense comparison oracle"
+    );
     println!("# allocation, metadata, ranking, predicates and memory traffic are not measured");
     println!("stage\tpolicy\tretained\texamples\ttask_mse\treconstruction_mse\tmuls\tmask_tests");
     let zero = Model {
@@ -385,14 +404,28 @@ fn main() -> Result<()> {
     let weight_bits: Vec<u64> = frozen.model.weights.iter().map(|w| w.to_bits()).collect();
     println!("# learned_weight_bits={weight_bits:?}");
     println!("# resolved_predicates={:?}", frozen.predicate_rows);
-    emit("SEARCH", "dense", WIDTH, &score(&frozen.model, &search, None)?);
+    emit(
+        "SEARCH",
+        "dense",
+        WIDTH,
+        &score(&frozen.model, &search, None)?,
+    );
     for (id, mask) in &frozen.baselines {
-        emit("SEARCH", id, KEEP, &score(&frozen.model, &search, Some(mask))?);
+        emit(
+            "SEARCH",
+            id,
+            KEEP,
+            &score(&frozen.model, &search, Some(mask))?,
+        );
     }
     for rule in &frozen.screened {
         emit("SEARCH", &rule.id, KEEP, &rule.search);
     }
-    let codes: Vec<u64> = frozen.selected.iter().map(|&i| frozen.screened[i].code).collect();
+    let codes: Vec<u64> = frozen
+        .selected
+        .iter()
+        .map(|&i| frozen.screened[i].code)
+        .collect();
     println!("# frozen_selected_codes={codes:?}; no validation-based re-ranking");
     let validation = generate(Partition::Validation)?;
     for (id, retained, metrics) in frozen.validate(&validation)? {
@@ -403,8 +436,6 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
-
     use super::*;
 
     #[test]
@@ -518,5 +549,21 @@ mod tests {
         let mut train = generate(Partition::Train).unwrap();
         train.examples[0].target = f64::NAN;
         assert!(fit(&train).is_err());
+    }
+
+    #[test]
+    fn partition_labels_do_not_hide_duplicate_missing_or_foreign_ids() {
+        for partition in [Partition::Train, Partition::Search, Partition::Validation] {
+            let original = generate(partition).unwrap();
+            let mut malformed = original.clone();
+            malformed.examples[0].id = malformed.examples[1].id;
+            assert!(require_partition(&malformed, partition).is_err());
+            malformed = original.clone();
+            malformed.examples.pop();
+            assert!(require_partition(&malformed, partition).is_err());
+            malformed = original;
+            malformed.examples[0].id = 256;
+            assert!(require_partition(&malformed, partition).is_err());
+        }
     }
 }
