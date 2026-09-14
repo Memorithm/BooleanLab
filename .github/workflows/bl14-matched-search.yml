@@ -24,7 +24,10 @@ jobs:
       - name: Matched budgets, numerical checks, replay and legacy parity
         run: bash scripts/check-bl14-matched-search.sh
       - name: Format
-        run: cargo fmt --all -- --check
+        run: |
+          # Diagnostic only: never rewrite the tested checkout or weaken the gate.
+          rustfmt --edition 2024 --emit stdout crates/booleanlab-discovery/src/bin/support/bl14_matched_search.rs > target/bl14-matched-evidence/rustfmt-diagnostic.rs
+          cargo fmt --all -- --check
       - name: Clippy
         run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - name: Archive exact source and evidence
