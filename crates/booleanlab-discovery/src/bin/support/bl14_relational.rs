@@ -8,15 +8,18 @@
 //! units are functionally interchangeable. Reference operation counters are not
 //! elapsed-time, memory-traffic, energy, or hardware-performance evidence.
 
+#[cfg(test)]
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
 use booleanlab_core::{ExactMask, RedundancyEdge, relational_component_mask};
 
 use super::{
-    Batch, FrozenTrial, KEEP, Metrics, Result, Split, Trial, UNITS, Work, features, generate,
-    mask_code, prepare, require_batch, score, trials,
+    Batch, FrozenTrial, KEEP, Metrics, Result, Split, Trial, UNITS, features, generate, mask_code,
+    prepare, require_batch, score, trials,
 };
+#[cfg(test)]
+use super::Work;
 
 const PAIRS: usize = UNITS * (UNITS - 1) / 2;
 
@@ -253,9 +256,13 @@ pub(super) fn run() -> Result<()> {
         .into_iter()
         .map(prepare_relational)
         .collect::<Result<_>>()?;
-    println!("# schema=bl14.relational-activation-agreement.v1; phase=NUMERICAL_DEVELOPMENT; trials=12");
+    println!(
+        "# schema=bl14.relational-activation-agreement.v1; phase=NUMERICAL_DEVELOPMENT; trials=12"
+    );
     println!("# relation=train-only equality of ReLU activation state (>0 versus ==0)");
-    println!("# relation edges rank by agreement count descending, then endpoint indices ascending");
+    println!(
+        "# relation edges rank by agreement count descending, then endpoint indices ascending"
+    );
     println!("# SEARCH chooses only among relation prefixes that retain exactly 4/8 units");
     println!("# connected-component representative tie-break=lowest original unit index");
     println!("# relation is a candidate redundancy signal, not proof of functional equivalence");
@@ -324,10 +331,12 @@ mod tests {
             let study = prepare_relational(trial).unwrap();
             let selected = study.selected().unwrap();
             assert_eq!(selected.mask.cardinality().retained(), KEEP);
-            assert!(study
-                .candidates
-                .iter()
-                .all(|candidate| candidate.mask.cardinality().retained() == KEEP));
+            assert!(
+                study
+                    .candidates
+                    .iter()
+                    .all(|candidate| candidate.mask.cardinality().retained() == KEEP)
+            );
             let expected = best_candidate(&study.candidates).unwrap();
             assert_eq!(study.selected, expected);
             study.verify_frozen_relation().unwrap();
