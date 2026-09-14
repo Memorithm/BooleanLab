@@ -16,7 +16,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | Experiment / track | Status | Verified result or current question |
 | --- | --- | --- |
 | **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
-| **BL-14 Boolean Sparsity Control** | CALIBRATIONS + TRAINED DEVELOPMENT PILOT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, a fixed numerical layer and BL-14.1.2 synthetic trained regression pilot are available. Representative neural-model quality and end-to-end hardware benefit remain unestablished. |
+| **BL-14 Boolean Sparsity Control** | CALIBRATIONS + TRAINED STRUCTURED DEVELOPMENT PILOT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, a fixed numerical layer, BL-14.1.2 trained linear and BL-14.2.2 structured nonlinear synthetic pilots are available. BL-14.2.2 is mixed/negative: dense beats every sparse arm on all 12 non-final validation trials; no hardware benefit is established. |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
 | BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
 | BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
@@ -91,12 +91,15 @@ The [numerical linear-layer calibration](experiments/results/BL-14-LINEAR-CALIBR
 
 The [BL-14.1.2 trained linear pilot](experiments/BL-14-TRAINED-LINEAR-PILOT.md) fits an eight-coefficient numerical regressor on 128 TRAIN examples, selects exact 4/8 Boolean masks on 64 SEARCH examples, then evaluates the frozen selection on 64 non-final VALIDATION examples. It includes magnitude, 2:4, activation-energy and four fixed random controls. Task loss and dense reconstruction loss are separate. This small synthetic pilot neither replaces the model nor establishes quality preservation on representative neural networks. Equal or negative Boolean outcomes must be retained.
 
+The [BL-14.2.2 structured nonlinear result](experiments/results/BL-14.2.2-STRUCTURED-RELU-V1.md) extends this methodology to twelve frozen trials across three synthetic regimes with fixed `ReLU` features and a trained readout. Its Boolean SEARCH winners are mixed against matched sparse controls, while dense has lower task MSE than every sparse arm in all twelve non-final VALIDATION trials. The retained reference-operation counters are not elapsed-time, memory, energy or hardware-speed evidence.
+
 ```bash
 set -euo pipefail
 if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
 cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
 cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
 cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
+cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release
 ```
 
 The workspace does not yet commit `Cargo.lock`: preserve the resolved lockfile, toolchain and source commit with each report, as shown in the pilot protocol. A fresh dependency resolution on another date is not an immutable reproduction of a previous run. An existing lockfile is not overwritten by the bootstrap above.
