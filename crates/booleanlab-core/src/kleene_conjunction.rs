@@ -138,10 +138,7 @@ impl CompiledKleeneConjunction {
     ///
     /// Returns [`KleeneConjunctionError::InputLengthMismatch`] unless the
     /// supplied input length exactly matches the compiled arity.
-    pub fn evaluate(
-        self,
-        inputs: &[KleeneValue],
-    ) -> Result<KleeneValue, KleeneConjunctionError> {
+    pub fn evaluate(self, inputs: &[KleeneValue]) -> Result<KleeneValue, KleeneConjunctionError> {
         if inputs.len() != self.input_arity {
             return Err(KleeneConjunctionError::InputLengthMismatch {
                 expected: self.input_arity,
@@ -192,8 +189,7 @@ mod tests {
 
     #[test]
     fn empty_conjunction_is_true() {
-        let compiled =
-            CompiledKleeneConjunction::compile(2, &[]).expect("empty mask is valid");
+        let compiled = CompiledKleeneConjunction::compile(2, &[]).expect("empty mask is valid");
         for row in 0..9 {
             assert_eq!(
                 compiled.evaluate(&assignment(row, 2)),
@@ -221,12 +217,18 @@ mod tests {
         )
         .expect("opposing literals remain representable");
         assert!(compiled.has_opposing_literals());
-        assert_eq!(compiled.evaluate(&[KleeneValue::False]), Ok(KleeneValue::False));
+        assert_eq!(
+            compiled.evaluate(&[KleeneValue::False]),
+            Ok(KleeneValue::False)
+        );
         assert_eq!(
             compiled.evaluate(&[KleeneValue::Unknown]),
             Ok(KleeneValue::Unknown)
         );
-        assert_eq!(compiled.evaluate(&[KleeneValue::True]), Ok(KleeneValue::False));
+        assert_eq!(
+            compiled.evaluate(&[KleeneValue::True]),
+            Ok(KleeneValue::False)
+        );
     }
 
     #[test]
@@ -251,7 +253,11 @@ mod tests {
             let inputs = assignment(row, 3);
             let expected =
                 evaluate_kleene_program(&generic, &inputs).expect("generic program is valid");
-            assert_eq!(compiled.evaluate(&inputs), Ok(expected), "row {row}: {inputs:?}");
+            assert_eq!(
+                compiled.evaluate(&inputs),
+                Ok(expected),
+                "row {row}: {inputs:?}"
+            );
         }
     }
 
