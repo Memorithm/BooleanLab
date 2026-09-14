@@ -3,6 +3,8 @@
 
 #[path = "support/bl14_matched_search.rs"]
 mod matched_search;
+#[path = "support/bl14_dynamic_routing.rs"]
+mod dynamic_routing;
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -505,7 +507,12 @@ fn main() -> Result<()> {
     match (arguments.next(), arguments.next()) {
         (None, None) => {}
         (Some(mode), None) if mode == "--matched-search-v1" => return matched_search::run(),
-        _ => return Err("expected no arguments or --matched-search-v1 only".into()),
+        (Some(mode), None) if mode == "--dynamic-routing-v1" => return dynamic_routing::run(),
+        _ => {
+            return Err(
+                "expected no arguments, --matched-search-v1, or --dynamic-routing-v1 only".into(),
+            );
+        }
     }
     // Freeze ALL twelve trials before constructing ANY validation batch.
     let frozen: Vec<FrozenTrial> = trials().into_iter().map(prepare).collect::<Result<_>>()?;
