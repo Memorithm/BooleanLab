@@ -115,7 +115,10 @@ fn compare(input_bits: u32, rows: &[&[bool]], target: &[bool]) -> Result<Compari
         candidate_count: candidates.len(),
         example_count: rows.len(),
         minimum_mismatches: fit[best[0]].mismatches,
-        best_codes: best.iter().map(|&index| fit[index].truth_table_code).collect(),
+        best_codes: best
+            .iter()
+            .map(|&index| fit[index].truth_table_code)
+            .collect(),
         exhaustive_mask_decisions,
         linear,
         cegis,
@@ -160,7 +163,9 @@ fn main() -> Result<()> {
     }
     println!("# schema=bl14.search-comparison.v1; phase=SEARCH; evidence=EXACT_CALIBRATION");
     println!("# Counts are logical rule/row checks, NOT hardware time or model quality.");
-    println!("# population_generation_passes=2; generation, allocation and metadata costs excluded");
+    println!(
+        "# population_generation_passes=2; generation, allocation and metadata costs excluded"
+    );
     println!("# CEGIS first-solution counts are comparable to linear first-solution counts.");
     println!("# Full fitting additionally reports ALL optimal ties; missing counters are NA.");
     println!(
@@ -179,9 +184,15 @@ fn main() -> Result<()> {
     ] {
         emit(name, &compare(2, &rows, &target)?)?;
     }
-    emit("partial_xor", &compare(2, &rows[..3], &[false, true, true])?)?;
+    emit(
+        "partial_xor",
+        &compare(2, &rows[..3], &[false, true, true])?,
+    )?;
     let repeated: [&[bool]; 2] = [&[false, false], &[false, false]];
-    emit("contradictory_labels", &compare(2, &repeated, &[false, true])?)?;
+    emit(
+        "contradictory_labels",
+        &compare(2, &repeated, &[false, true])?,
+    )?;
     Ok(())
 }
 
@@ -219,7 +230,10 @@ mod tests {
         let result = compare(2, &rows, &[false, false, false, true]).unwrap();
         assert_eq!(result.linear.row_checks, 19);
         let cegis = result.cegis.unwrap();
-        assert_eq!(cegis.synthesis_row_checks + cegis.verification_row_checks, 17);
+        assert_eq!(
+            cegis.synthesis_row_checks + cegis.verification_row_checks,
+            17
+        );
     }
 
     #[test]
