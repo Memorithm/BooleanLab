@@ -16,6 +16,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Resolve exact dependency lock
+        run: cargo generate-lockfile
       - name: Format
         run: cargo fmt --all -- --check
       - name: Test
@@ -43,18 +45,46 @@ jobs:
       - name: BL-14.1.2 trained linear development pilot
         run: cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
       - name: BL-14.3.1 dynamic Boolean routing development pilot
+        env:
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          set -euo pipefail
           cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release -- --dynamic-routing-v1 > bl14-dynamic-routing-v1.tsv
+          cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release -- --dynamic-routing-v1 > bl14-dynamic-routing-v1.replay.tsv
+          cmp bl14-dynamic-routing-v1.tsv bl14-dynamic-routing-v1.replay.tsv
           grep -Fq '# schema=bl14.dynamic-routing.v1' bl14-dynamic-routing-v1.tsv
           grep -Fq '# ALL_DYNAMIC_CONTROLLERS_FROZEN_BEFORE_VALIDATION' bl14-dynamic-routing-v1.tsv
           grep -Fq '# COMPLETE_TRIALS=12' bl14-dynamic-routing-v1.tsv
-      - name: Upload BL-14.3.1 raw development report
+          mkdir -p bl14-dynamic-routing-evidence
+          cp bl14-dynamic-routing-v1.tsv bl14-dynamic-routing-evidence/report.tsv
+          cp bl14-dynamic-routing-v1.replay.tsv bl14-dynamic-routing-evidence/replay.tsv
+          cp Cargo.lock bl14-dynamic-routing-evidence/Cargo.lock
+          rustc --version --verbose > bl14-dynamic-routing-evidence/rustc-version.txt
+          cargo --version --verbose > bl14-dynamic-routing-evidence/cargo-version.txt
+          git --version > bl14-dynamic-routing-evidence/git-version.txt
+          printf '%s\n' "$SOURCE_HEAD_SHA" > bl14-dynamic-routing-evidence/source-head-sha.txt
+          printf '%s\n' "$GITHUB_SHA" > bl14-dynamic-routing-evidence/checkout-sha.txt
+          {
+            printf 'schema=bl14.dynamic-routing.evidence.v1\n'
+            printf 'repository=%s\n' "$GITHUB_REPOSITORY"
+            printf 'run_id=%s\n' "$GITHUB_RUN_ID"
+            printf 'run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'source_head_sha=%s\n' "$SOURCE_HEAD_SHA"
+            printf 'checkout_sha=%s\n' "$GITHUB_SHA"
+            printf 'runner_os=%s\n' "$RUNNER_OS"
+            printf 'runner_arch=%s\n' "$RUNNER_ARCH"
+          } > bl14-dynamic-routing-evidence/manifest.env
+          (
+            cd bl14-dynamic-routing-evidence
+            sha256sum Cargo.lock cargo-version.txt checkout-sha.txt git-version.txt manifest.env replay.tsv report.tsv rustc-version.txt source-head-sha.txt > SHA256SUMS
+          )
+      - name: Upload BL-14.3.1 provenance bundle
         uses: actions/upload-artifact@v4
         with:
-          name: bl14-dynamic-routing-${{ github.sha }}
-          retention-days: 14
+          name: bl14-dynamic-routing-${{ github.event.pull_request.head.sha || github.sha }}
+          retention-days: 90
           if-no-files-found: error
-          path: bl14-dynamic-routing-v1.tsv
+          path: bl14-dynamic-routing-evidence/
 
   sedenion-nightly:
     runs-on: ubuntu-latest
