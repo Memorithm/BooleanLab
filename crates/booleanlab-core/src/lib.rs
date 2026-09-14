@@ -10,6 +10,7 @@ pub mod bme_packed;
 pub mod circuit;
 pub mod hybrid;
 pub mod kleene;
+pub mod kleene_analysis;
 pub mod sparsity;
 pub mod sparsity_dynamic;
 pub mod sparsity_ranking;
@@ -43,6 +44,7 @@ pub use kleene::{
     BinaryTruthRow, KLEENE_BINARY_TRUTH_TABLE, KLEENE_VALUES, KleeneEvalError, KleeneInstruction,
     KleeneValue, evaluate_kleene_program, exhaustive_binary_truth_table,
 };
+pub use kleene_analysis::{KleeneAnalysisError, KleeneProgramAnalysis, analyze_kleene_program};
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
 pub use sparsity_dynamic::{DynamicMaskError, dynamic_mask_from_predicates};
 pub use sparsity_ranking::{
