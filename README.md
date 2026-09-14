@@ -16,7 +16,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | Experiment / track | Status | Verified result or current question |
 | --- | --- | --- |
 | **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
-| **BL-14 Boolean Sparsity Control** | ACTIVE / PROPOSED | Determine whether compact Boolean equations can select static, structured, dynamic or relational sparse structure with a better verified quality/resource trade-off than matched sparsification baselines after controller overhead is included. |
+| **BL-14 Boolean Sparsity Control** | CALIBRATION IMPLEMENTED / MODEL STUDY PENDING | Exact mask primitives, exhaustive/CEGIS search comparison and an executable numerical linear-layer calibration are available. Trained-model quality and end-to-end hardware benefit remain unestablished. |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
 | BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
 | BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
@@ -82,6 +82,19 @@ BL-14 starts with six controlled experiments:
 - `BL-14.5.1`: discrete synthesis/search of compact Boolean sparsity rules under a frozen multi-objective evaluation contract.
 
 The evaluation is explicitly multi-objective: task quality, retained density, Boolean-rule complexity, controller cost, effective compute, memory traffic and measured latency/throughput remain separate evidence. More zeros alone are not a positive result.
+
+### Executable BL-14 calibrations
+
+The [search-method comparison](experiments/results/BL-14.5-SEARCH-COMPARISON.md) compares CEGIS with a matched linear first-exact search, using full exhaustive fitting as an independent all-optima oracle. It retains negative work-count controls, incomplete-coverage ties and inconsistent-label failures.
+
+The [numerical linear-layer calibration](experiments/results/BL-14-LINEAR-CALIBRATION.md) executes the same fixed untrained integer operator with dense, magnitude, 2:4, random and Boolean masks. All sparse controls retain exactly 8/16 coefficients. It checks reconstruction error against an independent exact identity and reports multiplication and mask-test counts separately. This is not trained-model or hardware-speed evidence.
+
+```bash
+cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
+cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
+```
+
+The notation `y_g = z_g * G_g(x)` specifies the output, not an automatic execution saving: a runner must reject a group **before** evaluating its numerical work. Multiplying an already-computed result by zero does not skip that work. The numerical calibration tests this early-dispatch boundary. TDI-9.3 owns the corresponding action-policy calibration and its separate observation/final-evaluation contracts.
 
 ## Core hybrid contract
 

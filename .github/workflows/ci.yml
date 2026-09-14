@@ -36,6 +36,10 @@ jobs:
         run: cargo run -p booleanlab-discovery --bin bl13_boolean_baseline --release
       - name: BL-13 GF(2^8) inversion campaign
         run: cargo run -p booleanlab-discovery --bin bl13_gf2_inversion --release
+      - name: BL-14.5 exhaustive versus CEGIS calibration
+        run: cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
+      - name: BL-14 exact numerical linear-layer calibration
+        run: cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
 
   sedenion-nightly:
     runs-on: ubuntu-latest
