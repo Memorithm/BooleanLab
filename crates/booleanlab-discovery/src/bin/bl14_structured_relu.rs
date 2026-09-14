@@ -1,6 +1,9 @@
 //! BL-14.2.2 numerical development: fixed `ReLU` features, trained readout.
 //! Masks skip entire units before projection. This is not full MLP training.
 
+#[path = "support/bl14_matched_search.rs"]
+mod matched_search;
+
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -498,8 +501,11 @@ fn emit(trial: Trial, stage: &str, id: &str, metrics: &Metrics) {
 }
 
 fn main() -> Result<()> {
-    if std::env::args_os().len() != 1 {
-        return Err("fixed BL-14.2.2 experiment accepts no arguments".into());
+    let mut arguments = std::env::args_os().skip(1);
+    match (arguments.next(), arguments.next()) {
+        (None, None) => {}
+        (Some(mode), None) if mode == "--matched-search-v1" => return matched_search::run(),
+        _ => return Err("expected no arguments or --matched-search-v1 only".into()),
     }
     // Freeze ALL twelve trials before constructing ANY validation batch.
     let frozen: Vec<FrozenTrial> = trials().into_iter().map(prepare).collect::<Result<_>>()?;
