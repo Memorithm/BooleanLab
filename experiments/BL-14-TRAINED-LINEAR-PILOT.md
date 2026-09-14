@@ -1,7 +1,8 @@
 # BL-14.1.2 — Trained linear development pilot
 
-Status: IMPLEMENTATION IN PROGRESS. This is a small synthetic development pilot,
-not a language-model benchmark, final confirmation or hardware-speed result.
+Status: IMPLEMENTED; qualification is tracked in PR #70. This is a small synthetic
+development pilot, not a language-model benchmark, final confirmation or
+hardware-speed result.
 
 ## Fixed pilot design
 
@@ -59,7 +60,7 @@ resolved predicate rows, exact truth tables, masks and selected identities are
 owned by an immutable selection object before VALIDATION. Validation does not
 re-rank or retrain that object.
 
-## Evidence
+## Evidence and regression tests
 
 Report TRAIN task MSE before and after fitting, exact learned-weight bit patterns,
 resolved predicate bits, all eligible SEARCH rows, selected truth-table codes,
@@ -69,19 +70,47 @@ and mask tests separately. Non-finite input, intermediate arithmetic or metrics,
 shape mismatch and counter overflow fail explicitly. Rejected coefficients must
 be skipped before multiplication.
 
+Eight tests cover actual learning, partition ID/input separation, complete
+partition membership, exact mask cardinality and all best-fit ties, immutable
+selection under validation-label perturbation, early skip, finite magnitude
+ranking and malformed/non-finite inputs. Labels cannot hide duplicate, missing
+or out-of-partition instance identities.
+
 Floating-point losses are numerical evidence, not exact mathematical identities.
 Counts are reference-operation accounting, not elapsed time or ISA instructions.
-Training, search, ranking, predicate construction, allocation, metadata and
-memory traffic are not included in inference operation counters. No latency,
-energy, memory-reduction, novelty or universal sparsity-superiority claim is
-licensed by this pilot.
+Training, search, ranking, predicate construction, allocation and memory traffic
+are not included in inference operation counters. No latency, energy,
+memory-reduction, novelty or universal sparsity-superiority claim is licensed
+by this pilot.
 
-## Reproduce
+## Reproduce from a fresh checkout
+
+The workspace currently does not commit `Cargo.lock`. Resolve dependencies once
+before using `--locked`; do not silently overwrite an existing lockfile. Preserve
+the resolved lockfile, toolchain and commit together with the report:
 
 ```bash
+set -euo pipefail
+if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
+mkdir -p target/bl14-pilot-evidence
+cp Cargo.lock target/bl14-pilot-evidence/Cargo.lock
+git rev-parse HEAD > target/bl14-pilot-evidence/commit.txt
+rustc --version --verbose > target/bl14-pilot-evidence/rustc.txt
+sha256sum Cargo.lock > target/bl14-pilot-evidence/lock.sha256
 cargo test --locked -p booleanlab-discovery --bin bl14_trained_linear
-cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
+cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release \
+  | tee target/bl14-pilot-evidence/report.tsv
 ```
+
+The initial resolution needs network access unless all inputs are cached. A
+newly generated lockfile may differ at another date: `--locked` prevents changes
+to the local resolved file; it does not make an uncommitted dependency graph a
+repository-wide immutable pin. Reproducing a prior run requires its preserved
+lockfile and recorded toolchain, not a fresh resolution assumed equivalent.
+The existing CI's preceding unlocked workspace test resolves dependencies before
+its locked pilot invocation; that is not a substitute for this fresh-checkout
+bootstrap. A committed workspace lockfile is a separate remaining reproducibility
+improvement.
 
 ## Next gates and reuse
 
