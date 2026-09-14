@@ -114,9 +114,13 @@ fn measure(mask: &ExactMask, inputs: &[Vec<i64>], reference: &[Vec<i128>]) -> Re
         increment(&mut evidence.multiplications, run.multiplications)?;
         increment(&mut evidence.mask_tests, run.mask_tests)?;
         for (&actual, &target) in run.outputs.iter().zip(expected) {
-            let difference = actual.checked_sub(target).ok_or("output difference overflow")?;
+            let difference = actual
+                .checked_sub(target)
+                .ok_or("output difference overflow")?;
             let magnitude = difference.unsigned_abs();
-            let squared = magnitude.checked_mul(magnitude).ok_or("squared error overflow")?;
+            let squared = magnitude
+                .checked_mul(magnitude)
+                .ok_or("squared error overflow")?;
             evidence.squared_error_sum = evidence
                 .squared_error_sum
                 .checked_add(squared)
@@ -132,7 +136,13 @@ fn calibration_inputs() -> Vec<Vec<i64>> {
     (0..16usize)
         .map(|address| {
             (0..WIDTH)
-                .map(|bit| if address & (1usize << bit) == 0 { -1 } else { 1 })
+                .map(|bit| {
+                    if address & (1usize << bit) == 0 {
+                        -1
+                    } else {
+                        1
+                    }
+                })
                 .collect()
         })
         .collect()
@@ -145,7 +155,11 @@ fn predicate_rows() -> Vec<Vec<bool>> {
         .iter()
         .enumerate()
         .map(|(index, &weight)| {
-            vec![weight.unsigned_abs() >= 5, weight < 0, (index / WIDTH) % 2 == 1]
+            vec![
+                weight.unsigned_abs() >= 5,
+                weight < 0,
+                (index / WIDTH) % 2 == 1,
+            ]
         })
         .collect()
 }
@@ -173,19 +187,36 @@ fn main() -> Result<()> {
         .collect::<Result<_>>()?;
     let scores: Vec<u64> = WEIGHTS.iter().map(|weight| weight.unsigned_abs()).collect();
     println!("# schema=bl14.linear-calibration.v1; evidence=EXACT_NUMERICAL_CALIBRATION");
-    println!("# Fixed untrained 4x4 integer layer; 16 sign inputs; no HOLDOUT or model-quality claim.");
-    println!("# All sparse controls retain exactly 8/16 coefficients. Dense is a separate 16/16 reference.");
+    println!(
+        "# Fixed untrained 4x4 integer layer; 16 sign inputs; no HOLDOUT or model-quality claim."
+    );
+    println!(
+        "# All sparse controls retain exactly 8/16 coefficients. Dense is a separate 16/16 reference."
+    );
     println!("# Counters are reference operations, not hardware instructions or elapsed time.");
-    println!("# Mask construction/search, allocations and predicate extraction are excluded from counters.");
+    println!(
+        "# Mask construction/search, allocations and predicate extraction are excluded from counters."
+    );
     println!("# Boolean masks are static; 16 predicate rows evaluated once per proposed rule.");
-    println!("policy\tretained\ttotal\tsquared_error_sum\toutput_count\tmultiplications\tmask_tests");
+    println!(
+        "policy\tretained\ttotal\tsquared_error_sum\toutput_count\tmultiplications\tmask_tests"
+    );
     println!("dense\t16\t16\t0\t64\t256\t0");
     let mut baselines = vec![
-        ("magnitude".to_owned(), mask_from_descending_u64_scores(&scores, RETAINED)?),
-        ("magnitude_2_4".to_owned(), structured_nm_mask_from_u64_scores(&scores, 2, 4)?),
+        (
+            "magnitude".to_owned(),
+            mask_from_descending_u64_scores(&scores, RETAINED)?,
+        ),
+        (
+            "magnitude_2_4".to_owned(),
+            structured_nm_mask_from_u64_scores(&scores, 2, 4)?,
+        ),
     ];
     for seed in 0..4u64 {
-        baselines.push((format!("random_{seed}"), deterministic_random_mask(16, RETAINED, seed)?));
+        baselines.push((
+            format!("random_{seed}"),
+            deterministic_random_mask(16, RETAINED, seed)?,
+        ));
     }
     for (name, mask) in &baselines {
         if mask.cardinality().retained() != RETAINED {
@@ -218,7 +249,10 @@ fn main() -> Result<()> {
     if eligible == 0 {
         return Err("no exact-density Boolean proposal".into());
     }
-    println!("# searched={}; eligible={eligible}; best_error={best_error}; all_best_codes={best_codes:?}", proposals.len());
+    println!(
+        "# searched={}; eligible={eligible}; best_error={best_error}; all_best_codes={best_codes:?}",
+        proposals.len()
+    );
     Ok(())
 }
 
@@ -298,7 +332,8 @@ mod tests {
                     .zip(mask.as_slice())
                     .filter(|(_, keep)| !**keep)
                     .map(|(&w, _)| u128::from(w.unsigned_abs()).pow(2))
-                    .sum::<u128>() * 16;
+                    .sum::<u128>()
+                    * 16;
                 assert_eq!(measured.squared_error_sum, oracle);
                 assert_eq!(measured.multiplications, 128);
                 assert_eq!(measured.mask_tests, 256);
@@ -307,14 +342,23 @@ mod tests {
         }
         assert_eq!(evidence.len(), 34);
         let minimum = evidence.iter().map(|row| row.0).min().unwrap();
-        let winners: Vec<u64> = evidence.iter().filter(|row| row.0 == minimum).map(|row| row.1).collect();
+        let winners: Vec<u64> = evidence
+            .iter()
+            .filter(|row| row.0 == minimum)
+            .map(|row| row.1)
+            .collect();
         assert_eq!(minimum, 960);
         assert_eq!(winners, vec![170]);
         let scores: Vec<u64> = WEIGHTS.iter().map(|w| w.unsigned_abs()).collect();
         let magnitude = mask_from_descending_u64_scores(&scores, RETAINED).unwrap();
         let structured = structured_nm_mask_from_u64_scores(&scores, 2, 4).unwrap();
         assert_eq!(magnitude, structured);
-        assert_eq!(measure(&magnitude, &inputs, &reference).unwrap().squared_error_sum, minimum);
+        assert_eq!(
+            measure(&magnitude, &inputs, &reference)
+                .unwrap()
+                .squared_error_sum,
+            minimum
+        );
     }
 
     #[test]
