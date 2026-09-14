@@ -40,6 +40,8 @@ jobs:
         run: cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
       - name: BL-14 exact numerical linear-layer calibration
         run: cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
+      - name: BL-14.1.2 trained linear development pilot
+        run: cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
 
   sedenion-nightly:
     runs-on: ubuntu-latest

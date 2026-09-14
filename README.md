@@ -16,7 +16,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | Experiment / track | Status | Verified result or current question |
 | --- | --- | --- |
 | **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
-| **BL-14 Boolean Sparsity Control** | CALIBRATION IMPLEMENTED / MODEL STUDY PENDING | Exact mask primitives, exhaustive/CEGIS search comparison and an executable numerical linear-layer calibration are available. Trained-model quality and end-to-end hardware benefit remain unestablished. |
+| **BL-14 Boolean Sparsity Control** | CALIBRATIONS + TRAINED DEVELOPMENT PILOT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, a fixed numerical layer and BL-14.1.2 synthetic trained regression pilot are available. Representative neural-model quality and end-to-end hardware benefit remain unestablished. |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
 | BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
 | BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
@@ -83,16 +83,23 @@ BL-14 starts with six controlled experiments:
 
 The evaluation is explicitly multi-objective: task quality, retained density, Boolean-rule complexity, controller cost, effective compute, memory traffic and measured latency/throughput remain separate evidence. More zeros alone are not a positive result.
 
-### Executable BL-14 calibrations
+### Executable BL-14 calibrations and development pilot
 
 The [search-method comparison](experiments/results/BL-14.5-SEARCH-COMPARISON.md) compares CEGIS with a matched linear first-exact search, using full exhaustive fitting as an independent all-optima oracle. It retains negative work-count controls, incomplete-coverage ties and inconsistent-label failures.
 
 The [numerical linear-layer calibration](experiments/results/BL-14-LINEAR-CALIBRATION.md) executes the same fixed untrained integer operator with dense, magnitude, 2:4, random and Boolean masks. All sparse controls retain exactly 8/16 coefficients. It checks reconstruction error against an independent exact identity and reports multiplication and mask-test counts separately. This is not trained-model or hardware-speed evidence.
 
+The [BL-14.1.2 trained linear pilot](experiments/BL-14-TRAINED-LINEAR-PILOT.md) fits an eight-coefficient numerical regressor on 128 TRAIN examples, selects exact 4/8 Boolean masks on 64 SEARCH examples, then evaluates the frozen selection on 64 non-final VALIDATION examples. It includes magnitude, 2:4, activation-energy and four fixed random controls. Task loss and dense reconstruction loss are separate. This small synthetic pilot neither replaces the model nor establishes quality preservation on representative neural networks. Equal or negative Boolean outcomes must be retained.
+
 ```bash
+set -euo pipefail
+if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
 cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
 cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
+cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
 ```
+
+The workspace does not yet commit `Cargo.lock`: preserve the resolved lockfile, toolchain and source commit with each report, as shown in the pilot protocol. A fresh dependency resolution on another date is not an immutable reproduction of a previous run. An existing lockfile is not overwritten by the bootstrap above.
 
 The notation `y_g = z_g * G_g(x)` specifies the output, not an automatic execution saving: a runner must reject a group **before** evaluating its numerical work. Multiplying an already-computed result by zero does not skip that work. The numerical calibration tests this early-dispatch boundary. TDI-9.3 owns the corresponding action-policy calibration and its separate observation/final-evaluation contracts.
 
@@ -244,7 +251,7 @@ BL-4.4 block-admission + bitpacked signature experiments
 
 BL-14 Boolean Sparsity Control:
 BL-14.0 matched-baseline calibration
-  -> BL-14.1 static Boolean masks
+  -> BL-14.1 static Boolean masks (BL-14.1.2 trained regression development pilot)
   -> BL-14.2 structured hardware-relevant sparsity
   -> BL-14.3 dynamic input-conditioned sparsity
   -> BL-14.4 relational redundancy-aware sparsity

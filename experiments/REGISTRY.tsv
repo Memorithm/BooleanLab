@@ -46,6 +46,7 @@ BL-13.6.1	BL-13	Cross-domain	SYNTHESIZE	Do different X domains independently ind
 BL-13.7.1	BL-13	Vectorial-Boolean	SYNTHESIZE	Can hybrid systems induce F_2^n to F_2^m functions with new non-dominated differential spectral and implementation trade-offs after declared equivalence screening?	PROPOSED
 BL-14.0.1	BL-14	Sparsity-system	VERIFY	Does the BL-14 harness reproduce dense random magnitude and declared structured sparsity baselines at exactly matched retained densities?	PROPOSED
 BL-14.1.1	BL-14	Static-sparsity	MASK	Can an explicit Boolean equation produce a frozen sparse mask that preserves more task quality than density-matched random and magnitude baselines?	PROPOSED
+BL-14.1.2	BL-14	Trained-linear	MASK	On the fixed eight-coefficient synthetic regression pilot how do SEARCH-selected frozen Boolean masks compare with matched magnitude activation-energy 2:4 and random controls on non-final VALIDATION?	IMPLEMENTED
 BL-14.2.1	BL-14	Structured-sparsity	MASK	Can Boolean equations select blocks channels heads or other hardware-relevant groups with a better quality-resource trade-off than matched structured baselines?	PROPOSED
 BL-14.3.1	BL-14	Dynamic-sparsity	MASK	Can an input-conditioned Boolean controller vary the active sparse structure cheaply enough that avoided work exceeds controller overhead while preserving the declared quality threshold?	PROPOSED
 BL-14.4.1	BL-14	Relational-sparsity	SELECT	Can explicit Boolean relations identify functionally redundant groups better than independent per-group scores at the same retained density?	PROPOSED
