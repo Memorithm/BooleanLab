@@ -14,12 +14,12 @@ use std::collections::BTreeSet;
 
 use booleanlab_core::{ExactMask, RedundancyEdge, relational_component_mask};
 
+#[cfg(test)]
+use super::Work;
 use super::{
     Batch, FrozenTrial, KEEP, Metrics, Result, Split, Trial, UNITS, features, generate, mask_code,
     prepare, require_batch, score, trials,
 };
-#[cfg(test)]
-use super::Work;
 
 const PAIRS: usize = UNITS * (UNITS - 1) / 2;
 
