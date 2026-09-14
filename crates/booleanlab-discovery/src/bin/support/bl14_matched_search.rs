@@ -1,8 +1,14 @@
 //! BL-14.2.3 exploratory budget audit using the unchanged numerical fixture.
 //! Matching unique-mask scoring does not match total time or controller cost.
 
-use super::*;
-use std::cmp::Reverse;
+use super::{
+    Batch, Choice, ExactMask, MaskFamily, Metrics, Result, Split, Trial, UNITS, Work,
+    deterministic_random_keys, finite, fit, generate, increment, keys, mask_code,
+    mask_from_descending_u64_scores, materialize_boolean_function_mask, propose_exhaustive_rules,
+    require_batch, score, structured_nm_mask_from_u64_scores, trials,
+};
+use std::cmp::{Ordering, Reverse};
+use std::collections::{BTreeMap, BTreeSet};
 
 const RETAINED: [usize; 3] = [2, 4, 6];
 
@@ -564,7 +570,7 @@ mod tests {
     #[test]
     fn four_unit_boolean_population_matches_unchanged_v1_fixture() {
         let trial = trials()[0];
-        let legacy = prepare(trial).unwrap();
+        let legacy = super::super::prepare(trial).unwrap();
         let (weights, energy) = fit(&generate(trial, Split::Train).unwrap()).unwrap();
         let cell = prepare_cell(
             trial,
