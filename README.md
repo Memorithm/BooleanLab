@@ -17,6 +17,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | --- | --- | --- |
 | **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
 | **BL-14 Boolean Sparsity Control** | CALIBRATIONS + TRAINED STRUCTURED DEVELOPMENT PILOT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, a fixed numerical layer, BL-14.1.2 trained linear and BL-14.2.2 structured nonlinear synthetic pilots are available. BL-14.2.2 is mixed/negative: dense beats every sparse arm on all 12 non-final validation trials; no hardware benefit is established. |
+| **BL-14.2.3 Matched topology search** | EXPLORATORY REANALYSIS EXECUTED | On the reused development panel at 2/8, 4/8 and 6/8 retained units, Boolean beats/ties/loses to direct search in 5/24/7 cells at equal unique-mask scoring budget. Identical populations agree exactly in all 36 cells. No general Boolean advantage is established. |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
 | BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
 | BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
@@ -93,6 +94,8 @@ The [BL-14.1.2 trained linear pilot](experiments/BL-14-TRAINED-LINEAR-PILOT.md) 
 
 The [BL-14.2.2 structured nonlinear result](experiments/results/BL-14.2.2-STRUCTURED-RELU-V1.md) extends this methodology to twelve frozen trials across three synthetic regimes with fixed `ReLU` features and a trained readout. Its Boolean SEARCH winners are mixed against matched sparse controls, while dense has lower task MSE than every sparse arm in all twelve non-final VALIDATION trials. The retained reference-operation counters are not elapsed-time, memory, energy or hardware-speed evidence.
 
+The [BL-14.2.3 matched-search audit](experiments/results/BL-14.2.3-MATCHED-SEARCH-V1.md) reuses that observed panel at 2/8, 4/8 and 6/8 retained units. Boolean and direct search receive equal numbers of unique-mask SEARCH evaluations; a separate identical-population control checks bit-exact equivalence. The outcome is 5 better, 24 equal and 7 worse cells for Boolean versus matched direct search. This is exploratory reanalysis, not independent validation. Equal scoring budgets do not establish equal total controller or hardware costs; the one small improvement over dense is also obtained by the same magnitude mask.
+
 ```bash
 set -euo pipefail
 if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
@@ -100,6 +103,7 @@ cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --releas
 cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
 cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
 cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release
+cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release -- --matched-search-v1
 ```
 
 The workspace does not yet commit `Cargo.lock`: preserve the resolved lockfile, toolchain and source commit with each report, as shown in the pilot protocol. A fresh dependency resolution on another date is not an immutable reproduction of a previous run. An existing lockfile is not overwritten by the bootstrap above.
@@ -255,7 +259,7 @@ BL-4.4 block-admission + bitpacked signature experiments
 BL-14 Boolean Sparsity Control:
 BL-14.0 matched-baseline calibration
   -> BL-14.1 static Boolean masks (BL-14.1.2 trained regression development pilot)
-  -> BL-14.2 structured hardware-relevant sparsity
+  -> BL-14.2 structured hardware-relevant sparsity (BL-14.2.3 matched scoring audit)
   -> BL-14.3 dynamic input-conditioned sparsity
   -> BL-14.4 relational redundancy-aware sparsity
   -> BL-14.5 discrete Boolean rule synthesis
