@@ -9,6 +9,7 @@ pub mod bme_equation;
 pub mod bme_packed;
 pub mod circuit;
 pub mod hybrid;
+pub mod kleene;
 pub mod sparsity;
 pub mod sparsity_dynamic;
 pub mod sparsity_ranking;
@@ -38,6 +39,10 @@ pub use bme_packed::{
 };
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
+pub use kleene::{
+    BinaryTruthRow, KLEENE_BINARY_TRUTH_TABLE, KLEENE_VALUES, KleeneValue,
+    exhaustive_binary_truth_table,
+};
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
 pub use sparsity_dynamic::{DynamicMaskError, dynamic_mask_from_predicates};
 pub use sparsity_ranking::{
