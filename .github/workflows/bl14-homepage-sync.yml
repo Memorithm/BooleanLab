@@ -1,0 +1,50 @@
+name: BL-14.2.2 homepage sync
+
+on:
+  push:
+    branches:
+      - docs/bl14-2-2-homepage
+    paths:
+      - '.github/workflows/bl14-homepage-sync.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: docs/bl14-2-2-homepage
+      - name: Synchronize verified BL-14.2.2 evidence on homepage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('README.md')
+          text = p.read_text()
+          old_row = '| **BL-14 Boolean Sparsity Control** | CALIBRATIONS + TRAINED DEVELOPMENT PILOT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, a fixed numerical layer and BL-14.1.2 synthetic trained regression pilot are available. Representative neural-model quality and end-to-end hardware benefit remain unestablished. |'
+          new_row = '| **BL-14 Boolean Sparsity Control** | CALIBRATIONS + TRAINED STRUCTURED DEVELOPMENT PILOT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, a fixed numerical layer, BL-14.1.2 trained linear and BL-14.2.2 structured nonlinear synthetic pilots are available. BL-14.2.2 is mixed/negative: dense beats every sparse arm on all 12 non-final validation trials; no hardware benefit is established. |'
+          if text.count(old_row) != 1:
+              raise SystemExit('BL-14 status row target not found exactly once')
+          text = text.replace(old_row, new_row, 1)
+          anchor = 'The [BL-14.1.2 trained linear pilot](experiments/BL-14-TRAINED-LINEAR-PILOT.md) fits an eight-coefficient numerical regressor on 128 TRAIN examples, selects exact 4/8 Boolean masks on 64 SEARCH examples, then evaluates the frozen selection on 64 non-final VALIDATION examples. It includes magnitude, 2:4, activation-energy and four fixed random controls. Task loss and dense reconstruction loss are separate. This small synthetic pilot neither replaces the model nor establishes quality preservation on representative neural networks. Equal or negative Boolean outcomes must be retained.\n'
+          addition = anchor + '\nThe [BL-14.2.2 structured nonlinear result](experiments/results/BL-14.2.2-STRUCTURED-RELU-V1.md) extends this methodology to twelve frozen trials across three synthetic regimes with fixed `ReLU` features and a trained readout. Its Boolean SEARCH winners are mixed against matched sparse controls, while dense has lower task MSE than every sparse arm in all twelve non-final VALIDATION trials. The retained reference-operation counters are not elapsed-time, memory, energy or hardware-speed evidence.\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('BL-14.1.2 paragraph target not found exactly once')
+          text = text.replace(anchor, addition, 1)
+          old_cmd = 'cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release\n'
+          new_cmd = old_cmd + 'cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release\n'
+          if text.count(old_cmd) != 1:
+              raise SystemExit('BL-14 command target not found exactly once')
+          text = text.replace(old_cmd, new_cmd, 1)
+          p.write_text(text)
+          PY
+          git diff --check
+          git diff -- README.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          git commit -m 'docs(bl14): surface structured nonlinear development result'
+          git push origin HEAD:docs/bl14-2-2-homepage
