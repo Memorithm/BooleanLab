@@ -1,10 +1,10 @@
 //! BL-14.2.2 numerical development: fixed `ReLU` features, trained readout.
 //! Masks skip entire units before projection. This is not full MLP training.
 
-#[path = "support/bl14_matched_search.rs"]
-mod matched_search;
 #[path = "support/bl14_dynamic_routing.rs"]
 mod dynamic_routing;
+#[path = "support/bl14_matched_search.rs"]
+mod matched_search;
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
