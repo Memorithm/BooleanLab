@@ -201,6 +201,12 @@ pub enum KleeneEvalError {
 /// Binary operators pop the right-hand side first and the left-hand side
 /// second, preserving implication direction. Malformed programs fail closed
 /// instead of manufacturing a Boolean default for missing evidence.
+///
+/// # Errors
+///
+/// Returns [`KleeneEvalError`] when an input index is outside `inputs`, an
+/// operator does not have enough operands, or evaluation does not finish with
+/// exactly one value on the stack.
 pub fn evaluate_kleene_program(
     program: &[KleeneInstruction],
     inputs: &[KleeneValue],
@@ -235,15 +241,16 @@ pub fn evaluate_kleene_program(
             | KleeneInstruction::Xor
             | KleeneInstruction::Implies => {
                 let available = stack.len();
-                if available < 2 {
-                    return Err(KleeneEvalError::StackUnderflow {
-                        instruction,
-                        needed: 2,
-                        available,
-                    });
-                }
-                let rhs = stack.pop().expect("stack depth checked");
-                let lhs = stack.pop().expect("stack depth checked");
+                let rhs = stack.pop().ok_or(KleeneEvalError::StackUnderflow {
+                    instruction,
+                    needed: 2,
+                    available,
+                })?;
+                let lhs = stack.pop().ok_or(KleeneEvalError::StackUnderflow {
+                    instruction,
+                    needed: 2,
+                    available,
+                })?;
                 let result = match op {
                     KleeneInstruction::And => lhs.and(rhs),
                     KleeneInstruction::Or => lhs.or(rhs),
