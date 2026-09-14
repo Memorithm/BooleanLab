@@ -392,7 +392,7 @@ mod tests {
             let ordering = pair[1]
                 .activation_agreements
                 .cmp(&pair[0].activation_agreements);
-            assert!(ordering != Ordering::Greater);
+            assert_ne!(ordering, Ordering::Greater);
             if pair[0].activation_agreements == pair[1].activation_agreements {
                 assert!(
                     (pair[0].edge.left, pair[0].edge.right)
