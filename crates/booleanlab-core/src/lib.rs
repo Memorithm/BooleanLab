@@ -40,8 +40,8 @@ pub use bme_packed::{
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
 pub use kleene::{
-    BinaryTruthRow, KLEENE_BINARY_TRUTH_TABLE, KLEENE_VALUES, KleeneValue,
-    exhaustive_binary_truth_table,
+    BinaryTruthRow, KLEENE_BINARY_TRUTH_TABLE, KLEENE_VALUES, KleeneEvalError, KleeneInstruction,
+    KleeneValue, evaluate_kleene_program, exhaustive_binary_truth_table,
 };
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
 pub use sparsity_dynamic::{DynamicMaskError, dynamic_mask_from_predicates};

@@ -162,6 +162,116 @@ pub const fn exhaustive_binary_truth_table() -> [BinaryTruthRow; 9] {
     KLEENE_BINARY_TRUTH_TABLE
 }
 
+/// One instruction in a postfix Strong-Kleene expression program.
+///
+/// Postfix form keeps the differential oracle small and deterministic while
+/// allowing downstream projects to serialize their own rule trees into a
+/// neutral sequence before comparison.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KleeneInstruction {
+    Input(usize),
+    Constant(KleeneValue),
+    Not,
+    And,
+    Or,
+    Xor,
+    Implies,
+}
+
+/// Structural failure while evaluating a Strong-Kleene postfix program.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KleeneEvalError {
+    InputOutOfRange {
+        instruction: usize,
+        input: usize,
+        input_len: usize,
+    },
+    StackUnderflow {
+        instruction: usize,
+        needed: usize,
+        available: usize,
+    },
+    InvalidFinalStackDepth {
+        depth: usize,
+    },
+}
+
+/// Evaluate a postfix expression exactly under the frozen Strong-Kleene rules.
+///
+/// Binary operators pop the right-hand side first and the left-hand side
+/// second, preserving implication direction. Malformed programs fail closed
+/// instead of manufacturing a Boolean default for missing evidence.
+///
+/// # Errors
+///
+/// Returns [`KleeneEvalError`] when an input index is outside `inputs`, an
+/// operator does not have enough operands, or evaluation does not finish with
+/// exactly one value on the stack.
+pub fn evaluate_kleene_program(
+    program: &[KleeneInstruction],
+    inputs: &[KleeneValue],
+) -> Result<KleeneValue, KleeneEvalError> {
+    let mut stack = Vec::with_capacity(program.len());
+
+    for (instruction, op) in program.iter().copied().enumerate() {
+        match op {
+            KleeneInstruction::Input(input) => {
+                let value = inputs
+                    .get(input)
+                    .copied()
+                    .ok_or(KleeneEvalError::InputOutOfRange {
+                        instruction,
+                        input,
+                        input_len: inputs.len(),
+                    })?;
+                stack.push(value);
+            }
+            KleeneInstruction::Constant(value) => stack.push(value),
+            KleeneInstruction::Not => {
+                let available = stack.len();
+                let value = stack.pop().ok_or(KleeneEvalError::StackUnderflow {
+                    instruction,
+                    needed: 1,
+                    available,
+                })?;
+                stack.push(value.not());
+            }
+            KleeneInstruction::And
+            | KleeneInstruction::Or
+            | KleeneInstruction::Xor
+            | KleeneInstruction::Implies => {
+                let available = stack.len();
+                let rhs = stack.pop().ok_or(KleeneEvalError::StackUnderflow {
+                    instruction,
+                    needed: 2,
+                    available,
+                })?;
+                let lhs = stack.pop().ok_or(KleeneEvalError::StackUnderflow {
+                    instruction,
+                    needed: 2,
+                    available,
+                })?;
+                let result = match op {
+                    KleeneInstruction::And => lhs.and(rhs),
+                    KleeneInstruction::Or => lhs.or(rhs),
+                    KleeneInstruction::Xor => lhs.xor(rhs),
+                    KleeneInstruction::Implies => lhs.implies(rhs),
+                    KleeneInstruction::Input(_)
+                    | KleeneInstruction::Constant(_)
+                    | KleeneInstruction::Not => unreachable!("binary arm only"),
+                };
+                stack.push(result);
+            }
+        }
+    }
+
+    if stack.len() != 1 {
+        return Err(KleeneEvalError::InvalidFinalStackDepth { depth: stack.len() });
+    }
+
+    Ok(stack[0])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -247,5 +357,78 @@ mod tests {
                 assert_eq!(lhs.or(rhs).not(), lhs.not().and(rhs.not()));
             }
         }
+    }
+
+    #[test]
+    fn postfix_program_matches_direct_semantics_exhaustively() {
+        // (x0 AND NOT(x1)) OR x1
+        let program = [
+            KleeneInstruction::Input(0),
+            KleeneInstruction::Input(1),
+            KleeneInstruction::Not,
+            KleeneInstruction::And,
+            KleeneInstruction::Input(1),
+            KleeneInstruction::Or,
+        ];
+
+        for lhs in KLEENE_VALUES {
+            for rhs in KLEENE_VALUES {
+                assert_eq!(
+                    evaluate_kleene_program(&program, &[lhs, rhs]),
+                    Ok(lhs.and(rhs.not()).or(rhs))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn implication_preserves_operand_direction() {
+        let program = [
+            KleeneInstruction::Input(0),
+            KleeneInstruction::Input(1),
+            KleeneInstruction::Implies,
+        ];
+        for lhs in KLEENE_VALUES {
+            for rhs in KLEENE_VALUES {
+                assert_eq!(
+                    evaluate_kleene_program(&program, &[lhs, rhs]),
+                    Ok(lhs.implies(rhs))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn malformed_programs_fail_closed() {
+        assert_eq!(
+            evaluate_kleene_program(&[KleeneInstruction::Input(1)], &[KleeneValue::True]),
+            Err(KleeneEvalError::InputOutOfRange {
+                instruction: 0,
+                input: 1,
+                input_len: 1,
+            })
+        );
+        assert_eq!(
+            evaluate_kleene_program(&[KleeneInstruction::And], &[]),
+            Err(KleeneEvalError::StackUnderflow {
+                instruction: 0,
+                needed: 2,
+                available: 0,
+            })
+        );
+        assert_eq!(
+            evaluate_kleene_program(
+                &[
+                    KleeneInstruction::Constant(KleeneValue::False),
+                    KleeneInstruction::Constant(KleeneValue::True),
+                ],
+                &[]
+            ),
+            Err(KleeneEvalError::InvalidFinalStackDepth { depth: 2 })
+        );
+        assert_eq!(
+            evaluate_kleene_program(&[], &[]),
+            Err(KleeneEvalError::InvalidFinalStackDepth { depth: 0 })
+        );
     }
 }
