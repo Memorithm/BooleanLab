@@ -103,7 +103,8 @@ fn main() -> Result<(), String> {
 
     for repetition in 0..repetitions {
         let (generic_elapsed, generic_checksum) = run_generic(measured_iterations)?;
-        let (multiword_elapsed, multiword_checksum) = run_multiword(&compiled, measured_iterations)?;
+        let (multiword_elapsed, multiword_checksum) =
+            run_multiword(&compiled, measured_iterations)?;
         if generic_checksum != multiword_checksum {
             return Err(format!(
                 "differential mismatch at repetition {repetition}: generic={generic_checksum} multiword={multiword_checksum}"

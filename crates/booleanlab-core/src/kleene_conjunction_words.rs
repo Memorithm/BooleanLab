@@ -217,10 +217,10 @@ mod tests {
             })
         );
 
-        let compiled = CompiledMultiwordKleeneConjunction::compile(65, &[])
-            .expect("valid bounded arity");
+        let compiled =
+            CompiledMultiwordKleeneConjunction::compile(65, &[]).expect("valid bounded arity");
         assert_eq!(
-            compiled.evaluate(&vec![KleeneValue::False; 64]),
+            compiled.evaluate(&[KleeneValue::False; 64]),
             Err(MultiwordKleeneConjunctionError::InputLengthMismatch {
                 expected: 65,
                 actual: 64,
