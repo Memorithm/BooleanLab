@@ -1,9 +1,9 @@
 //! Exact three-valued Strong-Kleene reference semantics.
 //!
-//! This module is an experimental/differential oracle for BooleanLab. It is
+//! This module is an experimental/differential oracle for `BooleanLab`. It is
 //! intentionally independent from any production runtime so downstream
 //! projects can compare their own implementations against small, exhaustive
-//! truth tables without linking BooleanLab into an actuation path.
+//! truth tables without linking `BooleanLab` into an actuation path.
 
 /// One value in Strong-Kleene three-valued logic.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -62,11 +62,8 @@ impl KleeneValue {
 }
 
 /// Every truth value in canonical order.
-pub const KLEENE_VALUES: [KleeneValue; 3] = [
-    KleeneValue::False,
-    KleeneValue::Unknown,
-    KleeneValue::True,
-];
+pub const KLEENE_VALUES: [KleeneValue; 3] =
+    [KleeneValue::False, KleeneValue::Unknown, KleeneValue::True];
 
 /// One exhaustive binary truth-table row.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
