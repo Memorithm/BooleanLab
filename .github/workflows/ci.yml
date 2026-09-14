@@ -42,6 +42,19 @@ jobs:
         run: cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
       - name: BL-14.1.2 trained linear development pilot
         run: cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
+      - name: BL-14.3.1 dynamic Boolean routing development pilot
+        run: |
+          cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release -- --dynamic-routing-v1 > bl14-dynamic-routing-v1.tsv
+          grep -Fq '# schema=bl14.dynamic-routing.v1' bl14-dynamic-routing-v1.tsv
+          grep -Fq '# ALL_DYNAMIC_CONTROLLERS_FROZEN_BEFORE_VALIDATION' bl14-dynamic-routing-v1.tsv
+          grep -Fq '# COMPLETE_TRIALS=12' bl14-dynamic-routing-v1.tsv
+      - name: Upload BL-14.3.1 raw development report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bl14-dynamic-routing-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: error
+          path: bl14-dynamic-routing-v1.tsv
 
   sedenion-nightly:
     runs-on: ubuntu-latest
