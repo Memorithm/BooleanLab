@@ -363,20 +363,23 @@ mod tests {
             let threshold = inner / 2;
 
             assert_eq!(
-                packed_or_and_product_rows_columns(&packed_left, &packed_right_columns, inner),
-                or_and_product(&left, &right)
+                packed_or_and_product_rows_columns(&packed_left, &packed_right_columns, inner)
+                    .unwrap(),
+                or_and_product(&left, &right).unwrap()
             );
             assert_eq!(
-                packed_xor_and_product_rows_columns(&packed_left, &packed_right_columns, inner),
-                xor_and_product(&left, &right)
+                packed_xor_and_product_rows_columns(&packed_left, &packed_right_columns, inner)
+                    .unwrap(),
+                xor_and_product(&left, &right).unwrap()
             );
             assert_eq!(
                 packed_xnor_popcount_product_rows_columns(
                     &packed_left,
                     &packed_right_columns,
                     inner,
-                ),
-                xnor_popcount_product(&left, &right)
+                )
+                .unwrap(),
+                xnor_popcount_product(&left, &right).unwrap()
             );
             assert_eq!(
                 packed_thresholded_xnor_product_rows_columns(
@@ -384,8 +387,9 @@ mod tests {
                     &packed_right_columns,
                     inner,
                     threshold,
-                ),
-                thresholded_xnor_product(&left, &right, threshold)
+                )
+                .unwrap(),
+                thresholded_xnor_product(&left, &right, threshold).unwrap()
             );
         }
     }
