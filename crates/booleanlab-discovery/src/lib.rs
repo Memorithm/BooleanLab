@@ -21,6 +21,7 @@ pub mod sparsity_holdout_report;
 pub mod sparsity_rule_evidence;
 pub mod sparsity_rule_search;
 pub mod sparsity_semantic_freeze;
+pub mod sparsity_synthesis_freeze;
 
 use std::collections::BTreeMap;
 use std::fmt;
