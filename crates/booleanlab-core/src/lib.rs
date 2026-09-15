@@ -44,9 +44,7 @@ pub use bme_packed::{
     packed_xnor_popcount_cell, packed_xnor_popcount_product_rows_columns, packed_xor_and_cell,
     packed_xor_and_product_rows_columns,
 };
-pub use bme_packed_work::{
-    PackedBmeWorkError, PackedBmeWorkEstimate, packed_bme_work_estimate,
-};
+pub use bme_packed_work::{PackedBmeWorkError, PackedBmeWorkEstimate, packed_bme_work_estimate};
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
 pub use kleene::{
