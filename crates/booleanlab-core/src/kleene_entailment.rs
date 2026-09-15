@@ -188,8 +188,12 @@ fn validate_key(
 
     let used_values = expected_rows % 4;
     if used_values != 0 {
-        let used_bits = used_values * 2;
-        let allowed_mask = ((1u16 << used_bits) - 1) as u8;
+        let allowed_mask = match used_values {
+            1 => 0b0000_0011,
+            2 => 0b0000_1111,
+            3 => 0b0011_1111,
+            _ => unreachable!("a partial packed byte contains one to three values"),
+        };
         let byte = *key
             .packed_outputs
             .last()
