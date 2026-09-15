@@ -54,12 +54,12 @@ pub fn binding_from_conjunctive_rule(
             maximum: scirust_modalg::boolean::MAX_EXACT_BITS,
         })
     })?;
-    let row_count = 1usize.checked_shl(input_bits).ok_or_else(|| {
+    let row_count = 1usize.checked_shl(input_bits).ok_or(
         SynthesisFreezeAdapterError::Function(FunctionError::InputWidthTooLarge {
             width: input_bits,
             maximum: scirust_modalg::boolean::MAX_EXACT_BITS,
-        })
-    })?;
+        }),
+    )?;
 
     let mut predicates = vec![false; rule.predicate_count()];
     let mut truth_table = Vec::with_capacity(row_count);
