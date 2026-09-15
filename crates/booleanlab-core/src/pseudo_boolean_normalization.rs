@@ -68,23 +68,17 @@ mod tests {
 
     #[test]
     fn common_factor_includes_threshold_and_ignores_zero_coefficients() {
-        let constraint = PseudoBooleanConstraint::new(
-            vec![0, 12, 18, 30],
-            24,
-            PseudoBooleanRelation::AtLeast,
-        )
-        .unwrap();
+        let constraint =
+            PseudoBooleanConstraint::new(vec![0, 12, 18, 30], 24, PseudoBooleanRelation::AtLeast)
+                .unwrap();
         assert_eq!(pseudo_boolean_common_factor(&constraint), 6);
     }
 
     #[test]
     fn primitive_form_round_trips_by_exact_scaling() {
-        let original = PseudoBooleanConstraint::new(
-            vec![0, 12, 18, 30],
-            24,
-            PseudoBooleanRelation::Exactly,
-        )
-        .unwrap();
+        let original =
+            PseudoBooleanConstraint::new(vec![0, 12, 18, 30], 24, PseudoBooleanRelation::Exactly)
+                .unwrap();
         let (primitive, factor) = primitive_pseudo_boolean_constraint(&original).unwrap();
         assert_eq!(factor, 6);
         assert_eq!(primitive.weights(), &[0, 2, 3, 5]);
@@ -100,8 +94,7 @@ mod tests {
             PseudoBooleanRelation::AtMost,
             PseudoBooleanRelation::Exactly,
         ] {
-            let original =
-                PseudoBooleanConstraint::new(vec![14, 28, 42], 56, relation).unwrap();
+            let original = PseudoBooleanConstraint::new(vec![14, 28, 42], 56, relation).unwrap();
             let (primitive, factor) = primitive_pseudo_boolean_constraint(&original).unwrap();
             assert_eq!(factor, 14);
             assert!(pseudo_boolean_equivalent(&primitive, &original).unwrap());
