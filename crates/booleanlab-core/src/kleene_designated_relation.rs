@@ -13,8 +13,24 @@
 
 use crate::{
     KleeneEntailment, KleeneEntailmentError, KleeneEntailmentWitness, KleeneSemanticKey,
-    kleene_designated_entails,
+    KleeneValue, kleene_designated_entails,
 };
+
+/// First canonical row on which the original relation operands differ in
+/// designated-`True` membership.
+///
+/// Unlike [`KleeneEntailmentWitness`], these fields are always oriented to the
+/// original arguments passed to [`kleene_designated_relation`], even when the
+/// witness was discovered by the reverse entailment check.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct KleeneDesignatedDifferenceWitness {
+    /// Canonical base-3 assignment index.
+    pub assignment_index: usize,
+    /// Original antecedent output on the witness row.
+    pub antecedent: KleeneValue,
+    /// Original consequent output on the witness row.
+    pub consequent: KleeneValue,
+}
 
 /// Exact relation between the rows designated `True` by two semantic keys.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,23 +50,23 @@ pub enum KleeneDesignatedRelation {
         /// Exhaustive domain size.
         rows: usize,
         /// First canonical row where the consequent is `True` but the antecedent is not.
-        consequent_only_witness: KleeneEntailmentWitness,
+        consequent_only_witness: KleeneDesignatedDifferenceWitness,
     },
     /// The consequent designates a strict subset of the antecedent's `True` rows.
     ConsequentMoreRestrictive {
         /// Exhaustive domain size.
         rows: usize,
         /// First canonical row where the antecedent is `True` but the consequent is not.
-        antecedent_only_witness: KleeneEntailmentWitness,
+        antecedent_only_witness: KleeneDesignatedDifferenceWitness,
     },
     /// Each key designates at least one `True` row that the other does not.
     Incomparable {
         /// Exhaustive domain size.
         rows: usize,
         /// First canonical row where the antecedent is `True` but the consequent is not.
-        antecedent_only_witness: KleeneEntailmentWitness,
+        antecedent_only_witness: KleeneDesignatedDifferenceWitness,
         /// First canonical row where the consequent is `True` but the antecedent is not.
-        consequent_only_witness: KleeneEntailmentWitness,
+        consequent_only_witness: KleeneDesignatedDifferenceWitness,
     },
 }
 
@@ -103,7 +119,7 @@ pub fn kleene_designated_relation(
             debug_assert_eq!(rows, reverse_rows);
             Ok(KleeneDesignatedRelation::AntecedentMoreRestrictive {
                 rows,
-                consequent_only_witness: witness,
+                consequent_only_witness: reverse_witness(witness),
             })
         }
         (
@@ -115,7 +131,7 @@ pub fn kleene_designated_relation(
             debug_assert_eq!(rows, reverse_rows);
             Ok(KleeneDesignatedRelation::ConsequentMoreRestrictive {
                 rows,
-                antecedent_only_witness: witness,
+                antecedent_only_witness: forward_witness(witness),
             })
         }
         (
@@ -131,17 +147,33 @@ pub fn kleene_designated_relation(
             debug_assert_eq!(rows, reverse_rows);
             Ok(KleeneDesignatedRelation::Incomparable {
                 rows,
-                antecedent_only_witness,
-                consequent_only_witness,
+                antecedent_only_witness: forward_witness(antecedent_only_witness),
+                consequent_only_witness: reverse_witness(consequent_only_witness),
             })
         }
+    }
+}
+
+fn forward_witness(witness: KleeneEntailmentWitness) -> KleeneDesignatedDifferenceWitness {
+    KleeneDesignatedDifferenceWitness {
+        assignment_index: witness.assignment_index,
+        antecedent: witness.antecedent,
+        consequent: witness.consequent,
+    }
+}
+
+fn reverse_witness(witness: KleeneEntailmentWitness) -> KleeneDesignatedDifferenceWitness {
+    KleeneDesignatedDifferenceWitness {
+        assignment_index: witness.assignment_index,
+        antecedent: witness.consequent,
+        consequent: witness.antecedent,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{KleeneInstruction, KleeneValue, kleene_semantic_key};
+    use crate::{KleeneInstruction, kleene_semantic_key};
 
     fn checked_pow3(exponent: usize) -> usize {
         let mut value = 1usize;
@@ -176,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn conjunction_is_more_restrictive_than_one_operand() {
+    fn conjunction_is_more_restrictive_than_one_operand_with_oriented_witness() {
         let x = key(&[KleeneInstruction::Input(0)], 2);
         let x_and_y = key(
             &[
@@ -189,10 +221,16 @@ mod tests {
 
         let relation = kleene_designated_relation(&x_and_y, &x)
             .expect("valid keys on one domain must compare");
-        assert!(matches!(
-            relation,
-            KleeneDesignatedRelation::AntecedentMoreRestrictive { rows: 9, .. }
-        ));
+        match relation {
+            KleeneDesignatedRelation::AntecedentMoreRestrictive {
+                rows: 9,
+                consequent_only_witness,
+            } => {
+                assert_ne!(consequent_only_witness.antecedent, KleeneValue::True);
+                assert_eq!(consequent_only_witness.consequent, KleeneValue::True);
+            }
+            other => panic!("unexpected designated relation: {other:?}"),
+        }
     }
 
     #[test]
@@ -209,23 +247,38 @@ mod tests {
 
         let relation = kleene_designated_relation(&x, &x_and_y)
             .expect("valid keys on one domain must compare");
-        assert!(matches!(
-            relation,
-            KleeneDesignatedRelation::ConsequentMoreRestrictive { rows: 9, .. }
-        ));
+        match relation {
+            KleeneDesignatedRelation::ConsequentMoreRestrictive {
+                rows: 9,
+                antecedent_only_witness,
+            } => {
+                assert_eq!(antecedent_only_witness.antecedent, KleeneValue::True);
+                assert_ne!(antecedent_only_witness.consequent, KleeneValue::True);
+            }
+            other => panic!("unexpected designated relation: {other:?}"),
+        }
     }
 
     #[test]
-    fn independent_inputs_are_incomparable() {
+    fn independent_inputs_are_incomparable_with_both_witnesses_oriented() {
         let x = key(&[KleeneInstruction::Input(0)], 2);
         let y = key(&[KleeneInstruction::Input(1)], 2);
 
         let relation =
             kleene_designated_relation(&x, &y).expect("valid keys on one domain must compare");
-        assert!(matches!(
-            relation,
-            KleeneDesignatedRelation::Incomparable { rows: 9, .. }
-        ));
+        match relation {
+            KleeneDesignatedRelation::Incomparable {
+                rows: 9,
+                antecedent_only_witness,
+                consequent_only_witness,
+            } => {
+                assert_eq!(antecedent_only_witness.antecedent, KleeneValue::True);
+                assert_ne!(antecedent_only_witness.consequent, KleeneValue::True);
+                assert_ne!(consequent_only_witness.antecedent, KleeneValue::True);
+                assert_eq!(consequent_only_witness.consequent, KleeneValue::True);
+            }
+            other => panic!("unexpected designated relation: {other:?}"),
+        }
     }
 
     #[test]
