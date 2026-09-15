@@ -59,9 +59,7 @@ impl KleeneSemanticKey {
     /// Returns [`KleeneSemanticKeyError::Analysis`] when `3^input_arity`
     /// overflows `usize`, or [`KleeneSemanticKeyError::InconsistentAnalysis`]
     /// when either public row field does not match the complete declared domain.
-    pub fn from_analysis(
-        analysis: &KleeneProgramAnalysis,
-    ) -> Result<Self, KleeneSemanticKeyError> {
+    pub fn from_analysis(analysis: &KleeneProgramAnalysis) -> Result<Self, KleeneSemanticKeyError> {
         let expected_rows = checked_pow3(analysis.input_arity).ok_or(
             KleeneSemanticKeyError::Analysis(KleeneAnalysisError::EnumerationOverflow {
                 input_arity: analysis.input_arity,
