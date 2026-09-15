@@ -192,20 +192,21 @@ pub fn compare_kleene_programs(
         });
     }
 
-    let instruction_count = left.len().checked_add(right.len()).ok_or(
-        KleeneComparisonError::WorkEstimateOverflow {
-            rows,
-            left_instructions: left.len(),
-            right_instructions: right.len(),
-        },
-    )?;
-    let required_instruction_evaluations = rows.checked_mul(instruction_count).ok_or(
-        KleeneComparisonError::WorkEstimateOverflow {
-            rows,
-            left_instructions: left.len(),
-            right_instructions: right.len(),
-        },
-    )?;
+    let instruction_count =
+        left.len()
+            .checked_add(right.len())
+            .ok_or(KleeneComparisonError::WorkEstimateOverflow {
+                rows,
+                left_instructions: left.len(),
+                right_instructions: right.len(),
+            })?;
+    let required_instruction_evaluations =
+        rows.checked_mul(instruction_count)
+            .ok_or(KleeneComparisonError::WorkEstimateOverflow {
+                rows,
+                left_instructions: left.len(),
+                right_instructions: right.len(),
+            })?;
     if required_instruction_evaluations > max_instruction_evaluations {
         return Err(KleeneComparisonError::WorkLimitExceeded {
             required_instruction_evaluations,
