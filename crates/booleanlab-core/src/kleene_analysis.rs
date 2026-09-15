@@ -26,10 +26,7 @@ pub enum KleeneAnalysisError {
         max_rows: usize,
     },
     /// The exact instruction-evaluation work estimate cannot be represented.
-    WorkEstimateOverflow {
-        rows: usize,
-        instructions: usize,
-    },
+    WorkEstimateOverflow { rows: usize, instructions: usize },
     /// The requested exact analysis exceeds the declared work budget.
     ///
     /// This is an explicit non-result: it does not establish tautology,
@@ -184,12 +181,12 @@ pub fn analyze_kleene_program_with_work_budget(
         });
     }
 
-    let required_instruction_evaluations = rows.checked_mul(program.len()).ok_or(
-        KleeneAnalysisError::WorkEstimateOverflow {
-            rows,
-            instructions: program.len(),
-        },
-    )?;
+    let required_instruction_evaluations =
+        rows.checked_mul(program.len())
+            .ok_or(KleeneAnalysisError::WorkEstimateOverflow {
+                rows,
+                instructions: program.len(),
+            })?;
     if required_instruction_evaluations > max_instruction_evaluations {
         return Err(KleeneAnalysisError::WorkLimitExceeded {
             required_instruction_evaluations,
@@ -260,20 +257,21 @@ pub fn compare_kleene_programs(
         });
     }
 
-    let instruction_count = left.len().checked_add(right.len()).ok_or(
-        KleeneComparisonError::WorkEstimateOverflow {
-            rows,
-            left_instructions: left.len(),
-            right_instructions: right.len(),
-        },
-    )?;
-    let required_instruction_evaluations = rows.checked_mul(instruction_count).ok_or(
-        KleeneComparisonError::WorkEstimateOverflow {
-            rows,
-            left_instructions: left.len(),
-            right_instructions: right.len(),
-        },
-    )?;
+    let instruction_count =
+        left.len()
+            .checked_add(right.len())
+            .ok_or(KleeneComparisonError::WorkEstimateOverflow {
+                rows,
+                left_instructions: left.len(),
+                right_instructions: right.len(),
+            })?;
+    let required_instruction_evaluations =
+        rows.checked_mul(instruction_count)
+            .ok_or(KleeneComparisonError::WorkEstimateOverflow {
+                rows,
+                left_instructions: left.len(),
+                right_instructions: right.len(),
+            })?;
     if required_instruction_evaluations > max_instruction_evaluations {
         return Err(KleeneComparisonError::WorkLimitExceeded {
             required_instruction_evaluations,
