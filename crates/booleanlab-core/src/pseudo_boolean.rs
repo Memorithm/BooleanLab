@@ -30,7 +30,6 @@ pub struct PseudoBooleanConstraint {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PseudoBooleanError {
     TooManyTerms { terms: usize, max: usize },
-    ThresholdExceedsArity { threshold: u64, arity: usize },
     AssignmentLengthMismatch { expected: usize, actual: usize },
     ArityMismatch { left: usize, right: usize },
     ZeroScale,
@@ -48,10 +47,6 @@ impl fmt::Display for PseudoBooleanError {
                     "pseudo-Boolean constraint has {terms} terms; maximum is {max}"
                 )
             }
-            Self::ThresholdExceedsArity { threshold, arity } => write!(
-                f,
-                "cardinality threshold {threshold} exceeds declared arity {arity}"
-            ),
             Self::AssignmentLengthMismatch { expected, actual } => write!(
                 f,
                 "pseudo-Boolean assignment length mismatch: expected {expected}, got {actual}"
@@ -112,10 +107,12 @@ impl PseudoBooleanConstraint {
 
     /// Construct an unweighted cardinality constraint with unit weights.
     ///
+    /// Thresholds larger than `arity` remain valid exact predicates: `AtMost`
+    /// is then a tautology while `AtLeast` and `Exactly` are contradictions.
+    ///
     /// # Errors
     ///
-    /// Returns an error when `arity` exceeds the bounded exact-oracle limit or
-    /// when `threshold` exceeds the cardinality arity.
+    /// Returns an error when `arity` exceeds the bounded exact-oracle limit.
     pub fn cardinality(
         arity: usize,
         threshold: u64,
@@ -126,9 +123,6 @@ impl PseudoBooleanConstraint {
                 terms: arity,
                 max: MAX_PSEUDO_BOOLEAN_TERMS,
             });
-        }
-        if threshold > u64::try_from(arity).unwrap_or(u64::MAX) {
-            return Err(PseudoBooleanError::ThresholdExceedsArity { threshold, arity });
         }
         Self::new(vec![1; arity], threshold, relation)
     }
@@ -299,6 +293,19 @@ mod tests {
     }
 
     #[test]
+    fn cardinality_threshold_above_arity_keeps_exact_boundary_semantics() {
+        let at_most =
+            PseudoBooleanConstraint::cardinality(2, 3, PseudoBooleanRelation::AtMost).unwrap();
+        let at_least =
+            PseudoBooleanConstraint::cardinality(2, 3, PseudoBooleanRelation::AtLeast).unwrap();
+        let exactly =
+            PseudoBooleanConstraint::cardinality(2, 3, PseudoBooleanRelation::Exactly).unwrap();
+        assert!(at_most.evaluate(&[true, true]).unwrap());
+        assert!(!at_least.evaluate(&[true, true]).unwrap());
+        assert!(!exactly.evaluate(&[true, true]).unwrap());
+    }
+
+    #[test]
     fn selected_weight_sum_does_not_wrap_u64() {
         let constraint = PseudoBooleanConstraint::new(
             vec![u64::MAX, u64::MAX],
@@ -365,10 +372,14 @@ mod tests {
             })
         );
         assert_eq!(
-            PseudoBooleanConstraint::cardinality(2, 3, PseudoBooleanRelation::AtLeast),
-            Err(PseudoBooleanError::ThresholdExceedsArity {
-                threshold: 3,
-                arity: 2,
+            PseudoBooleanConstraint::cardinality(
+                MAX_PSEUDO_BOOLEAN_TERMS + 1,
+                0,
+                PseudoBooleanRelation::AtLeast,
+            ),
+            Err(PseudoBooleanError::TooManyTerms {
+                terms: MAX_PSEUDO_BOOLEAN_TERMS + 1,
+                max: MAX_PSEUDO_BOOLEAN_TERMS,
             })
         );
     }
