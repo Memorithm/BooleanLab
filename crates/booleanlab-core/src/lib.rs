@@ -50,8 +50,9 @@ pub use kleene::{
     KleeneValue, evaluate_kleene_program, exhaustive_binary_truth_table,
 };
 pub use kleene_analysis::{
-    KleeneAnalysisError, KleeneComparisonError, KleeneProgramAnalysis, KleeneProgramComparison,
-    KleeneProgramMismatch, analyze_kleene_program, compare_kleene_programs,
+    DEFAULT_KLEENE_ANALYSIS_MAX_INSTRUCTION_EVALUATIONS, KleeneAnalysisError,
+    KleeneComparisonError, KleeneProgramAnalysis, KleeneProgramComparison, KleeneProgramMismatch,
+    analyze_kleene_program, analyze_kleene_program_with_work_budget, compare_kleene_programs,
 };
 pub use kleene_conjunction::{
     CompiledKleeneConjunction, KleeneConjunctionComparison, KleeneConjunctionComparisonError,

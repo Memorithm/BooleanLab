@@ -8,6 +8,13 @@ use crate::kleene::{
     KLEENE_VALUES, KleeneEvalError, KleeneInstruction, KleeneValue, evaluate_kleene_program,
 };
 
+/// Default worst-case instruction-evaluation budget used by
+/// [`analyze_kleene_program`].
+///
+/// Callers that need a different explicit bound should use
+/// [`analyze_kleene_program_with_work_budget`].
+pub const DEFAULT_KLEENE_ANALYSIS_MAX_INSTRUCTION_EVALUATIONS: usize = 1_000_000;
+
 /// Failure while exhaustively analyzing a Strong-Kleene program.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KleeneAnalysisError {
@@ -17,6 +24,16 @@ pub enum KleeneAnalysisError {
     EnumerationLimitExceeded {
         required_rows: usize,
         max_rows: usize,
+    },
+    /// The exact instruction-evaluation work estimate cannot be represented.
+    WorkEstimateOverflow { rows: usize, instructions: usize },
+    /// The requested exact analysis exceeds the declared work budget.
+    ///
+    /// This is an explicit non-result: it does not establish tautology,
+    /// contradiction, redundancy, or any other semantic property.
+    WorkLimitExceeded {
+        required_instruction_evaluations: usize,
+        max_instruction_evaluations: usize,
     },
     /// The underlying postfix program is structurally invalid.
     Evaluation(KleeneEvalError),
@@ -102,23 +119,59 @@ pub struct KleeneProgramAnalysis {
     pub redundant_inputs: Vec<usize>,
 }
 
-/// Exhaustively characterize a Strong-Kleene postfix program under an explicit
-/// row budget.
+/// Exhaustively characterize a Strong-Kleene postfix program under explicit
+/// row and default work budgets.
 ///
 /// The caller supplies `max_rows`; the function never silently expands beyond
-/// that bound. This keeps BL-BE1 enumeration explicit and prevents an
-/// accidental `3^n` explosion from being mistaken for completed evidence.
+/// that bound. It also caps worst-case postfix instruction visits at
+/// [`DEFAULT_KLEENE_ANALYSIS_MAX_INSTRUCTION_EVALUATIONS`]. Call
+/// [`analyze_kleene_program_with_work_budget`] when a different explicit work
+/// budget is required.
 ///
 /// # Errors
 ///
 /// Returns [`KleeneAnalysisError::EnumerationOverflow`] when `3^input_arity`
 /// overflows `usize`, [`KleeneAnalysisError::EnumerationLimitExceeded`] when
-/// the exact domain is larger than `max_rows`, or
-/// [`KleeneAnalysisError::Evaluation`] when the postfix program is malformed.
+/// the exact domain is larger than `max_rows`, a work-budget error when the
+/// exact worst-case instruction count cannot be represented or exceeds the
+/// default limit, or [`KleeneAnalysisError::Evaluation`] when the postfix
+/// program is malformed.
 pub fn analyze_kleene_program(
     program: &[KleeneInstruction],
     input_arity: usize,
     max_rows: usize,
+) -> Result<KleeneProgramAnalysis, KleeneAnalysisError> {
+    analyze_kleene_program_with_work_budget(
+        program,
+        input_arity,
+        max_rows,
+        DEFAULT_KLEENE_ANALYSIS_MAX_INSTRUCTION_EVALUATIONS,
+    )
+}
+
+/// Exhaustively characterize a Strong-Kleene postfix program under explicit
+/// row and instruction-evaluation budgets.
+///
+/// The exact worst-case work estimate is `3^input_arity * program.len()` and is
+/// checked before allocating the output or input vectors and before evaluating
+/// the program. An empty program is rejected as structurally invalid before
+/// allocation. Exhausting the work budget is an explicit non-result, never
+/// evidence for tautology, contradiction, redundancy, or any other property.
+///
+/// # Errors
+///
+/// Returns [`KleeneAnalysisError::EnumerationOverflow`] when `3^input_arity`
+/// overflows `usize`, [`KleeneAnalysisError::EnumerationLimitExceeded`] when
+/// the exact domain is larger than `max_rows`,
+/// [`KleeneAnalysisError::WorkEstimateOverflow`] when the exact work estimate
+/// cannot be represented, [`KleeneAnalysisError::WorkLimitExceeded`] when the
+/// declared work budget is insufficient, or [`KleeneAnalysisError::Evaluation`]
+/// when the postfix program is malformed.
+pub fn analyze_kleene_program_with_work_budget(
+    program: &[KleeneInstruction],
+    input_arity: usize,
+    max_rows: usize,
+    max_instruction_evaluations: usize,
 ) -> Result<KleeneProgramAnalysis, KleeneAnalysisError> {
     let rows = checked_pow3(input_arity)
         .ok_or(KleeneAnalysisError::EnumerationOverflow { input_arity })?;
@@ -126,6 +179,24 @@ pub fn analyze_kleene_program(
         return Err(KleeneAnalysisError::EnumerationLimitExceeded {
             required_rows: rows,
             max_rows,
+        });
+    }
+    if program.is_empty() {
+        return Err(KleeneAnalysisError::Evaluation(
+            KleeneEvalError::InvalidFinalStackDepth { depth: 0 },
+        ));
+    }
+
+    let required_instruction_evaluations =
+        rows.checked_mul(program.len())
+            .ok_or(KleeneAnalysisError::WorkEstimateOverflow {
+                rows,
+                instructions: program.len(),
+            })?;
+    if required_instruction_evaluations > max_instruction_evaluations {
+        return Err(KleeneAnalysisError::WorkLimitExceeded {
+            required_instruction_evaluations,
+            max_instruction_evaluations,
         });
     }
 
@@ -353,6 +424,39 @@ mod tests {
         .expect("redundant program is valid");
 
         assert_eq!(direct.outputs, with_redundancy.outputs);
+    }
+
+    #[test]
+    fn analysis_work_budget_is_an_explicit_non_result() {
+        let program = [KleeneInstruction::Input(0), KleeneInstruction::Not];
+        assert_eq!(
+            analyze_kleene_program_with_work_budget(&program, 1, 3, 5),
+            Err(KleeneAnalysisError::WorkLimitExceeded {
+                required_instruction_evaluations: 6,
+                max_instruction_evaluations: 5,
+            })
+        );
+    }
+
+    #[test]
+    fn analysis_work_budget_is_checked_before_malformed_program_evaluation() {
+        assert_eq!(
+            analyze_kleene_program_with_work_budget(&[KleeneInstruction::And], 1, 3, 2),
+            Err(KleeneAnalysisError::WorkLimitExceeded {
+                required_instruction_evaluations: 3,
+                max_instruction_evaluations: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn empty_program_is_rejected_before_output_allocation() {
+        assert_eq!(
+            analyze_kleene_program_with_work_budget(&[], 40, usize::MAX, usize::MAX),
+            Err(KleeneAnalysisError::Evaluation(
+                KleeneEvalError::InvalidFinalStackDepth { depth: 0 }
+            ))
+        );
     }
 
     #[test]
