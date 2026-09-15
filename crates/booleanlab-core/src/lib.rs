@@ -7,6 +7,7 @@ pub mod bme;
 pub mod bme_cost;
 pub mod bme_equation;
 pub mod bme_packed;
+pub mod bme_packed_work;
 pub mod circuit;
 pub mod hybrid;
 pub mod kleene;
@@ -42,6 +43,9 @@ pub use bme_packed::{
     packed_thresholded_xnor_cell, packed_thresholded_xnor_product_rows_columns,
     packed_xnor_popcount_cell, packed_xnor_popcount_product_rows_columns, packed_xor_and_cell,
     packed_xor_and_product_rows_columns,
+};
+pub use bme_packed_work::{
+    PackedBmeWorkError, PackedBmeWorkEstimate, packed_bme_work_estimate,
 };
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
