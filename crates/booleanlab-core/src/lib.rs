@@ -19,6 +19,7 @@ pub mod sparsity_ranking;
 pub mod sparsity_relational;
 pub mod sparsity_static;
 pub mod sparsity_structured;
+pub mod sparsity_synthesis;
 pub mod state;
 
 pub use attention::{
@@ -65,4 +66,8 @@ pub use sparsity_static::{
     StaticMaskError, static_mask_from_index_bits, static_mask_from_truth_table,
 };
 pub use sparsity_structured::{StructuredBooleanMaskError, structured_group_mask_from_truth_table};
+pub use sparsity_synthesis::{
+    ConjunctiveSparsityRule, MAX_SYNTHESIS_PREDICATES, RuleSynthesisError, SparsityLiteral,
+    SynthesisRow, synthesize_exact_conjunction,
+};
 pub use state::{BitState, StateError};
