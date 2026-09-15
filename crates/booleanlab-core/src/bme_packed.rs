@@ -7,9 +7,15 @@
 
 use core::fmt;
 
+/// Maximum number of result cells materialized by one packed matrix product.
+pub const MAX_PACKED_MATRIX_OUTPUT_CELLS: usize = 1_000_000;
+/// Maximum upper-bound count of packed-word evaluations in one matrix product.
+pub const MAX_PACKED_MATRIX_WORD_EVALUATIONS: usize = 64_000_000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PackedBmeError {
     ZeroWidth,
+    EmptyMatrix,
     WordCountMismatch {
         required: usize,
         left: usize,
@@ -19,12 +25,24 @@ pub enum PackedBmeError {
         threshold: usize,
         width: usize,
     },
+    ResourceSizeOverflow,
+    OutputCellLimitExceeded {
+        requested: usize,
+        max: usize,
+    },
+    WorkLimitExceeded {
+        requested_word_evaluations: usize,
+        max: usize,
+    },
 }
 
 impl fmt::Display for PackedBmeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ZeroWidth => formatter.write_str("packed BME width must be non-zero"),
+            Self::EmptyMatrix => {
+                formatter.write_str("packed BME row and column collections must be non-empty")
+            }
             Self::WordCountMismatch {
                 required,
                 left,
@@ -36,6 +54,20 @@ impl fmt::Display for PackedBmeError {
             Self::ThresholdOutOfRange { threshold, width } => write!(
                 formatter,
                 "packed BME threshold {threshold} exceeds declared width {width}"
+            ),
+            Self::ResourceSizeOverflow => {
+                formatter.write_str("packed BME resource-size arithmetic overflowed")
+            }
+            Self::OutputCellLimitExceeded { requested, max } => write!(
+                formatter,
+                "packed BME requested {requested} output cells, exceeding the limit {max}"
+            ),
+            Self::WorkLimitExceeded {
+                requested_word_evaluations,
+                max,
+            } => write!(
+                formatter,
+                "packed BME requested an upper bound of {requested_word_evaluations} word evaluations, exceeding the limit {max}"
             ),
         }
     }
@@ -77,6 +109,50 @@ fn valid_word_mask(index: usize, words: usize, width: usize) -> u64 {
     } else {
         u64::MAX
     }
+}
+
+fn packed_product_with<T, F>(
+    left_rows: &[Vec<u64>],
+    right_columns: &[Vec<u64>],
+    inner_width: usize,
+    mut cell: F,
+) -> Result<Vec<Vec<T>>, PackedBmeError>
+where
+    F: FnMut(&[u64], &[u64], usize) -> Result<T, PackedBmeError>,
+{
+    if left_rows.is_empty() || right_columns.is_empty() {
+        return Err(PackedBmeError::EmptyMatrix);
+    }
+    let words = required_words(inner_width)?;
+    let output_cells = left_rows
+        .len()
+        .checked_mul(right_columns.len())
+        .ok_or(PackedBmeError::ResourceSizeOverflow)?;
+    if output_cells > MAX_PACKED_MATRIX_OUTPUT_CELLS {
+        return Err(PackedBmeError::OutputCellLimitExceeded {
+            requested: output_cells,
+            max: MAX_PACKED_MATRIX_OUTPUT_CELLS,
+        });
+    }
+    let word_evaluations = output_cells
+        .checked_mul(words)
+        .ok_or(PackedBmeError::ResourceSizeOverflow)?;
+    if word_evaluations > MAX_PACKED_MATRIX_WORD_EVALUATIONS {
+        return Err(PackedBmeError::WorkLimitExceeded {
+            requested_word_evaluations: word_evaluations,
+            max: MAX_PACKED_MATRIX_WORD_EVALUATIONS,
+        });
+    }
+
+    let mut output = Vec::with_capacity(left_rows.len());
+    for left_row in left_rows {
+        let mut output_row = Vec::with_capacity(right_columns.len());
+        for right_column in right_columns {
+            output_row.push(cell(left_row, right_column, inner_width)?);
+        }
+        output.push(output_row);
+    }
+    Ok(output)
 }
 
 /// Packed equivalent of OR over pairwise AND.
@@ -163,10 +239,96 @@ pub fn packed_thresholded_xnor_cell(
     Ok(packed_xnor_popcount_cell(left, right, width)? >= threshold)
 }
 
+/// Packed OR-AND matrix product over prepacked left rows and right columns.
+///
+/// `left_rows` must contain one packed bit-vector for each logical left matrix
+/// row. `right_columns` must contain one packed bit-vector for each logical
+/// right matrix column. Every vector uses the same declared `inner_width`.
+/// This explicit row/column contract avoids repacking or transposing inside the
+/// correctness baseline.
+///
+/// # Errors
+///
+/// Fails when either collection is empty, `inner_width` is zero, any packed
+/// row/column has the wrong word count, or explicit output/work limits would be
+/// exceeded before allocation or evaluation begins.
+pub fn packed_or_and_product_rows_columns(
+    left_rows: &[Vec<u64>],
+    right_columns: &[Vec<u64>],
+    inner_width: usize,
+) -> Result<Vec<Vec<bool>>, PackedBmeError> {
+    packed_product_with(left_rows, right_columns, inner_width, packed_or_and_cell)
+}
+
+/// Packed GF(2) XOR-AND matrix product over prepacked left rows and right columns.
+///
+/// # Errors
+///
+/// Fails when either collection is empty, `inner_width` is zero, any packed
+/// row/column has the wrong word count, or explicit output/work limits would be
+/// exceeded.
+pub fn packed_xor_and_product_rows_columns(
+    left_rows: &[Vec<u64>],
+    right_columns: &[Vec<u64>],
+    inner_width: usize,
+) -> Result<Vec<Vec<bool>>, PackedBmeError> {
+    packed_product_with(left_rows, right_columns, inner_width, packed_xor_and_cell)
+}
+
+/// Packed XNOR-popcount score matrix over prepacked left rows and right columns.
+///
+/// # Errors
+///
+/// Fails when either collection is empty, `inner_width` is zero, any packed
+/// row/column has the wrong word count, or explicit output/work limits would be
+/// exceeded.
+pub fn packed_xnor_popcount_product_rows_columns(
+    left_rows: &[Vec<u64>],
+    right_columns: &[Vec<u64>],
+    inner_width: usize,
+) -> Result<Vec<Vec<usize>>, PackedBmeError> {
+    packed_product_with(
+        left_rows,
+        right_columns,
+        inner_width,
+        packed_xnor_popcount_cell,
+    )
+}
+
+/// Packed thresholded XNOR-popcount matrix product over prepacked rows/columns.
+///
+/// # Errors
+///
+/// Fails when either collection is empty, `inner_width` is zero, any packed
+/// row/column has the wrong word count, `threshold` exceeds `inner_width`, or
+/// explicit output/work limits would be exceeded.
+pub fn packed_thresholded_xnor_product_rows_columns(
+    left_rows: &[Vec<u64>],
+    right_columns: &[Vec<u64>],
+    inner_width: usize,
+    threshold: usize,
+) -> Result<Vec<Vec<bool>>, PackedBmeError> {
+    if threshold > inner_width {
+        return Err(PackedBmeError::ThresholdOutOfRange {
+            threshold,
+            width: inner_width,
+        });
+    }
+    packed_product_with(
+        left_rows,
+        right_columns,
+        inner_width,
+        |left, right, width| packed_thresholded_xnor_cell(left, right, width, threshold),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bme::{or_and_cell, thresholded_xnor_cell, xnor_popcount_cell, xor_and_cell};
+    use crate::bme::{
+        or_and_cell, or_and_product, thresholded_xnor_cell, thresholded_xnor_product,
+        xnor_popcount_cell, xnor_popcount_product, xor_and_cell, xor_and_product,
+    };
 
     fn pack(bits: &[bool]) -> Vec<u64> {
         let mut words = vec![0_u64; bits.len().div_ceil(u64::BITS as usize)];
@@ -186,6 +348,34 @@ mod tests {
             .map(|index| index % 5 <= 1 || index % 11 == 7)
             .collect();
         (left, right)
+    }
+
+    fn matrix_fixture(inner: usize) -> (Vec<Vec<bool>>, Vec<Vec<bool>>) {
+        let left = (0..3)
+            .map(|row| {
+                (0..inner)
+                    .map(|index| (index + row * 3) % 5 <= 1 || (index + row) % 11 == 7)
+                    .collect()
+            })
+            .collect();
+        let right = (0..inner)
+            .map(|row| {
+                (0..4)
+                    .map(|col| (row + col * 5) % 7 <= 2 && (row + col) % 3 != 1)
+                    .collect()
+            })
+            .collect();
+        (left, right)
+    }
+
+    fn pack_right_columns(right: &[Vec<bool>]) -> Vec<Vec<u64>> {
+        let cols = right[0].len();
+        (0..cols)
+            .map(|col| {
+                let bits: Vec<_> = right.iter().map(|row| row[col]).collect();
+                pack(&bits)
+            })
+            .collect()
     }
 
     #[test]
@@ -216,6 +406,46 @@ mod tests {
     }
 
     #[test]
+    fn packed_matrix_products_match_scalar_oracles_across_word_boundaries() {
+        for inner in [1, 63, 64, 65, 127, 128, 129] {
+            let (left, right) = matrix_fixture(inner);
+            let packed_left: Vec<_> = left.iter().map(|row| pack(row)).collect();
+            let packed_right_columns = pack_right_columns(&right);
+            let threshold = inner / 2;
+
+            assert_eq!(
+                packed_or_and_product_rows_columns(&packed_left, &packed_right_columns, inner)
+                    .unwrap(),
+                or_and_product(&left, &right).unwrap()
+            );
+            assert_eq!(
+                packed_xor_and_product_rows_columns(&packed_left, &packed_right_columns, inner)
+                    .unwrap(),
+                xor_and_product(&left, &right).unwrap()
+            );
+            assert_eq!(
+                packed_xnor_popcount_product_rows_columns(
+                    &packed_left,
+                    &packed_right_columns,
+                    inner,
+                )
+                .unwrap(),
+                xnor_popcount_product(&left, &right).unwrap()
+            );
+            assert_eq!(
+                packed_thresholded_xnor_product_rows_columns(
+                    &packed_left,
+                    &packed_right_columns,
+                    inner,
+                    threshold,
+                )
+                .unwrap(),
+                thresholded_xnor_product(&left, &right, threshold).unwrap()
+            );
+        }
+    }
+
+    #[test]
     fn unused_tail_bits_never_change_declared_semantics() {
         let width = 65;
         let (left, right) = fixture(width);
@@ -229,6 +459,31 @@ mod tests {
         assert_eq!(
             packed_xnor_popcount_cell(&packed_left, &packed_right, width),
             Ok(expected)
+        );
+    }
+
+    #[test]
+    fn matrix_product_limits_fail_before_cartesian_allocation() {
+        let left = vec![vec![0_u64]; 1_001];
+        let right = vec![vec![0_u64]; 1_000];
+        assert_eq!(
+            packed_or_and_product_rows_columns(&left, &right, 1),
+            Err(PackedBmeError::OutputCellLimitExceeded {
+                requested: 1_001_000,
+                max: MAX_PACKED_MATRIX_OUTPUT_CELLS,
+            })
+        );
+
+        let excessive_words = MAX_PACKED_MATRIX_WORD_EVALUATIONS + 1;
+        let excessive_width = excessive_words
+            .checked_mul(u64::BITS as usize)
+            .expect("test width arithmetic must fit usize");
+        assert_eq!(
+            packed_or_and_product_rows_columns(&[vec![0]], &[vec![0]], excessive_width),
+            Err(PackedBmeError::WorkLimitExceeded {
+                requested_word_evaluations: excessive_words,
+                max: MAX_PACKED_MATRIX_WORD_EVALUATIONS,
+            })
         );
     }
 
@@ -248,6 +503,29 @@ mod tests {
         );
         assert_eq!(
             packed_thresholded_xnor_cell(&[0], &[0], 64, 65),
+            Err(PackedBmeError::ThresholdOutOfRange {
+                threshold: 65,
+                width: 64,
+            })
+        );
+    }
+
+    #[test]
+    fn malformed_packed_matrix_inputs_fail_closed() {
+        assert_eq!(
+            packed_or_and_product_rows_columns(&[], &[vec![0]], 1),
+            Err(PackedBmeError::EmptyMatrix)
+        );
+        assert_eq!(
+            packed_xor_and_product_rows_columns(&[vec![0]], &[vec![0]], 65),
+            Err(PackedBmeError::WordCountMismatch {
+                required: 2,
+                left: 1,
+                right: 1,
+            })
+        );
+        assert_eq!(
+            packed_thresholded_xnor_product_rows_columns(&[vec![0]], &[vec![0]], 64, 65),
             Err(PackedBmeError::ThresholdOutOfRange {
                 threshold: 65,
                 width: 64,
