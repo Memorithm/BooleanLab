@@ -88,7 +88,7 @@ pub fn packed_bme_work_estimate(
         .ok_or(PackedBmeWorkError::ArithmeticOverflow)?;
     let input_payload_bytes = left_input_words
         .checked_add(right_input_words)
-        .and_then(|words| words.checked_mul(u128::from(size_of::<u64>() as u64)))
+        .and_then(|words| words.checked_mul(u128::from(u64::BITS / 8)))
         .ok_or(PackedBmeWorkError::ArithmeticOverflow)?;
 
     Ok(PackedBmeWorkEstimate {
