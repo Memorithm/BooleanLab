@@ -38,16 +38,26 @@ pub struct VectorialBooleanMetrics {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VectorialMetricsError {
-    InputBitsOutOfRange { input_bits: u8 },
-    OutputBitsOutOfRange { output_bits: u8 },
-    TableLengthMismatch { expected: usize, actual: usize },
+    InputBitsOutOfRange {
+        input_bits: u8,
+    },
+    OutputBitsOutOfRange {
+        output_bits: u8,
+    },
+    TableLengthMismatch {
+        expected: usize,
+        actual: usize,
+    },
     OutputOutOfRange {
         index: usize,
         value: u16,
         output_bits: u8,
     },
     ArithmeticOverflow,
-    WorkLimitExceeded { required: u128, limit: u128 },
+    WorkLimitExceeded {
+        required: u128,
+        limit: u128,
+    },
     AllocationFailed,
 }
 
@@ -74,16 +84,12 @@ impl fmt::Display for VectorialMetricsError {
                 f,
                 "vectorial truth table output {value} at index {index} exceeds declared {output_bits}-bit range"
             ),
-            Self::ArithmeticOverflow => {
-                f.write_str("vectorial metric work accounting overflowed")
-            }
+            Self::ArithmeticOverflow => f.write_str("vectorial metric work accounting overflowed"),
             Self::WorkLimitExceeded { required, limit } => write!(
                 f,
                 "vectorial metric exact work {required} exceeds declared limit {limit}"
             ),
-            Self::AllocationFailed => {
-                f.write_str("vectorial metric scratch allocation failed")
-            }
+            Self::AllocationFailed => f.write_str("vectorial metric scratch allocation failed"),
         }
     }
 }
@@ -132,10 +138,7 @@ fn exact_work_bound(
     // integer writes per butterfly, giving `rows * input_bits` integer outputs
     // per component, followed by a deterministic maximum scan.
     let component_build = checked_mul(nonzero_outputs, rows)?;
-    let walsh_outputs = checked_mul(
-        checked_mul(nonzero_outputs, rows)?,
-        u128::from(input_bits),
-    )?;
+    let walsh_outputs = checked_mul(checked_mul(nonzero_outputs, rows)?, u128::from(input_bits))?;
     let spectral_scan = checked_mul(nonzero_outputs, rows)?;
 
     checked_add(
@@ -165,8 +168,8 @@ fn validate_table(
         });
     }
     let output_values = checked_pow2(output_bits)?;
-    let output_limit = u32::try_from(output_values)
-        .map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
+    let output_limit =
+        u32::try_from(output_values).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
     for (index, &value) in table.iter().enumerate() {
         if u32::from(value) >= output_limit {
             return Err(VectorialMetricsError::OutputOutOfRange {
@@ -268,8 +271,8 @@ fn spectral_metrics(
         coefficient: 0,
     };
     for output_mask in 1..output_values {
-        let output_mask_u16 = u16::try_from(output_mask)
-            .map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
+        let output_mask_u16 =
+            u16::try_from(output_mask).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
         for (x, slot) in component.iter_mut().enumerate() {
             let parity = (table[x] & output_mask_u16).count_ones() & 1;
             *slot = if parity == 0 { 1 } else { -1 };
@@ -377,8 +380,7 @@ mod tests {
     #[test]
     fn present_sbox_matches_reference_differential_and_spectral_metrics() {
         let present: [u16; 16] = [
-            0xC, 0x5, 0x6, 0xB, 0x9, 0x0, 0xA, 0xD, 0x3, 0xE, 0xF, 0x8, 0x4, 0x7,
-            0x1, 0x2,
+            0xC, 0x5, 0x6, 0xB, 0x9, 0x0, 0xA, 0xD, 0x3, 0xE, 0xF, 0x8, 0x4, 0x7, 0x1, 0x2,
         ];
         let metrics = vectorial_boolean_metrics(&present, 4, 4).unwrap();
         assert_eq!(metrics.differential_uniformity, 4);
