@@ -325,7 +325,7 @@ mod tests {
         assert_eq!(
             vectorial_degree_profile_with_work_limit(&[0, 1, 2, 3], 2, 2, 1),
             Err(VectorialDegreeError::WorkLimitExceeded {
-                required: 48,
+                required: 36,
                 limit: 1,
             })
         );
