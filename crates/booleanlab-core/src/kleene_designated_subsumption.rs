@@ -159,9 +159,15 @@ fn unordered_pair_count(node_count: usize) -> Result<usize, KleeneDesignatedSubs
         return Ok(0);
     }
 
-    node_count
-        .checked_mul(node_count - 1)
-        .and_then(|product| product.checked_div(2))
+    let previous = node_count - 1;
+    let (halved, other) = if node_count.is_multiple_of(2) {
+        (node_count / 2, previous)
+    } else {
+        (node_count, previous / 2)
+    };
+
+    halved
+        .checked_mul(other)
         .ok_or(KleeneDesignatedSubsumptionError::PairCountOverflow { node_count })
 }
 
@@ -258,15 +264,21 @@ mod tests {
                 &[
                     malformed.clone(),
                     malformed,
-                    key(&[KleeneInstruction::Input(0)], 1)
+                    key(&[KleeneInstruction::Input(0)], 1),
                 ],
-                2
+                2,
             ),
             Err(KleeneDesignatedSubsumptionError::PairLimitExceeded {
                 required_pairs: 3,
                 max_pairs: 2,
             })
         );
+    }
+
+    #[test]
+    fn pair_count_does_not_overflow_before_division() {
+        let node_count = 92_682usize;
+        assert_eq!(unordered_pair_count(node_count), Ok(4_294_930_221usize));
     }
 
     #[test]
