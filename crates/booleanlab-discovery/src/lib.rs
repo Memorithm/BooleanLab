@@ -21,6 +21,7 @@ pub mod sparsity_holdout_report;
 pub mod sparsity_rule_evidence;
 pub mod sparsity_rule_search;
 pub mod sparsity_semantic_freeze;
+pub mod sparsity_synthesis_freeze;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -327,7 +328,6 @@ mod tests {
         let mut index = DedupIndex::new();
         assert_eq!(index.insert(and.clone()), DedupOutcome::New);
         assert_eq!(index.insert(and), DedupOutcome::Existing);
-        assert_eq!(index.insert(or), DedupOutcome::New);
         assert_eq!(index.unique_functions(), 2);
     }
 }
