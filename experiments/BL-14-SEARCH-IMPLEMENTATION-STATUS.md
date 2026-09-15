@@ -11,7 +11,8 @@ This status concerns the Boolean sparsity controller inside existing numerical m
 - SEARCH-to-HOLDOUT binding preserves exact rule semantics, predicate schema and resolved predicate parameters.
 - [`bl14_search_comparison`](results/BL-14.5-SEARCH-COMPARISON.md) adds a matched linear first-exact baseline and checks the search outputs against full fitting. It includes positive, negative, ambiguous and inconsistent-label controls.
 - Resource-aware Pareto screening has an explicit provenance guard: reference-model accounting and hardware measurements cannot be pooled, and candidates must share one frozen resource protocol and provenance identifier before their resource objectives are compared.
-- Resource-aware Pareto **screening is SEARCH-only**. Frozen HOLDOUT candidates are rejected explicitly so final evidence cannot feed back into candidate selection; HOLDOUT reporting must remain a separate post-freeze surface.
+- Resource-aware Pareto **screening is SEARCH-only**. Frozen HOLDOUT candidates are rejected explicitly so final evidence cannot feed back into candidate selection.
+- Post-freeze HOLDOUT reporting now has a separate executable surface. It revalidates the frozen candidate identity, matched domain size, exact Boolean truth table, predicate schema and resolved predicate parameters, requires one resource-evidence kind/protocol/provenance contract, and emits observations in the immutable SEARCH-selected order. HOLDOUT objectives are not used to rank, Pareto-screen, retune or reorder candidates.
 
 ## Still required for sparsity-benefit claims
 
