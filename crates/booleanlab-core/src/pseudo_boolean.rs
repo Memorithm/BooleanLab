@@ -86,6 +86,12 @@ impl fmt::Display for PseudoBooleanError {
 impl std::error::Error for PseudoBooleanError {}
 
 impl PseudoBooleanConstraint {
+    /// Build a weighted pseudo-Boolean constraint.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PseudoBooleanError::TooManyTerms`] when the declared arity
+    /// exceeds the bounded exact-oracle limit.
     pub fn new(
         weights: Vec<u64>,
         threshold: u64,
@@ -105,6 +111,11 @@ impl PseudoBooleanConstraint {
     }
 
     /// Construct an unweighted cardinality constraint with unit weights.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `arity` exceeds the bounded exact-oracle limit or
+    /// when `threshold` exceeds the cardinality arity.
     pub fn cardinality(
         arity: usize,
         threshold: u64,
@@ -122,24 +133,33 @@ impl PseudoBooleanConstraint {
         Self::new(vec![1; arity], threshold, relation)
     }
 
+    #[must_use]
     pub fn weights(&self) -> &[u64] {
         &self.weights
     }
 
+    #[must_use]
     pub const fn threshold(&self) -> u64 {
         self.threshold
     }
 
+    #[must_use]
     pub const fn relation(&self) -> PseudoBooleanRelation {
         self.relation
     }
 
+    #[must_use]
     pub fn arity(&self) -> usize {
         self.weights.len()
     }
 
     /// Evaluate one assignment with a `u128` accumulator so selected `u64`
     /// weights cannot wrap the mathematical sum.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the assignment arity differs from the constraint
+    /// or if exact work accounting cannot be represented.
     pub fn evaluate(&self, assignment: &[bool]) -> Result<bool, PseudoBooleanError> {
         if assignment.len() != self.weights.len() {
             return Err(PseudoBooleanError::AssignmentLengthMismatch {
@@ -162,6 +182,11 @@ impl PseudoBooleanConstraint {
     ///
     /// For representable coefficients this preserves the Boolean truth table
     /// exactly. Overflow is an explicit non-result rather than saturation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero scale or when any scaled coefficient or the
+    /// threshold is not representable as `u64`.
     pub fn scaled(&self, factor: u64) -> Result<Self, PseudoBooleanError> {
         if factor == 0 {
             return Err(PseudoBooleanError::ZeroScale);
@@ -202,8 +227,12 @@ impl PseudoBooleanConstraint {
 }
 
 /// Exhaustively compare two constraints over all assignments of their common
-/// arity, failing closed before enumeration if the declared work bound is too
-/// small.
+/// arity using the default assignment budget.
+///
+/// # Errors
+///
+/// Returns an error for mismatched arity, arithmetic/work-accounting overflow,
+/// or when the default work bound is insufficient for the exhaustive domain.
 pub fn pseudo_boolean_equivalent(
     left: &PseudoBooleanConstraint,
     right: &PseudoBooleanConstraint,
@@ -211,6 +240,14 @@ pub fn pseudo_boolean_equivalent(
     pseudo_boolean_equivalent_with_work_limit(left, right, DEFAULT_PSEUDO_BOOLEAN_MAX_ASSIGNMENTS)
 }
 
+/// Exhaustively compare two constraints under an explicit assignment budget.
+///
+/// The complete work bound is checked before any assignment is evaluated.
+///
+/// # Errors
+///
+/// Returns an error for mismatched arity, arithmetic/work-accounting overflow,
+/// or when the requested exhaustive domain exceeds `max_assignments`.
 pub fn pseudo_boolean_equivalent_with_work_limit(
     left: &PseudoBooleanConstraint,
     right: &PseudoBooleanConstraint,
