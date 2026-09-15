@@ -128,9 +128,11 @@ fn exact_work_bound(
         .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
 
     // Differential pass: one exact difference evaluation for every x and
-    // non-zero input difference, then one deterministic scan of each output
-    // histogram to choose the canonical first maximum witness.
+    // non-zero input difference. Each difference also resets the complete
+    // output histogram before filling it, then scans it deterministically to
+    // choose the canonical first maximum witness.
     let differential_evaluations = checked_mul(nonzero_inputs, rows)?;
+    let differential_histogram_resets = checked_mul(nonzero_inputs, output_values)?;
     let differential_histogram_scans = checked_mul(nonzero_inputs, output_values)?;
 
     // Spectral pass: build one +/-1 component vector for every non-zero output
@@ -142,7 +144,10 @@ fn exact_work_bound(
     let spectral_scan = checked_mul(nonzero_outputs, rows)?;
 
     checked_add(
-        checked_add(differential_evaluations, differential_histogram_scans)?,
+        checked_add(
+            checked_add(differential_evaluations, differential_histogram_resets)?,
+            differential_histogram_scans,
+        )?,
         checked_add(checked_add(component_build, walsh_outputs)?, spectral_scan)?,
     )
 }
@@ -434,5 +439,17 @@ mod tests {
                 limit: 1
             }
         ));
+    }
+
+    #[test]
+    fn work_bound_includes_each_differential_histogram_reset() {
+        let table = vec![0u16; 256];
+        assert_eq!(
+            vectorial_boolean_metrics(&table, 8, 15),
+            Err(VectorialMetricsError::WorkLimitExceeded {
+                required: 100_660_480,
+                limit: DEFAULT_VECTORIAL_MAX_WORK,
+            })
+        );
     }
 }
