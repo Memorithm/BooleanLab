@@ -26,6 +26,7 @@ pub mod sparsity_static;
 pub mod sparsity_structured;
 pub mod sparsity_synthesis;
 pub mod state;
+pub mod vectorial_metrics;
 
 pub use attention::{
     AdmissionScore, AttentionRouterError, BitSignature, admit_by_hamming, hamming_admission_row,
@@ -101,3 +102,8 @@ pub use sparsity_synthesis::{
     SynthesisRow, synthesize_exact_conjunction,
 };
 pub use state::{BitState, StateError};
+pub use vectorial_metrics::{
+    DEFAULT_VECTORIAL_MAX_WORK, DifferentialUniformityWitness, MAX_VECTORIAL_INPUT_BITS,
+    MAX_VECTORIAL_OUTPUT_BITS, VectorialBooleanMetrics, VectorialMetricsError,
+    VectorialWalshWitness, vectorial_boolean_metrics, vectorial_boolean_metrics_with_work_limit,
+};
