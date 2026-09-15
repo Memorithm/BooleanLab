@@ -510,12 +510,7 @@ mod tests {
     fn exact_comparison_identifies_malformed_generic_program() {
         let compiled = CompiledKleeneConjunction::compile(0, &[]).expect("empty conjunction valid");
         assert_eq!(
-            compare_compiled_conjunction_with_program(
-                compiled,
-                &[KleeneInstruction::And],
-                1,
-                1,
-            ),
+            compare_compiled_conjunction_with_program(compiled, &[KleeneInstruction::And], 1, 1,),
             Err(KleeneConjunctionComparisonError::GenericEvaluation(
                 KleeneEvalError::StackUnderflow
             ))
