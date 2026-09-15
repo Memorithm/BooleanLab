@@ -146,7 +146,11 @@ fn outcome_histogram(program: &[KleeneInstruction], inputs: &[Vec<KleeneValue>])
     for assignment in inputs {
         let value = evaluate_kleene_program(program, assignment)
             .expect("generated generic conjunction must be valid");
-        counts[value_code(value) as usize] += 1;
+        match value {
+            KleeneValue::False => counts[0] += 1,
+            KleeneValue::Unknown => counts[1] += 1,
+            KleeneValue::True => counts[2] += 1,
+        }
     }
     counts
 }
