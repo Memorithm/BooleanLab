@@ -248,9 +248,7 @@ mod tests {
             .spectrum
             .iter()
             .enumerate()
-            .map(|(value, &frequency)| {
-                u128::try_from(value).unwrap() * u128::from(frequency)
-            })
+            .map(|(value, &frequency)| u128::try_from(value).unwrap() * u128::from(frequency))
             .sum::<u128>();
         assert_eq!(cell_count, spectrum.cells);
         assert_eq!(weighted, 3 * 4);
