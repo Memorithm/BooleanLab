@@ -15,6 +15,7 @@ pub mod kleene_analysis;
 pub mod kleene_conjunction;
 pub mod kleene_conjunction_words;
 pub mod kleene_designated_relation;
+pub mod kleene_designated_subsumption;
 pub mod kleene_entailment;
 pub mod kleene_semantic_key;
 pub mod sparsity;
@@ -70,6 +71,11 @@ pub use kleene_conjunction_words::{
 };
 pub use kleene_designated_relation::{
     KleeneDesignatedDifferenceWitness, KleeneDesignatedRelation, kleene_designated_relation,
+};
+pub use kleene_designated_subsumption::{
+    DEFAULT_MAX_DESIGNATED_SUBSUMPTION_PAIRS, KleeneDesignatedSubsumptionEdge,
+    KleeneDesignatedSubsumptionError, KleeneDesignatedSubsumptionGraph,
+    KleeneStrictSubsumptionWitness, kleene_designated_subsumption_graph,
 };
 pub use kleene_entailment::{
     KleeneEntailment, KleeneEntailmentError, KleeneEntailmentSide, KleeneEntailmentWitness,
