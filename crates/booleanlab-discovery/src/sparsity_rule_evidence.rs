@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn accepts_one_frozen_resource_contract() {
-        let candidates = vec![
+        let mut candidates = vec![
             item(
                 "dense-quality",
                 80,
@@ -196,6 +196,7 @@ mod tests {
                 "sha256:reference-v1",
             ),
         ];
+        candidates[0].candidate.quality_loss_units = 0;
 
         assert_eq!(
             pareto_frontier_indices_with_resource_provenance(&candidates).unwrap(),
@@ -243,10 +244,7 @@ mod tests {
             "run-a",
         );
         assert!(matches!(
-            pareto_frontier_indices_with_resource_provenance(&[
-                first.clone(),
-                protocol_mismatch,
-            ]),
+            pareto_frontier_indices_with_resource_provenance(&[first.clone(), protocol_mismatch,]),
             Err(SparsityRuleEvidenceError::ResourceProtocolMismatch { .. })
         ));
 
