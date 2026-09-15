@@ -11,9 +11,7 @@ use std::fmt;
 
 use booleanlab_core::sparsity_synthesis::{ConjunctiveSparsityRule, RuleSynthesisError};
 
-use crate::sparsity_semantic_freeze::{
-    ExactSparsityRuleBinding, ResolvedPredicateParameter,
-};
+use crate::sparsity_semantic_freeze::{ExactSparsityRuleBinding, ResolvedPredicateParameter};
 use crate::{BooleanFunction, FunctionError};
 
 /// Version of the generic conjunction-to-freeze adapter contract.
@@ -50,19 +48,18 @@ pub fn binding_from_conjunctive_rule(
     predicate_schema: impl Into<String>,
     resolved_parameters: Vec<ResolvedPredicateParameter>,
 ) -> Result<ExactSparsityRuleBinding, SynthesisFreezeAdapterError> {
-    let input_bits = u32::try_from(rule.predicate_count())
-        .map_err(|_| SynthesisFreezeAdapterError::Function(FunctionError::InputWidthTooLarge {
+    let input_bits = u32::try_from(rule.predicate_count()).map_err(|_| {
+        SynthesisFreezeAdapterError::Function(FunctionError::InputWidthTooLarge {
             width: u32::MAX,
             maximum: scirust_modalg::boolean::MAX_EXACT_BITS,
-        }))?;
-    let row_count = 1usize
-        .checked_shl(input_bits)
-        .ok_or_else(|| {
-            SynthesisFreezeAdapterError::Function(FunctionError::InputWidthTooLarge {
-                width: input_bits,
-                maximum: scirust_modalg::boolean::MAX_EXACT_BITS,
-            })
-        })?;
+        })
+    })?;
+    let row_count = 1usize.checked_shl(input_bits).ok_or_else(|| {
+        SynthesisFreezeAdapterError::Function(FunctionError::InputWidthTooLarge {
+            width: input_bits,
+            maximum: scirust_modalg::boolean::MAX_EXACT_BITS,
+        })
+    })?;
 
     let mut predicates = vec![false; rule.predicate_count()];
     let mut truth_table = Vec::with_capacity(row_count);
@@ -97,9 +94,7 @@ impl std::error::Error for SynthesisFreezeAdapterError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use booleanlab_core::sparsity_synthesis::{
-        SynthesisRow, synthesize_exact_conjunction,
-    };
+    use booleanlab_core::sparsity_synthesis::{SynthesisRow, synthesize_exact_conjunction};
 
     use crate::sparsity_freeze::FrozenSparsitySelection;
     use crate::sparsity_rule_search::{SparsityEvaluationPhase, SparsityRuleCandidate};
@@ -133,17 +128,8 @@ mod tests {
         }
     }
 
-    fn binding_for(
-        candidate_id: &str,
-        rule: &ConjunctiveSparsityRule,
-    ) -> ExactSparsityRuleBinding {
-        binding_from_conjunctive_rule(
-            candidate_id,
-            rule,
-            "v1:[left,right]",
-            Vec::new(),
-        )
-        .unwrap()
+    fn binding_for(candidate_id: &str, rule: &ConjunctiveSparsityRule) -> ExactSparsityRuleBinding {
+        binding_from_conjunctive_rule(candidate_id, rule, "v1:[left,right]", Vec::new()).unwrap()
     }
 
     #[test]
@@ -152,7 +138,10 @@ mod tests {
         let rule = synthesize_exact_conjunction(&rows, 2).unwrap().unwrap();
         let binding = binding_for("and", &rule);
 
-        assert_eq!(SYNTHESIS_FREEZE_ADAPTER_VERSION, "bl14.conjunctive-freeze.v1");
+        assert_eq!(
+            SYNTHESIS_FREEZE_ADAPTER_VERSION,
+            "bl14.conjunctive-freeze.v1"
+        );
         assert_eq!(binding.function.input_bits(), 2);
         assert_eq!(binding.function.truth_table(), &[0, 0, 0, 1]);
     }
@@ -181,7 +170,9 @@ mod tests {
         let and_rows = exhaustive_two_input_rows(|left, right| left && right);
         let left_rows = exhaustive_two_input_rows(|left, _| left);
         let and_rule = synthesize_exact_conjunction(&and_rows, 2).unwrap().unwrap();
-        let left_rule = synthesize_exact_conjunction(&left_rows, 2).unwrap().unwrap();
+        let left_rule = synthesize_exact_conjunction(&left_rows, 2)
+            .unwrap()
+            .unwrap();
         let search = [candidate("rule-a", SparsityEvaluationPhase::Search)];
         let selection = FrozenSparsitySelection::from_search_frontier(&search).unwrap();
         let frozen = FrozenSparsityRuleSelection::bind_search_rules(
