@@ -11,9 +11,7 @@
 //! This is an exact bounded research relation, not a production authorization
 //! rule and not a performance claim.
 
-use crate::{
-    KLEENE_SEMANTIC_KEY_SCHEMA_VERSION, KleeneSemanticKey, KleeneValue,
-};
+use crate::{KLEENE_SEMANTIC_KEY_SCHEMA_VERSION, KleeneSemanticKey, KleeneValue};
 
 /// Identifies which key failed structural validation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -165,12 +163,11 @@ fn validate_key(
         });
     }
 
-    let expected_rows = checked_pow3(key.input_arity).ok_or(
-        KleeneEntailmentError::DomainOverflow {
+    let expected_rows =
+        checked_pow3(key.input_arity).ok_or(KleeneEntailmentError::DomainOverflow {
             side,
             input_arity: key.input_arity,
-        },
-    )?;
+        })?;
     let expected_packed_len = expected_rows.div_ceil(4);
     if key.rows != expected_rows || key.packed_outputs.len() != expected_packed_len {
         return Err(KleeneEntailmentError::InconsistentShape {
@@ -260,14 +257,8 @@ mod tests {
 
     #[test]
     fn antecedent_without_true_rows_entails_vacuously() {
-        let always_false = key(
-            &[KleeneInstruction::Constant(KleeneValue::False)],
-            1,
-        );
-        let always_unknown = key(
-            &[KleeneInstruction::Constant(KleeneValue::Unknown)],
-            1,
-        );
+        let always_false = key(&[KleeneInstruction::Constant(KleeneValue::False)], 1);
+        let always_unknown = key(&[KleeneInstruction::Constant(KleeneValue::Unknown)], 1);
 
         assert_eq!(
             kleene_designated_entails(&always_false, &always_unknown),
@@ -281,10 +272,7 @@ mod tests {
     #[test]
     fn unknown_consequent_is_a_distinct_counterexample() {
         let always_true = key(&[KleeneInstruction::Constant(KleeneValue::True)], 0);
-        let always_unknown = key(
-            &[KleeneInstruction::Constant(KleeneValue::Unknown)],
-            0,
-        );
+        let always_unknown = key(&[KleeneInstruction::Constant(KleeneValue::Unknown)], 0);
 
         assert_eq!(
             kleene_designated_entails(&always_true, &always_unknown),
