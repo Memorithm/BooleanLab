@@ -34,16 +34,26 @@ pub struct VectorialDegreeProfile {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VectorialDegreeError {
-    InputBitsOutOfRange { input_bits: u8 },
-    OutputBitsOutOfRange { output_bits: u8 },
-    TableLengthMismatch { expected: usize, actual: usize },
+    InputBitsOutOfRange {
+        input_bits: u8,
+    },
+    OutputBitsOutOfRange {
+        output_bits: u8,
+    },
+    TableLengthMismatch {
+        expected: usize,
+        actual: usize,
+    },
     OutputOutOfRange {
         index: usize,
         value: u16,
         output_bits: u8,
     },
     ArithmeticOverflow,
-    WorkLimitExceeded { required: u128, limit: u128 },
+    WorkLimitExceeded {
+        required: u128,
+        limit: u128,
+    },
     AllocationFailed,
 }
 
@@ -121,10 +131,9 @@ fn validate_table(
         }
     }
 
-    let rows_u128 =
-        u128::try_from(rows).map_err(|_| VectorialDegreeError::ArithmeticOverflow)?;
-    let components = u128::try_from(output_values - 1)
-        .map_err(|_| VectorialDegreeError::ArithmeticOverflow)?;
+    let rows_u128 = u128::try_from(rows).map_err(|_| VectorialDegreeError::ArithmeticOverflow)?;
+    let components =
+        u128::try_from(output_values - 1).map_err(|_| VectorialDegreeError::ArithmeticOverflow)?;
     let mobius_updates = rows_u128
         .checked_mul(u128::from(input_bits))
         .and_then(|value| value.checked_div(2))
@@ -150,7 +159,7 @@ fn component_degree(
     input_bits: u8,
     output_mask: u16,
     scratch: &mut [u8],
-) -> u8 {
+) -> Result<u8, VectorialDegreeError> {
     for (x, slot) in scratch.iter_mut().enumerate() {
         *slot = u8::from(((table[x] & output_mask).count_ones() & 1) != 0);
     }
@@ -164,14 +173,16 @@ fn component_degree(
         }
     }
 
-    scratch
-        .iter()
-        .enumerate()
-        .filter_map(|(monomial, &coefficient)| {
-            (coefficient != 0).then_some(monomial.count_ones() as u8)
-        })
-        .max()
-        .unwrap_or(0)
+    let mut degree = 0u8;
+    for (monomial, &coefficient) in scratch.iter().enumerate() {
+        if coefficient != 0 {
+            degree = degree.max(
+                u8::try_from(monomial.count_ones())
+                    .map_err(|_| VectorialDegreeError::ArithmeticOverflow)?,
+            );
+        }
+    }
+    Ok(degree)
 }
 
 /// Computes the exact algebraic-degree distribution over all non-zero output
@@ -214,7 +225,7 @@ pub fn vectorial_degree_profile_with_work_limit(
     for output_mask in 1..output_values {
         let output_mask =
             u16::try_from(output_mask).map_err(|_| VectorialDegreeError::ArithmeticOverflow)?;
-        let degree = component_degree(table, input_bits, output_mask, &mut scratch);
+        let degree = component_degree(table, input_bits, output_mask, &mut scratch)?;
         let slot = &mut degree_histogram[usize::from(degree)];
         *slot = slot
             .checked_add(1)
