@@ -93,12 +93,62 @@ fn program(literals: &[KleeneLiteral]) -> Vec<KleeneInstruction> {
     instructions
 }
 
+const fn satisfying_value(input: usize) -> KleeneValue {
+    if input.is_multiple_of(2) {
+        KleeneValue::True
+    } else {
+        KleeneValue::False
+    }
+}
+
+const fn violating_value(input: usize) -> KleeneValue {
+    if input.is_multiple_of(2) {
+        KleeneValue::False
+    } else {
+        KleeneValue::True
+    }
+}
+
 fn corpus(arity: usize, seed: u64) -> Vec<Vec<KleeneValue>> {
     let arity_u64 = u64::try_from(arity).expect("bounded benchmark arity fits in u64");
     let mut rng = SplitMix64::new(seed ^ arity_u64.rotate_left(17));
-    (0..CORPUS_ROWS)
-        .map(|_| (0..arity).map(|_| rng.kleene_value()).collect())
-        .collect()
+    let mut rows = Vec::with_capacity(CORPUS_ROWS);
+
+    if arity != 0 {
+        let satisfied: Vec<_> = (0..arity).map(satisfying_value).collect();
+        rows.push(satisfied.clone());
+
+        let mut unknown_at_end = satisfied.clone();
+        unknown_at_end[arity - 1] = KleeneValue::Unknown;
+        rows.push(unknown_at_end);
+
+        let mut failure_at_end = satisfied.clone();
+        failure_at_end[arity - 1] = violating_value(arity - 1);
+        rows.push(failure_at_end);
+
+        for input in [63_usize, 64, 127, 128, 191, 192, 255] {
+            if input < arity {
+                let mut boundary_failure = satisfied.clone();
+                boundary_failure[input] = violating_value(input);
+                rows.push(boundary_failure);
+            }
+        }
+    }
+
+    while rows.len() < CORPUS_ROWS {
+        rows.push((0..arity).map(|_| rng.kleene_value()).collect());
+    }
+    rows
+}
+
+fn outcome_histogram(program: &[KleeneInstruction], inputs: &[Vec<KleeneValue>]) -> [usize; 3] {
+    let mut counts = [0_usize; 3];
+    for assignment in inputs {
+        let value = evaluate_kleene_program(program, assignment)
+            .expect("generated generic conjunction must be valid");
+        counts[value_code(value) as usize] += 1;
+    }
+    counts
 }
 
 fn verify_u64_panel(
@@ -284,6 +334,8 @@ fn main() -> Result<(), io::Error> {
         .expect("fixed u64 benchmark panel is within the multiword bound");
     let u64_inputs = corpus(U64_ARITY, seed);
     verify_u64_panel(&u64_program, u64_compiled, &u64_multiword, &u64_inputs);
+    let u64_outcomes = outcome_histogram(&u64_program, &u64_inputs);
+    assert!(u64_outcomes.iter().all(|count| *count != 0));
 
     let multiword_literals = literals(MULTIWORD_ARITY);
     let multiword_program = program(&multiword_literals);
@@ -292,6 +344,8 @@ fn main() -> Result<(), io::Error> {
             .expect("fixed multiword benchmark panel is within the multiword bound");
     let multiword_inputs = corpus(MULTIWORD_ARITY, seed.rotate_left(23));
     verify_multiword_panel(&multiword_program, &multiword_compiled, &multiword_inputs);
+    let multiword_outcomes = outcome_histogram(&multiword_program, &multiword_inputs);
+    assert!(multiword_outcomes.iter().all(|count| *count != 0));
 
     warm_up(&u64_program, &u64_multiword, &u64_inputs);
     warm_up(&multiword_program, &multiword_compiled, &multiword_inputs);
@@ -306,6 +360,14 @@ fn main() -> Result<(), io::Error> {
         env::var("BOOLEANLAB_SOURCE_SHA").unwrap_or_else(|_| "unavailable".to_owned())
     );
     println!("claim_boundary\traw_wall_clock_observation_only");
+    println!(
+        "corpus_outcomes\tu64-comparable\tfalse={}\tunknown={}\ttrue={}",
+        u64_outcomes[0], u64_outcomes[1], u64_outcomes[2]
+    );
+    println!(
+        "corpus_outcomes\tmultiword\tfalse={}\tunknown={}\ttrue={}",
+        multiword_outcomes[0], multiword_outcomes[1], multiword_outcomes[2]
+    );
     println!(
         "columns\tpanel\tbackend\tinput_arity\tgeneric_instruction_count\tmask_words_per_polarity\tevaluations\telapsed_ns\tns_per_eval_x1000\tchecksum"
     );
