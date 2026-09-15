@@ -101,11 +101,11 @@ pub fn kleene_designated_subsumption_graph(
     }
 
     let mut edges = Vec::new();
-    edges
-        .try_reserve(pair_count)
-        .map_err(|_| KleeneDesignatedSubsumptionError::AllocationFailed {
+    edges.try_reserve(pair_count).map_err(|_| {
+        KleeneDesignatedSubsumptionError::AllocationFailed {
             requested_edges: pair_count,
-        })?;
+        }
+    })?;
 
     for left_index in 0..keys.len() {
         for right_index in (left_index + 1)..keys.len() {
@@ -216,8 +216,8 @@ mod tests {
             2,
         );
 
-        let graph = kleene_designated_subsumption_graph(&[x, x_and_y], 1)
-            .expect("one valid pair must fit");
+        let graph =
+            kleene_designated_subsumption_graph(&[x, x_and_y], 1).expect("one valid pair must fit");
         assert_eq!(graph.node_count, 2);
         assert_eq!(graph.pair_count, 1);
         assert_eq!(graph.edges.len(), 1);
@@ -239,8 +239,8 @@ mod tests {
             .expect("equal designated sets are valid");
         assert!(equal.edges.is_empty());
 
-        let incomparable = kleene_designated_subsumption_graph(&[x, y], 1)
-            .expect("incomparable keys are valid");
+        let incomparable =
+            kleene_designated_subsumption_graph(&[x, y], 1).expect("incomparable keys are valid");
         assert!(incomparable.edges.is_empty());
     }
 
@@ -254,7 +254,14 @@ mod tests {
         };
 
         assert_eq!(
-            kleene_designated_subsumption_graph(&[malformed.clone(), malformed, key(&[KleeneInstruction::Input(0)], 1)], 2),
+            kleene_designated_subsumption_graph(
+                &[
+                    malformed.clone(),
+                    malformed,
+                    key(&[KleeneInstruction::Input(0)], 1)
+                ],
+                2
+            ),
             Err(KleeneDesignatedSubsumptionError::PairLimitExceeded {
                 required_pairs: 3,
                 max_pairs: 2,
