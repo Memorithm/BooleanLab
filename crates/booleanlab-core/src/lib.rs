@@ -31,6 +31,7 @@ pub mod sparsity_structured;
 pub mod sparsity_synthesis;
 pub mod state;
 pub mod vectorial_degree;
+pub mod vectorial_differential_spectrum;
 pub mod vectorial_metrics;
 
 pub use attention::{
@@ -127,6 +128,10 @@ pub use vectorial_degree::{
     DEFAULT_VECTORIAL_DEGREE_MAX_WORK, MAX_VECTORIAL_DEGREE_INPUT_BITS,
     MAX_VECTORIAL_DEGREE_OUTPUT_BITS, VectorialDegreeError, VectorialDegreeProfile,
     VectorialDegreeWitness, vectorial_degree_profile, vectorial_degree_profile_with_work_limit,
+};
+pub use vectorial_differential_spectrum::{
+    VectorialDifferentialSpectrum, vectorial_differential_spectrum,
+    vectorial_differential_spectrum_with_work_limit,
 };
 pub use vectorial_metrics::{
     DEFAULT_VECTORIAL_MAX_WORK, DifferentialUniformityWitness, MAX_VECTORIAL_INPUT_BITS,
