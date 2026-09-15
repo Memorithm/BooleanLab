@@ -31,21 +31,52 @@ pub struct KleeneSemanticKey {
     pub packed_outputs: Vec<u8>,
 }
 
-/// Failure while constructing an exact semantic key from a program.
+/// Failure while constructing an exact semantic key.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KleeneSemanticKeyError {
     /// Exhaustive analysis could not be completed under the declared bounds.
     Analysis(KleeneAnalysisError),
+    /// A caller-supplied analysis does not describe the complete declared domain.
+    InconsistentAnalysis {
+        input_arity: usize,
+        declared_rows: usize,
+        output_rows: usize,
+        expected_rows: usize,
+    },
 }
 
 impl KleeneSemanticKey {
     /// Builds a collision-free packed key from an already completed exact analysis.
     ///
-    /// This operation performs no semantic evaluation. Equality between two keys
-    /// means equality of arity, exhaustive row count, and every encoded output.
-    #[must_use]
-    pub fn from_analysis(analysis: &KleeneProgramAnalysis) -> Self {
-        let mut packed_outputs = vec![0_u8; analysis.rows.div_ceil(4)];
+    /// This operation performs no semantic evaluation. Because
+    /// [`KleeneProgramAnalysis`] has public fields, the declared row count and
+    /// output length are revalidated against `3^input_arity` before allocation.
+    /// Equality between two successfully constructed keys therefore means
+    /// equality of arity, exhaustive row count, and every encoded output.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KleeneSemanticKeyError::Analysis`] when `3^input_arity`
+    /// overflows `usize`, or [`KleeneSemanticKeyError::InconsistentAnalysis`]
+    /// when either public row field does not match the complete declared domain.
+    pub fn from_analysis(
+        analysis: &KleeneProgramAnalysis,
+    ) -> Result<Self, KleeneSemanticKeyError> {
+        let expected_rows = checked_pow3(analysis.input_arity).ok_or(
+            KleeneSemanticKeyError::Analysis(KleeneAnalysisError::EnumerationOverflow {
+                input_arity: analysis.input_arity,
+            }),
+        )?;
+        if analysis.rows != expected_rows || analysis.outputs.len() != expected_rows {
+            return Err(KleeneSemanticKeyError::InconsistentAnalysis {
+                input_arity: analysis.input_arity,
+                declared_rows: analysis.rows,
+                output_rows: analysis.outputs.len(),
+                expected_rows,
+            });
+        }
+
+        let mut packed_outputs = vec![0_u8; expected_rows.div_ceil(4)];
         for (row, value) in analysis.outputs.iter().copied().enumerate() {
             let encoded = match value {
                 KleeneValue::False => 0_u8,
@@ -57,12 +88,12 @@ impl KleeneSemanticKey {
             packed_outputs[byte] |= encoded << shift;
         }
 
-        Self {
+        Ok(Self {
             schema_version: KLEENE_SEMANTIC_KEY_SCHEMA_VERSION,
             input_arity: analysis.input_arity,
-            rows: analysis.rows,
+            rows: expected_rows,
             packed_outputs,
-        }
+        })
     }
 }
 
@@ -76,7 +107,10 @@ impl KleeneSemanticKey {
 /// # Errors
 ///
 /// Returns [`KleeneSemanticKeyError::Analysis`] when exhaustive analysis is
-/// malformed, overflows, or exceeds either declared budget.
+/// malformed, overflows, or exceeds either declared budget. The completed
+/// analysis is revalidated before packing and can therefore also report
+/// [`KleeneSemanticKeyError::InconsistentAnalysis`] if its public invariants are
+/// ever violated.
 pub fn kleene_semantic_key(
     program: &[KleeneInstruction],
     input_arity: usize,
@@ -90,7 +124,15 @@ pub fn kleene_semantic_key(
         max_instruction_evaluations,
     )
     .map_err(KleeneSemanticKeyError::Analysis)?;
-    Ok(KleeneSemanticKey::from_analysis(&analysis))
+    KleeneSemanticKey::from_analysis(&analysis)
+}
+
+fn checked_pow3(exponent: usize) -> Option<usize> {
+    let mut value = 1_usize;
+    for _ in 0..exponent {
+        value = value.checked_mul(3)?;
+    }
+    Some(value)
 }
 
 #[cfg(test)]
@@ -151,6 +193,72 @@ mod tests {
         let arity_one = kleene_semantic_key(&constant, 1, 3, 3).expect("arity one is valid");
 
         assert_ne!(arity_zero, arity_one);
+    }
+
+    #[test]
+    fn rejects_short_public_analysis_before_packing() {
+        let analysis = KleeneProgramAnalysis {
+            input_arity: 1,
+            rows: 3,
+            outputs: vec![KleeneValue::False; 2],
+            always_true: false,
+            always_false: false,
+            redundant_inputs: Vec::new(),
+        };
+
+        assert_eq!(
+            KleeneSemanticKey::from_analysis(&analysis),
+            Err(KleeneSemanticKeyError::InconsistentAnalysis {
+                input_arity: 1,
+                declared_rows: 3,
+                output_rows: 2,
+                expected_rows: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_long_public_analysis_before_packing() {
+        let analysis = KleeneProgramAnalysis {
+            input_arity: 0,
+            rows: 1,
+            outputs: vec![KleeneValue::False; 5],
+            always_true: false,
+            always_false: true,
+            redundant_inputs: Vec::new(),
+        };
+
+        assert_eq!(
+            KleeneSemanticKey::from_analysis(&analysis),
+            Err(KleeneSemanticKeyError::InconsistentAnalysis {
+                input_arity: 0,
+                declared_rows: 1,
+                output_rows: 5,
+                expected_rows: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_forged_row_count_before_packing() {
+        let analysis = KleeneProgramAnalysis {
+            input_arity: 1,
+            rows: 1,
+            outputs: vec![KleeneValue::False; 3],
+            always_true: false,
+            always_false: true,
+            redundant_inputs: Vec::new(),
+        };
+
+        assert_eq!(
+            KleeneSemanticKey::from_analysis(&analysis),
+            Err(KleeneSemanticKeyError::InconsistentAnalysis {
+                input_arity: 1,
+                declared_rows: 1,
+                output_rows: 3,
+                expected_rows: 3,
+            })
+        );
     }
 
     #[test]
