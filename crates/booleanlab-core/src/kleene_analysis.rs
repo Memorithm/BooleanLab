@@ -22,6 +22,64 @@ pub enum KleeneAnalysisError {
     Evaluation(KleeneEvalError),
 }
 
+/// Failure while differentially comparing two Strong-Kleene programs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KleeneComparisonError {
+    /// `3^input_arity` cannot be represented as `usize`.
+    EnumerationOverflow { input_arity: usize },
+    /// The requested exhaustive domain exceeds the caller-declared row budget.
+    EnumerationLimitExceeded {
+        required_rows: usize,
+        max_rows: usize,
+    },
+    /// The exact instruction-evaluation work estimate cannot be represented.
+    WorkEstimateOverflow {
+        rows: usize,
+        left_instructions: usize,
+        right_instructions: usize,
+    },
+    /// The requested exact comparison exceeds the caller-declared work budget.
+    ///
+    /// This is an explicit non-result: it does not establish equivalence or a
+    /// semantic mismatch.
+    WorkLimitExceeded {
+        required_instruction_evaluations: usize,
+        max_instruction_evaluations: usize,
+    },
+    /// The left postfix program is structurally invalid.
+    LeftEvaluation(KleeneEvalError),
+    /// The right postfix program is structurally invalid.
+    RightEvaluation(KleeneEvalError),
+}
+
+/// First exact counterexample found while comparing two programs.
+///
+/// The assignment uses canonical input order and preserves `Unknown`; it is a
+/// reproducible semantic witness, not a sampled or heuristic discrepancy.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct KleeneProgramMismatch {
+    /// Canonical base-3 assignment index, with input 0 as the least significant trit.
+    pub assignment_index: usize,
+    /// Exact input values for the mismatching assignment.
+    pub inputs: Vec<KleeneValue>,
+    /// Output produced by the left program.
+    pub left: KleeneValue,
+    /// Output produced by the right program.
+    pub right: KleeneValue,
+}
+
+/// Result of an exact bounded differential comparison.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum KleeneProgramComparison {
+    /// Both programs produced exactly the same Strong-Kleene value on every row.
+    Equivalent { rows: usize },
+    /// The programs differ; `witness` is the first mismatch in canonical row order.
+    Different {
+        rows: usize,
+        witness: KleeneProgramMismatch,
+    },
+}
+
 /// Exact small-domain characterization of one Strong-Kleene program.
 ///
 /// `outputs` is ordered by base-3 assignment index. Input 0 is the least
@@ -93,6 +151,91 @@ pub fn analyze_kleene_program(
         always_false,
         redundant_inputs,
     })
+}
+
+/// Compare two Strong-Kleene postfix programs exactly over a bounded domain.
+///
+/// Rows are evaluated in the same canonical base-3 order used by
+/// [`analyze_kleene_program`]. The comparison stops at the first mismatch and
+/// returns the complete input assignment as a deterministic counterexample.
+/// Equality therefore means exact equality over the entire declared exhaustive
+/// domain, not equality on a sample. `Unknown` is compared as its own value and
+/// is never collapsed into `False`.
+///
+/// `max_instruction_evaluations` bounds the exact worst-case number of postfix
+/// instruction visits as `rows * (left.len() + right.len())`. Exhausting that
+/// budget is reported before allocating the assignment vector or evaluating a
+/// program and is a non-result, never evidence of equivalence or difference.
+///
+/// # Errors
+///
+/// Returns [`KleeneComparisonError::EnumerationOverflow`] when `3^input_arity`
+/// overflows `usize`, [`KleeneComparisonError::EnumerationLimitExceeded`] when
+/// the exact domain is larger than `max_rows`,
+/// [`KleeneComparisonError::WorkEstimateOverflow`] when the exact work estimate
+/// cannot be represented, [`KleeneComparisonError::WorkLimitExceeded`] when the
+/// declared work budget is insufficient, or a side-specific evaluation error
+/// when either postfix program is malformed.
+pub fn compare_kleene_programs(
+    left: &[KleeneInstruction],
+    right: &[KleeneInstruction],
+    input_arity: usize,
+    max_rows: usize,
+    max_instruction_evaluations: usize,
+) -> Result<KleeneProgramComparison, KleeneComparisonError> {
+    let rows = checked_pow3(input_arity)
+        .ok_or(KleeneComparisonError::EnumerationOverflow { input_arity })?;
+    if rows > max_rows {
+        return Err(KleeneComparisonError::EnumerationLimitExceeded {
+            required_rows: rows,
+            max_rows,
+        });
+    }
+
+    let instruction_count =
+        left.len()
+            .checked_add(right.len())
+            .ok_or(KleeneComparisonError::WorkEstimateOverflow {
+                rows,
+                left_instructions: left.len(),
+                right_instructions: right.len(),
+            })?;
+    let required_instruction_evaluations =
+        rows.checked_mul(instruction_count)
+            .ok_or(KleeneComparisonError::WorkEstimateOverflow {
+                rows,
+                left_instructions: left.len(),
+                right_instructions: right.len(),
+            })?;
+    if required_instruction_evaluations > max_instruction_evaluations {
+        return Err(KleeneComparisonError::WorkLimitExceeded {
+            required_instruction_evaluations,
+            max_instruction_evaluations,
+        });
+    }
+
+    let mut inputs = vec![KleeneValue::False; input_arity];
+    for assignment in 0..rows {
+        decode_assignment(assignment, &mut inputs);
+        let left_output = evaluate_kleene_program(left, &inputs)
+            .map_err(KleeneComparisonError::LeftEvaluation)?;
+        let right_output = evaluate_kleene_program(right, &inputs)
+            .map_err(KleeneComparisonError::RightEvaluation)?;
+
+        if left_output != right_output {
+            return Ok(KleeneProgramComparison::Different {
+                rows,
+                witness: KleeneProgramMismatch {
+                    assignment_index: assignment,
+                    inputs: inputs.clone(),
+                    left: left_output,
+                    right: right_output,
+                },
+            });
+        }
+    }
+
+    Ok(KleeneProgramComparison::Equivalent { rows })
 }
 
 fn checked_pow3(exponent: usize) -> Option<usize> {
@@ -210,6 +353,108 @@ mod tests {
         .expect("redundant program is valid");
 
         assert_eq!(direct.outputs, with_redundancy.outputs);
+    }
+
+    #[test]
+    fn differential_comparison_proves_exact_small_domain_equivalence() {
+        let direct = [KleeneInstruction::Input(0)];
+        let redundant = [
+            KleeneInstruction::Input(0),
+            KleeneInstruction::Input(1),
+            KleeneInstruction::Constant(KleeneValue::False),
+            KleeneInstruction::And,
+            KleeneInstruction::Or,
+        ];
+
+        assert_eq!(
+            compare_kleene_programs(&direct, &redundant, 2, 9, 54),
+            Ok(KleeneProgramComparison::Equivalent { rows: 9 })
+        );
+    }
+
+    #[test]
+    fn differential_comparison_returns_first_unknown_sensitive_witness() {
+        let left = [KleeneInstruction::Input(0)];
+        let right = [KleeneInstruction::Input(1)];
+
+        assert_eq!(
+            compare_kleene_programs(&left, &right, 2, 9, 18),
+            Ok(KleeneProgramComparison::Different {
+                rows: 9,
+                witness: KleeneProgramMismatch {
+                    assignment_index: 1,
+                    inputs: vec![KleeneValue::Unknown, KleeneValue::False],
+                    left: KleeneValue::Unknown,
+                    right: KleeneValue::False,
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn differential_comparison_budget_fails_closed_before_evaluation() {
+        assert_eq!(
+            compare_kleene_programs(
+                &[KleeneInstruction::And],
+                &[KleeneInstruction::Input(0)],
+                4,
+                80,
+                usize::MAX,
+            ),
+            Err(KleeneComparisonError::EnumerationLimitExceeded {
+                required_rows: 81,
+                max_rows: 80,
+            })
+        );
+    }
+
+    #[test]
+    fn differential_comparison_work_budget_is_an_explicit_non_result() {
+        let left = [KleeneInstruction::Input(0), KleeneInstruction::Not];
+        let right = [KleeneInstruction::Input(0)];
+        assert_eq!(
+            compare_kleene_programs(&left, &right, 1, 3, 8),
+            Err(KleeneComparisonError::WorkLimitExceeded {
+                required_instruction_evaluations: 9,
+                max_instruction_evaluations: 8,
+            })
+        );
+    }
+
+    #[test]
+    fn differential_comparison_identifies_malformed_side() {
+        assert_eq!(
+            compare_kleene_programs(
+                &[KleeneInstruction::And],
+                &[KleeneInstruction::Input(0)],
+                1,
+                3,
+                6,
+            ),
+            Err(KleeneComparisonError::LeftEvaluation(
+                KleeneEvalError::StackUnderflow {
+                    instruction: 0,
+                    needed: 2,
+                    available: 0,
+                }
+            ))
+        );
+        assert_eq!(
+            compare_kleene_programs(
+                &[KleeneInstruction::Input(0)],
+                &[KleeneInstruction::And],
+                1,
+                3,
+                6,
+            ),
+            Err(KleeneComparisonError::RightEvaluation(
+                KleeneEvalError::StackUnderflow {
+                    instruction: 0,
+                    needed: 2,
+                    available: 0,
+                }
+            ))
+        );
     }
 
     #[test]

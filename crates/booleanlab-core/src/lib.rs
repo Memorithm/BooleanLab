@@ -47,7 +47,10 @@ pub use kleene::{
     BinaryTruthRow, KLEENE_BINARY_TRUTH_TABLE, KLEENE_VALUES, KleeneEvalError, KleeneInstruction,
     KleeneValue, evaluate_kleene_program, exhaustive_binary_truth_table,
 };
-pub use kleene_analysis::{KleeneAnalysisError, KleeneProgramAnalysis, analyze_kleene_program};
+pub use kleene_analysis::{
+    KleeneAnalysisError, KleeneComparisonError, KleeneProgramAnalysis, KleeneProgramComparison,
+    KleeneProgramMismatch, analyze_kleene_program, compare_kleene_programs,
+};
 pub use kleene_conjunction::{
     CompiledKleeneConjunction, KleeneConjunctionError, KleeneLiteral, MAX_COMPILED_KLEENE_INPUTS,
 };
