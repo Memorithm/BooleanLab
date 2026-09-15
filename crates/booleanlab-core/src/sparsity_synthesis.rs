@@ -219,7 +219,10 @@ fn matches_rows_with_budget(
     Ok(true)
 }
 
-fn validate_inputs(rows: &[SynthesisRow], max_literals: usize) -> Result<usize, RuleSynthesisError> {
+fn validate_inputs(
+    rows: &[SynthesisRow],
+    max_literals: usize,
+) -> Result<usize, RuleSynthesisError> {
     let Some(first) = rows.first() else {
         return Err(RuleSynthesisError::EmptyRows);
     };
@@ -275,11 +278,7 @@ pub fn synthesize_exact_conjunction(
     rows: &[SynthesisRow],
     max_literals: usize,
 ) -> Result<Option<ConjunctiveSparsityRule>, RuleSynthesisError> {
-    synthesize_exact_conjunction_with_work_budget(
-        rows,
-        max_literals,
-        DEFAULT_SYNTHESIS_WORK_BUDGET,
-    )
+    synthesize_exact_conjunction_with_work_budget(rows, max_literals, DEFAULT_SYNTHESIS_WORK_BUDGET)
 }
 
 /// Synthesize the least-complex exact conjunction under an explicit work budget.
