@@ -1,0 +1,15 @@
+schema	booleanlab.bl-be2-representation-benchmark.v2
+seed	42
+corpus_rows	257
+os	linux
+arch	x86_64
+source_head_sha	beb4e3b84a49f3ea5ea70de8b29aeed941830b3f
+claim_boundary	raw_wall_clock_observation_only
+corpus_outcomes	u64-comparable	false=255	unknown=1	true=1
+corpus_outcomes	multiword	false=255	unknown=1	true=1
+columns	panel	backend	input_arity	generic_instruction_count	mask_words_per_polarity	evaluations	elapsed_ns	ns_per_eval_x1000	checksum
+measurement	u64-comparable	generic-postfix	32	79	0	20000	3290346	164517	234
+measurement	u64-comparable	u64-conjunction	32	79	1	20000	179907	8995	234
+measurement	u64-comparable	multiword-conjunction	32	79	1	20000	175770	8788	234
+measurement	multiword	generic-postfix	256	639	0	20000	24516508	1225825	234
+measurement	multiword	multiword-conjunction	256	639	4	20000	350219	17510	234
