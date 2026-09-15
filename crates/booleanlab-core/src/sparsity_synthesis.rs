@@ -264,9 +264,9 @@ mod tests {
         [false, true]
             .into_iter()
             .flat_map(|left| {
-                [false, true].into_iter().map(move |right| {
-                    SynthesisRow::new(vec![left, right], label(left, right))
-                })
+                [false, true]
+                    .into_iter()
+                    .map(move |right| SynthesisRow::new(vec![left, right], label(left, right)))
             })
             .collect()
     }
