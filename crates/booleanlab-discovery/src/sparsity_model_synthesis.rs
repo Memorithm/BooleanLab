@@ -9,8 +9,8 @@
 use std::fmt;
 
 use booleanlab_core::sparsity_synthesis::{
-    ConjunctiveSparsityRule, MAX_SYNTHESIS_PREDICATES, MAX_SYNTHESIS_ROWS,
-    RuleSynthesisError, SynthesisRow, synthesize_exact_conjunction_with_work_budget,
+    ConjunctiveSparsityRule, MAX_SYNTHESIS_PREDICATES, MAX_SYNTHESIS_ROWS, RuleSynthesisError,
+    SynthesisRow, synthesize_exact_conjunction_with_work_budget,
 };
 
 /// Fail-closed input or synthesis errors for frozen model-mask reconstruction.
