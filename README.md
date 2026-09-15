@@ -16,8 +16,10 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | Experiment / track | Status | Verified result or current question |
 | --- | --- | --- |
 | **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
-| **BL-14 Boolean Sparsity Control** | CALIBRATIONS + TRAINED STRUCTURED DEVELOPMENT PILOT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, a fixed numerical layer, BL-14.1.2 trained linear and BL-14.2.2 structured nonlinear synthetic pilots are available. BL-14.2.2 is mixed/negative: dense beats every sparse arm on all 12 non-final validation trials; no hardware benefit is established. |
+| **BL-14 Boolean Sparsity Control** | CALIBRATIONS + STATIC / STRUCTURED / DYNAMIC / RELATIONAL DEVELOPMENT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, fixed numerical layers and trained synthetic pilots now cover static, structured, dynamic and relational control. BL-14.2.2, BL-14.3.1 and BL-14.4.1 all remain non-final development evidence; none establishes hardware benefit or quality preservation versus dense. |
 | **BL-14.2.3 Matched topology search** | EXPLORATORY REANALYSIS EXECUTED | On the reused development panel at 2/8, 4/8 and 6/8 retained units, Boolean beats/ties/loses to direct search in 5/24/7 cells at equal unique-mask scoring budget. Identical populations agree exactly in all 36 cells. No general Boolean advantage is established. |
+| **BL-14.3.1 Dynamic routing** | IMPLEMENTED / MIXED DEVELOPMENT RESULT | On 12 non-final validation trials, the frozen input-conditioned Boolean controller beats/ties/loses to magnitude in 9/2/1 and beats a matched dynamic-random pair in 12/12, but dense has lower task MSE in all 12 trials. No quality-preservation, generalization or hardware-performance claim. |
+| **BL-14.4.1 Relational ReLU sparsity** | IMPLEMENTED / NEGATIVE DEVELOPMENT RESULT | The preregistered advancement gate required at least 9/12 strict wins versus the best matched independent-score sparse baseline; the frozen relation-aware controller achieved 1/12. Final holdout remains closed for this experiment identity. Dense has lower task MSE in all 12 trials. |
 | BL-13.0.1 | VALIDATED | Exact Boolean screening reproduces frozen reference properties using SciRust ANF/Walsh metrics. |
 | BL-13.1.1 | VALIDATED | Exhaustive scan of all 65,536 four-input functions: 12,870 balanced, 896 bent, 222 resilient under the declared criterion, 1,152 three-valued plateaued under the preregistered operational definition; maximum nonlinearity 6. |
 | BL-13.1.2 | VALIDATED | From 4,096 deterministic eight-input circuits (4–24 gates), 1,685 exact unique functions were observed, including 473 balanced functions; best observed nonlinearity 96 and 18 Pareto-front members. |
@@ -25,7 +27,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 | BL-13.2.1 | EQUIVALENCE_SCREENED | Against the full 1,685-function BL-13.1.2 population, all 16 sedenion coordinates had 0 exact, 0 output-complement, 0 input-permutation and 0 input-permutation-plus-output-complement matches. Exact necessary invariants also excluded the declared affine relation `g(x)=f(Ax+b) XOR c` against every corpus member. EA/CCZ, matched construction cost and prior-art review remain pending. No novelty claim. |
 | BL-13.3.1 | VALIDATED | Two `GF(2^8)` inversion constructions each produced eight distinct component functions with degree 7, nonlinearity 112 and balanced outputs. Pipeline validation only; no novelty claim. |
 
-The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/), including the frozen [`BL-13.1 Boolean baseline`](experiments/results/BL-13.1-BOOLEAN-BASELINE.md) and the bounded [`BL-13.2.1 sedenion baseline screen`](experiments/results/BL-13.2.1-SEDENION-BASELINE-SCREEN.md). The BL-14 protocol is defined in [`experiments/BL-14-BOOLEAN-SPARSITY-CONTROL.md`](experiments/BL-14-BOOLEAN-SPARSITY-CONTROL.md).
+The machine-readable experiment registry is [`experiments/REGISTRY.tsv`](experiments/REGISTRY.tsv). Reproducible evidence is retained under [`experiments/results/`](experiments/results/), including the frozen [`BL-13.1 Boolean baseline`](experiments/results/BL-13.1-BOOLEAN-BASELINE.md), the bounded [`BL-13.2.1 sedenion baseline screen`](experiments/results/BL-13.2.1-SEDENION-BASELINE-SCREEN.md), the committed [`BL-14.3.1 provenance bundle`](evidence/BL-14.3.1/gha-34904995201/README.md) and the negative [`BL-14.4.1 relational result`](experiments/results/BL-14.4.1-RELATIONAL-RELU-RESULT.md). The BL-14 protocol is defined in [`experiments/BL-14-BOOLEAN-SPARSITY-CONTROL.md`](experiments/BL-14-BOOLEAN-SPARSITY-CONTROL.md).
 
 ## Priority programme: Boolean Attention Control Plane
 
@@ -96,6 +98,10 @@ The [BL-14.2.2 structured nonlinear result](experiments/results/BL-14.2.2-STRUCT
 
 The [BL-14.2.3 matched-search audit](experiments/results/BL-14.2.3-MATCHED-SEARCH-V1.md) reuses that observed panel at 2/8, 4/8 and 6/8 retained units. Boolean and direct search receive equal numbers of unique-mask SEARCH evaluations; a separate identical-population control checks bit-exact equivalence. The outcome is 5 better, 24 equal and 7 worse cells for Boolean versus matched direct search. This is exploratory reanalysis, not independent validation. Equal scoring budgets do not establish equal total controller or hardware costs; the one small improvement over dense is also obtained by the same magnitude mask.
 
+The [BL-14.3.1 dynamic-routing evidence](evidence/BL-14.3.1/gha-34904995201/README.md) preserves the exact non-final development run and immutable provenance bundle. On the twelve declared validation trials, the input-conditioned Boolean route is better/equal/worse than magnitude in 9/2/1, better than the matched dynamic-random pair in 12/12, but worse than dense in all 12 trials. The result is therefore mixed and does not establish quality preservation. Reference work counters keep the 4/8 numerical path separate from 512 mask tests and 64 route-predicate tests per 64-example batch; they are not hardware timing or memory measurements.
+
+The [BL-14.4.1 relational result](experiments/results/BL-14.4.1-RELATIONAL-RELU-RESULT.md) preserves a negative preregistered development outcome. The relation-aware exact 4/8 mask won only 1 of 12 trials against the best matched independent-score sparse baseline, below the required 9/12 advancement threshold, so the final holdout remains closed for this experiment identity. Dense also has lower task MSE on all 12 trials. This constrains the tested TRAIN-only ReLU-state relation mechanism; it does not establish that all relational sparsity is ineffective.
+
 ```bash
 set -euo pipefail
 if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
@@ -104,6 +110,8 @@ cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --relea
 cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
 cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release
 cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release -- --matched-search-v1
+cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release -- --dynamic-routing-v1
+cargo run --locked -p booleanlab-discovery --bin bl14_relational_relu --release
 ```
 
 The workspace does not yet commit `Cargo.lock`: preserve the resolved lockfile, toolchain and source commit with each report, as shown in the pilot protocol. A fresh dependency resolution on another date is not an immutable reproduction of a previous run. An existing lockfile is not overwritten by the bootstrap above.
@@ -260,8 +268,8 @@ BL-14 Boolean Sparsity Control:
 BL-14.0 matched-baseline calibration
   -> BL-14.1 static Boolean masks (BL-14.1.2 trained regression development pilot)
   -> BL-14.2 structured hardware-relevant sparsity (BL-14.2.3 matched scoring audit)
-  -> BL-14.3 dynamic input-conditioned sparsity
-  -> BL-14.4 relational redundancy-aware sparsity
+  -> BL-14.3 dynamic input-conditioned sparsity (BL-14.3.1 mixed development result; dense still wins 12/12)
+  -> BL-14.4 relational redundancy-aware sparsity (BL-14.4.1 negative development gate; final holdout closed)
   -> BL-14.5 discrete Boolean rule synthesis
 ```
 
