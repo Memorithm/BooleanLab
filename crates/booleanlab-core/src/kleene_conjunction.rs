@@ -512,7 +512,11 @@ mod tests {
         assert_eq!(
             compare_compiled_conjunction_with_program(compiled, &[KleeneInstruction::And], 1, 1,),
             Err(KleeneConjunctionComparisonError::GenericEvaluation(
-                KleeneEvalError::StackUnderflow
+                KleeneEvalError::StackUnderflow {
+                    instruction: 0,
+                    needed: 2,
+                    available: 0,
+                }
             ))
         );
     }
