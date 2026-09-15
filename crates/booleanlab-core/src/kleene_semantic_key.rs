@@ -135,13 +135,9 @@ mod tests {
             1,
         )
         .expect("constant unknown is valid");
-        let false_key = kleene_semantic_key(
-            &[KleeneInstruction::Constant(KleeneValue::False)],
-            0,
-            1,
-            1,
-        )
-        .expect("constant false is valid");
+        let false_key =
+            kleene_semantic_key(&[KleeneInstruction::Constant(KleeneValue::False)], 0, 1, 1)
+                .expect("constant false is valid");
 
         assert_ne!(unknown, false_key);
         assert_eq!(unknown.packed_outputs, vec![0x01]);
