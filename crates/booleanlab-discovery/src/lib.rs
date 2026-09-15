@@ -17,6 +17,7 @@ pub mod sparsity_exhaustive_fit;
 pub mod sparsity_exhaustive_search;
 pub mod sparsity_freeze;
 pub mod sparsity_function_mask;
+pub mod sparsity_holdout_report;
 pub mod sparsity_rule_evidence;
 pub mod sparsity_rule_search;
 pub mod sparsity_semantic_freeze;
