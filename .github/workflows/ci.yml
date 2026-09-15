@@ -136,6 +136,17 @@ jobs:
           path: rustfmt.patch
           if-no-files-found: warn
           retention-days: 7
+      - name: Collect Clippy diagnostics
+        if: failure()
+        run: cargo clippy --workspace --all-targets --message-format=short -- -D warnings > clippy.txt 2>&1 || true
+      - name: Retain Clippy diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: booleanlab-clippy-${{ github.event.pull_request.head.sha || github.sha }}
+          path: clippy.txt
+          if-no-files-found: error
+          retention-days: 7
 
   sedenion-nightly:
     runs-on: ubuntu-latest
