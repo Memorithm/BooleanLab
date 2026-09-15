@@ -11,6 +11,10 @@ use core::fmt;
 
 /// Maximum predicate width accepted by the exhaustive BL-14.5 baseline.
 pub const MAX_SYNTHESIS_PREDICATES: usize = 12;
+/// Maximum labelled rows accepted by the exhaustive BL-14.5 baseline.
+pub const MAX_SYNTHESIS_ROWS: usize = 16_384;
+/// Default candidate-row comparisons allowed by [`synthesize_exact_conjunction`].
+pub const DEFAULT_SYNTHESIS_WORK_BUDGET: usize = 1_000_000;
 
 /// One labelled row supplied to the bounded rule synthesizer.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -108,6 +112,8 @@ impl ConjunctiveSparsityRule {
 pub enum RuleSynthesisError {
     /// No labelled rows were supplied.
     EmptyRows,
+    /// The labelled table exceeds the explicit row bound.
+    TooManyRows { actual: usize, maximum: usize },
     /// The declared predicate width exceeds the exhaustive-search bound.
     TooManyPredicates { actual: usize, maximum: usize },
     /// A labelled row does not match the first row's predicate width.
@@ -118,6 +124,8 @@ pub enum RuleSynthesisError {
     },
     /// The caller requested more literals than available predicates.
     LiteralBudgetOutOfRange { budget: usize, predicates: usize },
+    /// Candidate-row comparison work exhausted before an exact result existed.
+    WorkBudgetExceeded { budget: usize },
     /// A synthesized rule was evaluated with the wrong predicate width.
     InputWidthMismatch { expected: usize, actual: usize },
 }
@@ -126,6 +134,10 @@ impl fmt::Display for RuleSynthesisError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyRows => write!(f, "BL-14.5 synthesis requires at least one labelled row"),
+            Self::TooManyRows { actual, maximum } => write!(
+                f,
+                "BL-14.5 synthesis row count {actual} exceeds explicit bound {maximum}"
+            ),
             Self::TooManyPredicates { actual, maximum } => write!(
                 f,
                 "BL-14.5 synthesis predicate width {actual} exceeds exhaustive bound {maximum}"
@@ -141,6 +153,10 @@ impl fmt::Display for RuleSynthesisError {
             Self::LiteralBudgetOutOfRange { budget, predicates } => write!(
                 f,
                 "BL-14.5 literal budget {budget} exceeds predicate width {predicates}"
+            ),
+            Self::WorkBudgetExceeded { budget } => write!(
+                f,
+                "BL-14.5 candidate-row comparison budget {budget} was exhausted"
             ),
             Self::InputWidthMismatch { expected, actual } => write!(
                 f,
@@ -180,38 +196,40 @@ fn decode_rule(mut code: usize, predicate_count: usize) -> Vec<SparsityLiteral> 
     literals
 }
 
-fn matches_rows(literals: &[SparsityLiteral], rows: &[SynthesisRow]) -> bool {
-    rows.iter().all(|row| {
+fn matches_rows_with_budget(
+    literals: &[SparsityLiteral],
+    rows: &[SynthesisRow],
+    remaining_work: &mut usize,
+    work_budget: usize,
+) -> Result<bool, RuleSynthesisError> {
+    for row in rows {
+        if *remaining_work == 0 {
+            return Err(RuleSynthesisError::WorkBudgetExceeded {
+                budget: work_budget,
+            });
+        }
+        *remaining_work -= 1;
         let predicted = literals
             .iter()
             .all(|literal| row.predicates[literal.predicate_index] == literal.required_value);
-        predicted == row.active
-    })
+        if predicted != row.active {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
-/// Synthesize the least-complex exact conjunctive rule within a literal budget.
-///
-/// Each predicate has three search states: absent, require `false`, or require
-/// `true`. The full bounded space is enumerated exactly. Candidate complexity is
-/// the number of retained literals. Ties are resolved by the first ternary code
-/// encountered, which is deterministic and independent of hash/map ordering.
-///
-/// `Ok(None)` is a valid negative result: no conjunction within `max_literals`
-/// reproduces every supplied label exactly. The caller should retain such a
-/// result rather than weakening the labels or opening a protected holdout.
-///
-/// # Errors
-///
-/// Returns an error for an empty table, inconsistent row widths, predicate
-/// width above [`MAX_SYNTHESIS_PREDICATES`], or a literal budget greater than
-/// the predicate width.
-pub fn synthesize_exact_conjunction(
-    rows: &[SynthesisRow],
-    max_literals: usize,
-) -> Result<Option<ConjunctiveSparsityRule>, RuleSynthesisError> {
+fn validate_inputs(rows: &[SynthesisRow], max_literals: usize) -> Result<usize, RuleSynthesisError> {
     let Some(first) = rows.first() else {
         return Err(RuleSynthesisError::EmptyRows);
     };
+    if rows.len() > MAX_SYNTHESIS_ROWS {
+        return Err(RuleSynthesisError::TooManyRows {
+            actual: rows.len(),
+            maximum: MAX_SYNTHESIS_ROWS,
+        });
+    }
+
     let predicate_count = first.predicates.len();
     if predicate_count > MAX_SYNTHESIS_PREDICATES {
         return Err(RuleSynthesisError::TooManyPredicates {
@@ -234,8 +252,63 @@ pub fn synthesize_exact_conjunction(
             });
         }
     }
+    Ok(predicate_count)
+}
 
+/// Synthesize the least-complex exact conjunctive rule within default work bounds.
+///
+/// This convenience entry point uses [`DEFAULT_SYNTHESIS_WORK_BUDGET`] candidate-row
+/// comparisons. Use [`synthesize_exact_conjunction_with_work_budget`] when a caller
+/// needs a smaller explicit execution budget.
+///
+/// `Ok(None)` is a valid negative result: no conjunction within `max_literals`
+/// reproduces every supplied label exactly before the search space is exhausted.
+/// Resource exhaustion is returned as an error and must never be interpreted as
+/// evidence that no exact rule exists.
+///
+/// # Errors
+///
+/// Returns an error for an empty table, too many rows, inconsistent row widths,
+/// predicate width above [`MAX_SYNTHESIS_PREDICATES`], a literal budget greater
+/// than the predicate width, or exhaustion of the default work budget.
+pub fn synthesize_exact_conjunction(
+    rows: &[SynthesisRow],
+    max_literals: usize,
+) -> Result<Option<ConjunctiveSparsityRule>, RuleSynthesisError> {
+    synthesize_exact_conjunction_with_work_budget(
+        rows,
+        max_literals,
+        DEFAULT_SYNTHESIS_WORK_BUDGET,
+    )
+}
+
+/// Synthesize the least-complex exact conjunction under an explicit work budget.
+///
+/// Each predicate has three search states: absent, require `false`, or require
+/// `true`. The full bounded candidate space is enumerated in deterministic ternary
+/// code order. Candidate complexity is the number of retained literals. A work
+/// unit is one candidate-versus-row label comparison; the budget is decremented
+/// before each such comparison. Validation has its own independent row bound via
+/// [`MAX_SYNTHESIS_ROWS`].
+///
+/// `Ok(None)` means the bounded search completed and no exact conjunction within
+/// `max_literals` exists for the supplied rows. [`RuleSynthesisError::WorkBudgetExceeded`]
+/// is an explicit non-result and must not be reclassified as unsatisfiable.
+///
+/// # Errors
+///
+/// Returns an error for an empty table, too many rows, inconsistent row widths,
+/// predicate width above [`MAX_SYNTHESIS_PREDICATES`], a literal budget greater
+/// than the predicate width, or exhaustion of `work_budget`.
+pub fn synthesize_exact_conjunction_with_work_budget(
+    rows: &[SynthesisRow],
+    max_literals: usize,
+    work_budget: usize,
+) -> Result<Option<ConjunctiveSparsityRule>, RuleSynthesisError> {
+    let predicate_count = validate_inputs(rows, max_literals)?;
+    let mut remaining_work = work_budget;
     let mut best: Option<Vec<SparsityLiteral>> = None;
+
     for code in 0..ternary_search_space(predicate_count) {
         let literals = decode_rule(code, predicate_count);
         if literals.len() > max_literals
@@ -245,7 +318,7 @@ pub fn synthesize_exact_conjunction(
         {
             continue;
         }
-        if matches_rows(&literals, rows) {
+        if matches_rows_with_budget(&literals, rows, &mut remaining_work, work_budget)? {
             best = Some(literals);
         }
     }
@@ -376,7 +449,7 @@ mod tests {
     }
 
     #[test]
-    fn enforces_exhaustive_width_bound() {
+    fn enforces_exhaustive_width_and_row_bounds() {
         let row = SynthesisRow::new(vec![false; MAX_SYNTHESIS_PREDICATES + 1], true);
         assert_eq!(
             synthesize_exact_conjunction(&[row], 0),
@@ -385,5 +458,36 @@ mod tests {
                 maximum: MAX_SYNTHESIS_PREDICATES,
             })
         );
+
+        let rows = vec![SynthesisRow::new(vec![false], false); MAX_SYNTHESIS_ROWS + 1];
+        assert_eq!(
+            synthesize_exact_conjunction(&rows, 1),
+            Err(RuleSynthesisError::TooManyRows {
+                actual: MAX_SYNTHESIS_ROWS + 1,
+                maximum: MAX_SYNTHESIS_ROWS,
+            })
+        );
+    }
+
+    #[test]
+    fn work_budget_exhaustion_is_an_explicit_non_result() {
+        let rows = vec![
+            SynthesisRow::new(vec![false, false], false),
+            SynthesisRow::new(vec![false, true], false),
+            SynthesisRow::new(vec![true, false], false),
+            SynthesisRow::new(vec![true, true], true),
+        ];
+        assert_eq!(
+            synthesize_exact_conjunction_with_work_budget(&rows, 2, 3),
+            Err(RuleSynthesisError::WorkBudgetExceeded { budget: 3 })
+        );
+
+        let rule = synthesize_exact_conjunction_with_work_budget(&rows, 2, 64)
+            .unwrap()
+            .unwrap();
+        assert_eq!(rule.literals().len(), 2);
+        for row in &rows {
+            assert_eq!(rule.evaluate(row.predicates()).unwrap(), row.active());
+        }
     }
 }
