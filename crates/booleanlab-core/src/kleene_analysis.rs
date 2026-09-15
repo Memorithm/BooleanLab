@@ -154,7 +154,8 @@ pub fn analyze_kleene_program(
 ///
 /// The exact worst-case work estimate is `3^input_arity * program.len()` and is
 /// checked before allocating the output or input vectors and before evaluating
-/// the program. Exhausting this budget is an explicit non-result, never
+/// the program. An empty program is rejected as structurally invalid before
+/// allocation. Exhausting the work budget is an explicit non-result, never
 /// evidence for tautology, contradiction, redundancy, or any other property.
 ///
 /// # Errors
@@ -179,6 +180,11 @@ pub fn analyze_kleene_program_with_work_budget(
             required_rows: rows,
             max_rows,
         });
+    }
+    if program.is_empty() {
+        return Err(KleeneAnalysisError::Evaluation(
+            KleeneEvalError::InvalidFinalStackDepth { depth: 0 },
+        ));
     }
 
     let required_instruction_evaluations =
@@ -440,6 +446,16 @@ mod tests {
                 required_instruction_evaluations: 3,
                 max_instruction_evaluations: 2,
             })
+        );
+    }
+
+    #[test]
+    fn empty_program_is_rejected_before_output_allocation() {
+        assert_eq!(
+            analyze_kleene_program_with_work_budget(&[], 40, usize::MAX, usize::MAX),
+            Err(KleeneAnalysisError::Evaluation(
+                KleeneEvalError::InvalidFinalStackDepth { depth: 0 }
+            ))
         );
     }
 
