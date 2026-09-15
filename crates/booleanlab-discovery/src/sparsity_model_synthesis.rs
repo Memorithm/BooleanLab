@@ -9,8 +9,8 @@
 use std::fmt;
 
 use booleanlab_core::sparsity_synthesis::{
-    ConjunctiveSparsityRule, RuleSynthesisError, SynthesisRow,
-    synthesize_exact_conjunction_with_work_budget,
+    ConjunctiveSparsityRule, MAX_SYNTHESIS_PREDICATES, MAX_SYNTHESIS_ROWS,
+    RuleSynthesisError, SynthesisRow, synthesize_exact_conjunction_with_work_budget,
 };
 
 /// Fail-closed input or synthesis errors for frozen model-mask reconstruction.
@@ -54,6 +54,36 @@ pub fn synthesize_frozen_model_mask(
             predicates: predicate_rows.len(),
             mask: selected_mask.len(),
         });
+    }
+
+    if predicate_rows.len() > MAX_SYNTHESIS_ROWS {
+        return Err(ModelMaskSynthesisError::Synthesis(
+            RuleSynthesisError::TooManyRows {
+                actual: predicate_rows.len(),
+                maximum: MAX_SYNTHESIS_ROWS,
+            },
+        ));
+    }
+
+    let predicate_count = predicate_rows[0].len();
+    if predicate_count > MAX_SYNTHESIS_PREDICATES {
+        return Err(ModelMaskSynthesisError::Synthesis(
+            RuleSynthesisError::TooManyPredicates {
+                actual: predicate_count,
+                maximum: MAX_SYNTHESIS_PREDICATES,
+            },
+        ));
+    }
+    for (row, predicates) in predicate_rows.iter().enumerate().skip(1) {
+        if predicates.len() != predicate_count {
+            return Err(ModelMaskSynthesisError::Synthesis(
+                RuleSynthesisError::RowWidthMismatch {
+                    row,
+                    expected: predicate_count,
+                    actual: predicates.len(),
+                },
+            ));
+        }
     }
 
     let rows: Vec<_> = predicate_rows
@@ -123,6 +153,32 @@ mod tests {
                 predicates: 1,
                 mask: 2,
             })
+        );
+    }
+
+    #[test]
+    fn rejects_core_bounds_before_cloning_model_rows() {
+        let too_many_rows = vec![vec![true]; MAX_SYNTHESIS_ROWS + 1];
+        let too_many_mask = vec![true; MAX_SYNTHESIS_ROWS + 1];
+        assert_eq!(
+            synthesize_frozen_model_mask(&too_many_rows, &too_many_mask, 1, 8),
+            Err(ModelMaskSynthesisError::Synthesis(
+                RuleSynthesisError::TooManyRows {
+                    actual: MAX_SYNTHESIS_ROWS + 1,
+                    maximum: MAX_SYNTHESIS_ROWS,
+                }
+            ))
+        );
+
+        let too_wide = vec![vec![false; MAX_SYNTHESIS_PREDICATES + 1]];
+        assert_eq!(
+            synthesize_frozen_model_mask(&too_wide, &[true], 1, 8),
+            Err(ModelMaskSynthesisError::Synthesis(
+                RuleSynthesisError::TooManyPredicates {
+                    actual: MAX_SYNTHESIS_PREDICATES + 1,
+                    maximum: MAX_SYNTHESIS_PREDICATES,
+                }
+            ))
         );
     }
 
