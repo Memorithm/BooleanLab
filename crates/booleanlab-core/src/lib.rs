@@ -38,8 +38,10 @@ pub use bme::{BmeError, or_and_cell, thresholded_xnor_cell, xnor_popcount_cell, 
 pub use bme_cost::{BmeCostError, BmeLogicalCost, BmeShape, logical_cost};
 pub use bme_equation::{CanonicalBmeEquation, CanonicalBmeOutput};
 pub use bme_packed::{
-    PackedBmeError, packed_or_and_cell, packed_thresholded_xnor_cell, packed_xnor_popcount_cell,
-    packed_xor_and_cell,
+    PackedBmeError, packed_or_and_cell, packed_or_and_product_rows_columns,
+    packed_thresholded_xnor_cell, packed_thresholded_xnor_product_rows_columns,
+    packed_xnor_popcount_cell, packed_xnor_popcount_product_rows_columns, packed_xor_and_cell,
+    packed_xor_and_product_rows_columns,
 };
 pub use circuit::{BooleanCircuit, CircuitError, Node, NodeId, TruthRow};
 pub use hybrid::{HybridOperator, PredicateBridge};
