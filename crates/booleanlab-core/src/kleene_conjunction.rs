@@ -4,7 +4,9 @@
 //! masks for exhaustive equivalence checks against generic expression
 //! evaluation. It makes no production-runtime or performance claim.
 
-use crate::kleene::KleeneValue;
+use crate::kleene::{
+    KLEENE_VALUES, KleeneEvalError, KleeneInstruction, KleeneValue, evaluate_kleene_program,
+};
 
 /// Maximum input arity representable by [`CompiledKleeneConjunction`].
 pub const MAX_COMPILED_KLEENE_INPUTS: usize = u64::BITS as usize;
@@ -18,6 +20,36 @@ pub enum KleeneConjunctionError {
     InputOutOfRange { input: usize, input_arity: usize },
     /// Evaluation input length differs from the compiled arity.
     InputLengthMismatch { expected: usize, actual: usize },
+}
+
+/// Failure while exactly comparing a compiled conjunction with a generic program.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KleeneConjunctionComparisonError {
+    /// `3^input_arity` cannot be represented as `usize`.
+    EnumerationOverflow { input_arity: usize },
+    /// The exhaustive domain exceeds the caller-declared row budget.
+    EnumerationLimitExceeded {
+        required_rows: usize,
+        max_rows: usize,
+    },
+    /// The conservative work estimate cannot be represented as `usize`.
+    WorkEstimateOverflow {
+        rows: usize,
+        generic_instructions: usize,
+        input_arity: usize,
+    },
+    /// The requested exact comparison exceeds the caller-declared work budget.
+    ///
+    /// This is a non-result and must not be interpreted as equivalence or a
+    /// semantic mismatch.
+    WorkLimitExceeded {
+        required_work_units: usize,
+        max_work_units: usize,
+    },
+    /// The generic postfix program is structurally invalid.
+    GenericEvaluation(KleeneEvalError),
+    /// The compiled conjunction could not be evaluated.
+    CompiledEvaluation(KleeneConjunctionError),
 }
 
 /// One literal in a conjunction.
@@ -173,10 +205,132 @@ impl CompiledKleeneConjunction {
     }
 }
 
+/// First exact mismatch between a compiled conjunction and a generic program.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct KleeneConjunctionMismatch {
+    /// Canonical base-3 assignment index, with input 0 as the least significant trit.
+    pub assignment_index: usize,
+    /// Exact input values for the mismatching assignment.
+    pub inputs: Vec<KleeneValue>,
+    /// Output produced by the compiled conjunction.
+    pub compiled: KleeneValue,
+    /// Output produced by the generic postfix program.
+    pub generic: KleeneValue,
+}
+
+/// Result of an exact bounded compiled-vs-generic comparison.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum KleeneConjunctionComparison {
+    /// Both evaluators agree on every row in the declared exhaustive domain.
+    Equivalent { rows: usize },
+    /// The evaluators differ on the first canonical row described by `witness`.
+    Different {
+        rows: usize,
+        witness: KleeneConjunctionMismatch,
+    },
+}
+
+/// Compare a compiled conjunction with a generic Strong-Kleene postfix program.
+///
+/// The comparison enumerates the complete `3^n` domain in canonical base-3
+/// order and preserves `Unknown` as a distinct value. `max_rows` bounds the
+/// exhaustive domain before allocation. `max_work_units` bounds a conservative
+/// deterministic estimate of per-row work: every generic postfix instruction
+/// counts as one unit and each compiled input contributes two mask tests. A
+/// budget error is therefore an explicit non-result rather than evidence for
+/// or against equivalence.
+///
+/// # Errors
+///
+/// Returns [`KleeneConjunctionComparisonError`] when enumeration or work bounds
+/// cannot be satisfied, or when either evaluator rejects the input/program.
+pub fn compare_compiled_conjunction_with_program(
+    compiled: CompiledKleeneConjunction,
+    generic: &[KleeneInstruction],
+    max_rows: usize,
+    max_work_units: usize,
+) -> Result<KleeneConjunctionComparison, KleeneConjunctionComparisonError> {
+    let input_arity = compiled.input_arity();
+    let rows = checked_pow3(input_arity)
+        .ok_or(KleeneConjunctionComparisonError::EnumerationOverflow { input_arity })?;
+    if rows > max_rows {
+        return Err(KleeneConjunctionComparisonError::EnumerationLimitExceeded {
+            required_rows: rows,
+            max_rows,
+        });
+    }
+
+    let compiled_work_per_row = input_arity.checked_mul(2).ok_or(
+        KleeneConjunctionComparisonError::WorkEstimateOverflow {
+            rows,
+            generic_instructions: generic.len(),
+            input_arity,
+        },
+    )?;
+    let work_per_row = generic.len().checked_add(compiled_work_per_row).ok_or(
+        KleeneConjunctionComparisonError::WorkEstimateOverflow {
+            rows,
+            generic_instructions: generic.len(),
+            input_arity,
+        },
+    )?;
+    let required_work_units = rows.checked_mul(work_per_row).ok_or(
+        KleeneConjunctionComparisonError::WorkEstimateOverflow {
+            rows,
+            generic_instructions: generic.len(),
+            input_arity,
+        },
+    )?;
+    if required_work_units > max_work_units {
+        return Err(KleeneConjunctionComparisonError::WorkLimitExceeded {
+            required_work_units,
+            max_work_units,
+        });
+    }
+
+    let mut inputs = vec![KleeneValue::False; input_arity];
+    for assignment_index in 0..rows {
+        decode_assignment(assignment_index, &mut inputs);
+        let compiled_output = compiled
+            .evaluate(&inputs)
+            .map_err(KleeneConjunctionComparisonError::CompiledEvaluation)?;
+        let generic_output = evaluate_kleene_program(generic, &inputs)
+            .map_err(KleeneConjunctionComparisonError::GenericEvaluation)?;
+
+        if compiled_output != generic_output {
+            return Ok(KleeneConjunctionComparison::Different {
+                rows,
+                witness: KleeneConjunctionMismatch {
+                    assignment_index,
+                    inputs: inputs.clone(),
+                    compiled: compiled_output,
+                    generic: generic_output,
+                },
+            });
+        }
+    }
+
+    Ok(KleeneConjunctionComparison::Equivalent { rows })
+}
+
+fn checked_pow3(exponent: usize) -> Option<usize> {
+    let mut value = 1usize;
+    for _ in 0..exponent {
+        value = value.checked_mul(3)?;
+    }
+    Some(value)
+}
+
+fn decode_assignment(mut assignment: usize, inputs: &mut [KleeneValue]) {
+    for input in inputs {
+        *input = KLEENE_VALUES[assignment % 3];
+        assignment /= 3;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kleene::{KLEENE_VALUES, KleeneInstruction, evaluate_kleene_program};
 
     fn assignment(mut index: usize, arity: usize) -> Vec<KleeneValue> {
         let mut inputs = vec![KleeneValue::False; arity];
@@ -259,6 +413,112 @@ mod tests {
                 "row {row}: {inputs:?}"
             );
         }
+    }
+
+    #[test]
+    fn exact_comparison_certifies_compiled_generic_equivalence() {
+        let compiled = CompiledKleeneConjunction::compile(
+            3,
+            &[
+                KleeneLiteral::positive(0),
+                KleeneLiteral::negative(1),
+                KleeneLiteral::positive(2),
+            ],
+        )
+        .expect("conjunction compiles");
+        let generic = [
+            KleeneInstruction::Input(0),
+            KleeneInstruction::Input(1),
+            KleeneInstruction::Not,
+            KleeneInstruction::And,
+            KleeneInstruction::Input(2),
+            KleeneInstruction::And,
+        ];
+
+        assert_eq!(
+            compare_compiled_conjunction_with_program(compiled, &generic, 27, 324),
+            Ok(KleeneConjunctionComparison::Equivalent { rows: 27 })
+        );
+    }
+
+    #[test]
+    fn exact_comparison_returns_first_canonical_witness() {
+        let compiled = CompiledKleeneConjunction::compile(1, &[KleeneLiteral::positive(0)])
+            .expect("conjunction compiles");
+        let generic = [KleeneInstruction::Input(0), KleeneInstruction::Not];
+
+        assert_eq!(
+            compare_compiled_conjunction_with_program(compiled, &generic, 3, 12),
+            Ok(KleeneConjunctionComparison::Different {
+                rows: 3,
+                witness: KleeneConjunctionMismatch {
+                    assignment_index: 0,
+                    inputs: vec![KleeneValue::False],
+                    compiled: KleeneValue::False,
+                    generic: KleeneValue::True,
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn exact_comparison_preserves_opposing_literal_unknown() {
+        let compiled = CompiledKleeneConjunction::compile(
+            1,
+            &[KleeneLiteral::positive(0), KleeneLiteral::negative(0)],
+        )
+        .expect("opposing conjunction compiles");
+        let generic = [
+            KleeneInstruction::Input(0),
+            KleeneInstruction::Input(0),
+            KleeneInstruction::Not,
+            KleeneInstruction::And,
+        ];
+
+        assert_eq!(
+            compare_compiled_conjunction_with_program(compiled, &generic, 3, 18),
+            Ok(KleeneConjunctionComparison::Equivalent { rows: 3 })
+        );
+    }
+
+    #[test]
+    fn exact_comparison_limits_enumeration_before_allocation() {
+        let compiled = CompiledKleeneConjunction::compile(4, &[]).expect("arity is representable");
+        assert_eq!(
+            compare_compiled_conjunction_with_program(compiled, &[], 80, usize::MAX),
+            Err(KleeneConjunctionComparisonError::EnumerationLimitExceeded {
+                required_rows: 81,
+                max_rows: 80,
+            })
+        );
+    }
+
+    #[test]
+    fn exact_comparison_work_budget_is_non_result() {
+        let compiled = CompiledKleeneConjunction::compile(3, &[]).expect("arity is representable");
+        let generic = [KleeneInstruction::Constant(KleeneValue::True)];
+        assert_eq!(
+            compare_compiled_conjunction_with_program(compiled, &generic, 27, 188),
+            Err(KleeneConjunctionComparisonError::WorkLimitExceeded {
+                required_work_units: 189,
+                max_work_units: 188,
+            })
+        );
+    }
+
+    #[test]
+    fn exact_comparison_identifies_malformed_generic_program() {
+        let compiled = CompiledKleeneConjunction::compile(0, &[]).expect("empty conjunction valid");
+        assert_eq!(
+            compare_compiled_conjunction_with_program(compiled, &[KleeneInstruction::And], 1, 1,),
+            Err(KleeneConjunctionComparisonError::GenericEvaluation(
+                KleeneEvalError::StackUnderflow {
+                    instruction: 0,
+                    needed: 2,
+                    available: 0,
+                }
+            ))
+        );
     }
 
     #[test]
