@@ -26,6 +26,44 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: BL-0 deterministic smoke experiment
         run: cargo run -p booleanlab-runner --release
+      - name: BL-BE2 representation benchmark evidence
+        env:
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p bl-be2-representation-evidence
+          BOOLEANLAB_SOURCE_SHA="$SOURCE_HEAD_SHA" cargo run --locked -p booleanlab-runner --release --bin bl_be2_repr_bench -- 20000 42 > bl-be2-representation-evidence/report.tsv
+          grep -Fq $'schema\tbooleanlab.bl-be2-representation-benchmark.v2' bl-be2-representation-evidence/report.tsv
+          grep -Fq $'measurement\tu64-comparable\tgeneric-postfix' bl-be2-representation-evidence/report.tsv
+          grep -Fq $'measurement\tu64-comparable\tu64-conjunction' bl-be2-representation-evidence/report.tsv
+          grep -Fq $'measurement\tmultiword\tmultiword-conjunction' bl-be2-representation-evidence/report.tsv
+          cp Cargo.lock bl-be2-representation-evidence/Cargo.lock
+          rustc --version --verbose > bl-be2-representation-evidence/rustc-version.txt
+          cargo --version --verbose > bl-be2-representation-evidence/cargo-version.txt
+          printf '%s\n' "$SOURCE_HEAD_SHA" > bl-be2-representation-evidence/source-head-sha.txt
+          printf '%s\n' "$GITHUB_SHA" > bl-be2-representation-evidence/checkout-sha.txt
+          {
+            printf 'schema=booleanlab.bl-be2-representation-evidence.v1\n'
+            printf 'repository=%s\n' "$GITHUB_REPOSITORY"
+            printf 'run_id=%s\n' "$GITHUB_RUN_ID"
+            printf 'run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'source_head_sha=%s\n' "$SOURCE_HEAD_SHA"
+            printf 'checkout_sha=%s\n' "$GITHUB_SHA"
+            printf 'runner_os=%s\n' "$RUNNER_OS"
+            printf 'runner_arch=%s\n' "$RUNNER_ARCH"
+            printf 'claim_boundary=raw_wall_clock_observation_only\n'
+          } > bl-be2-representation-evidence/manifest.env
+          (
+            cd bl-be2-representation-evidence
+            sha256sum Cargo.lock cargo-version.txt checkout-sha.txt manifest.env report.tsv rustc-version.txt source-head-sha.txt > SHA256SUMS
+          )
+      - name: Upload BL-BE2 representation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bl-be2-representation-${{ github.event.pull_request.head.sha || github.sha }}
+          retention-days: 90
+          if-no-files-found: error
+          path: bl-be2-representation-evidence/
       - name: BL-4.4.2 deterministic Hamming frontier calibration
         run: cargo run -p booleanlab-discovery --bin bl4_hamming_frontier --release
       - name: BL-4.5.1 deterministic KV page calibration
