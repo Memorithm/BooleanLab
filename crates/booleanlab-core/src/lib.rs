@@ -54,7 +54,9 @@ pub use kleene_analysis::{
     KleeneProgramMismatch, analyze_kleene_program, compare_kleene_programs,
 };
 pub use kleene_conjunction::{
-    CompiledKleeneConjunction, KleeneConjunctionError, KleeneLiteral, MAX_COMPILED_KLEENE_INPUTS,
+    CompiledKleeneConjunction, KleeneConjunctionComparison, KleeneConjunctionComparisonError,
+    KleeneConjunctionError, KleeneConjunctionMismatch, KleeneLiteral, MAX_COMPILED_KLEENE_INPUTS,
+    compare_compiled_conjunction_with_program,
 };
 pub use kleene_conjunction_words::{
     CompiledMultiwordKleeneConjunction, MAX_MULTIWORD_KLEENE_INPUTS,
