@@ -68,7 +68,9 @@ pub use kleene_conjunction_words::{
     CompiledMultiwordKleeneConjunction, MAX_MULTIWORD_KLEENE_INPUTS,
     MultiwordKleeneConjunctionError,
 };
-pub use kleene_designated_relation::{KleeneDesignatedRelation, kleene_designated_relation};
+pub use kleene_designated_relation::{
+    KleeneDesignatedDifferenceWitness, KleeneDesignatedRelation, kleene_designated_relation,
+};
 pub use kleene_entailment::{
     KleeneEntailment, KleeneEntailmentError, KleeneEntailmentSide, KleeneEntailmentWitness,
     kleene_designated_entails,
