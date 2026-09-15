@@ -22,7 +22,7 @@ pub struct SynthesisRow {
 impl SynthesisRow {
     /// Construct one labelled predicate row.
     #[must_use]
-    pub const fn new(predicates: Vec<bool>, active: bool) -> Self {
+    pub fn new(predicates: Vec<bool>, active: bool) -> Self {
         Self { predicates, active }
     }
 
@@ -260,7 +260,7 @@ pub fn synthesize_exact_conjunction(
 mod tests {
     use super::*;
 
-    fn exhaustive_two_input_rows(label: impl Fn(bool, bool) -> bool) -> Vec<SynthesisRow> {
+    fn exhaustive_two_input_rows(label: fn(bool, bool) -> bool) -> Vec<SynthesisRow> {
         [false, true]
             .into_iter()
             .flat_map(|left| {
@@ -297,8 +297,8 @@ mod tests {
         let rows = exhaustive_two_input_rows(|left, right| left && right);
         let rule = synthesize_exact_conjunction(&rows, 2).unwrap().unwrap();
         assert_eq!(rule.literals().len(), 2);
-        assert_eq!(rule.evaluate(&[true, true]).unwrap(), true);
-        assert_eq!(rule.evaluate(&[true, false]).unwrap(), false);
+        assert!(rule.evaluate(&[true, true]).unwrap());
+        assert!(!rule.evaluate(&[true, false]).unwrap());
     }
 
     #[test]
