@@ -8,9 +8,7 @@
 //! The oracle is deliberately not a SAT/PB solver, production runtime gate, or
 //! performance claim. Work-limit exhaustion is an explicit non-result.
 
-use crate::{
-    DEFAULT_PSEUDO_BOOLEAN_MAX_ASSIGNMENTS, PseudoBooleanConstraint, PseudoBooleanError,
-};
+use crate::{DEFAULT_PSEUDO_BOOLEAN_MAX_ASSIGNMENTS, PseudoBooleanConstraint, PseudoBooleanError};
 
 /// First exact assignment showing that pseudo-Boolean implication does not hold.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
