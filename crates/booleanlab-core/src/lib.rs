@@ -19,6 +19,7 @@ pub mod kleene_designated_subsumption;
 pub mod kleene_entailment;
 pub mod kleene_semantic_key;
 pub mod pseudo_boolean;
+pub mod pseudo_boolean_normalization;
 pub mod sparsity;
 pub mod sparsity_dynamic;
 pub mod sparsity_ranking;
@@ -92,6 +93,9 @@ pub use pseudo_boolean::{
     DEFAULT_PSEUDO_BOOLEAN_MAX_ASSIGNMENTS, MAX_PSEUDO_BOOLEAN_TERMS, PseudoBooleanConstraint,
     PseudoBooleanError, PseudoBooleanRelation, pseudo_boolean_equivalent,
     pseudo_boolean_equivalent_with_work_limit,
+};
+pub use pseudo_boolean_normalization::{
+    primitive_pseudo_boolean_constraint, pseudo_boolean_common_factor,
 };
 pub use sparsity::{ExactMask, MaskCardinality, SparsityError};
 pub use sparsity_dynamic::{DynamicMaskError, dynamic_mask_from_predicates};
