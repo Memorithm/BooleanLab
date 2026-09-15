@@ -65,6 +65,75 @@ pub fn vectorial_differential_spectrum_with_work_limit(
     output_bits: u8,
     max_work: u128,
 ) -> Result<VectorialDifferentialSpectrum, VectorialMetricsError> {
+    let (rows, output_values, nonzero_inputs, outputs_u128) =
+        validate_table_and_work(table, input_bits, output_bits, max_work)?;
+
+    let mut counts = Vec::new();
+    counts
+        .try_reserve_exact(output_values)
+        .map_err(|_| VectorialMetricsError::AllocationFailed)?;
+    counts.resize(output_values, 0u32);
+
+    let spectrum_len = rows
+        .checked_add(1)
+        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+    let mut spectrum = Vec::new();
+    spectrum
+        .try_reserve_exact(spectrum_len)
+        .map_err(|_| VectorialMetricsError::AllocationFailed)?;
+    spectrum.resize(spectrum_len, 0u64);
+
+    let mut differential_uniformity = 0u32;
+    for input_difference in 1..rows {
+        counts.fill(0);
+        for x in 0..rows {
+            let output_difference = table[x] ^ table[x ^ input_difference];
+            let slot = &mut counts[usize::from(output_difference)];
+            *slot = slot
+                .checked_add(1)
+                .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+        }
+        for &count in &counts {
+            let bucket = spectrum
+                .get_mut(
+                    usize::try_from(count)
+                        .map_err(|_| VectorialMetricsError::ArithmeticOverflow)?,
+                )
+                .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+            *bucket = bucket
+                .checked_add(1)
+                .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+            differential_uniformity = differential_uniformity.max(count);
+        }
+    }
+
+    let cells = nonzero_inputs
+        .checked_mul(outputs_u128)
+        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+    debug_assert_eq!(
+        spectrum
+            .iter()
+            .map(|&count| u128::from(count))
+            .sum::<u128>(),
+        cells
+    );
+
+    Ok(VectorialDifferentialSpectrum {
+        input_bits,
+        output_bits,
+        rows,
+        cells,
+        spectrum,
+        differential_uniformity,
+    })
+}
+
+fn validate_table_and_work(
+    table: &[u16],
+    input_bits: u8,
+    output_bits: u8,
+    max_work: u128,
+) -> Result<(usize, usize, u128, u128), VectorialMetricsError> {
     if !(1..=MAX_VECTORIAL_INPUT_BITS).contains(&input_bits) {
         return Err(VectorialMetricsError::InputBitsOutOfRange { input_bits });
     }
@@ -96,8 +165,7 @@ pub fn vectorial_differential_spectrum_with_work_limit(
         }
     }
 
-    let rows_u128 =
-        u128::try_from(rows).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
+    let rows_u128 = u128::try_from(rows).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
     let outputs_u128 =
         u128::try_from(output_values).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
     let nonzero_inputs = rows_u128
@@ -124,58 +192,7 @@ pub fn vectorial_differential_spectrum_with_work_limit(
         });
     }
 
-    let mut counts = Vec::new();
-    counts
-        .try_reserve_exact(output_values)
-        .map_err(|_| VectorialMetricsError::AllocationFailed)?;
-    counts.resize(output_values, 0u32);
-
-    let spectrum_len = rows
-        .checked_add(1)
-        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-    let mut spectrum = Vec::new();
-    spectrum
-        .try_reserve_exact(spectrum_len)
-        .map_err(|_| VectorialMetricsError::AllocationFailed)?;
-    spectrum.resize(spectrum_len, 0u64);
-
-    let mut differential_uniformity = 0u32;
-    for input_difference in 1..rows {
-        counts.fill(0);
-        for x in 0..rows {
-            let output_difference = table[x] ^ table[x ^ input_difference];
-            let slot = &mut counts[usize::from(output_difference)];
-            *slot = slot
-                .checked_add(1)
-                .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-        }
-        for &count in &counts {
-            let bucket = spectrum
-                .get_mut(usize::try_from(count).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?)
-                .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-            *bucket = bucket
-                .checked_add(1)
-                .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-            differential_uniformity = differential_uniformity.max(count);
-        }
-    }
-
-    let cells = nonzero_inputs
-        .checked_mul(outputs_u128)
-        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-    debug_assert_eq!(
-        spectrum.iter().map(|&count| u128::from(count)).sum::<u128>(),
-        cells
-    );
-
-    Ok(VectorialDifferentialSpectrum {
-        input_bits,
-        output_bits,
-        rows,
-        cells,
-        spectrum,
-        differential_uniformity,
-    })
+    Ok((rows, output_values, nonzero_inputs, outputs_u128))
 }
 
 #[cfg(test)]
@@ -222,12 +239,18 @@ mod tests {
     fn spectrum_invariants_match_ddt_row_accounting() {
         let table = [0u16, 3, 1, 2];
         let spectrum = vectorial_differential_spectrum(&table, 2, 2).unwrap();
-        let cell_count = spectrum.spectrum.iter().map(|&count| u128::from(count)).sum::<u128>();
+        let cell_count = spectrum
+            .spectrum
+            .iter()
+            .map(|&count| u128::from(count))
+            .sum::<u128>();
         let weighted = spectrum
             .spectrum
             .iter()
             .enumerate()
-            .map(|(value, &frequency)| value as u128 * u128::from(frequency))
+            .map(|(value, &frequency)| {
+                u128::try_from(value).unwrap() * u128::from(frequency)
+            })
             .sum::<u128>();
         assert_eq!(cell_count, spectrum.cells);
         assert_eq!(weighted, 3 * 4);
