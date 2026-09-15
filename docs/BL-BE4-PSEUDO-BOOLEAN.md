@@ -22,10 +22,12 @@ The exact-oracle gate provides:
 - a returned normalization factor that can reconstruct the original representation by checked exact scaling;
 - exhaustive logical implication over a common declared Boolean domain, with the complete work bound checked before evaluation;
 - the first implication counterexample in canonical ascending assignment-mask order when entailment fails;
+- one-pass exact classification of satisfying sets as equivalent, antecedent-more-restrictive, consequent-more-restrictive, or incomparable;
+- exact satisfying-assignment counts and the first canonical witness for each strict set difference;
 - explicit non-results for work-bound exhaustion, arity mismatch, invalid assignment shape, zero scale, and scaling overflow.
 
 Positive integer rescaling is expected to preserve the Boolean truth table only when every scaled integer remains representable. Primitive normalization performs only the inverse case in which every integer is exactly divisible by a shared positive factor; it does not round or tighten thresholds. Fully zero constraints and already coprime forms remain unchanged with normalization factor `1`.
 
-The exhaustive oracle is the reference check for small domains; an overflow or work-limit failure is never interpreted as equivalence, non-equivalence, entailment, or non-entailment evidence. Common-factor normalization is a representation canonicalization aid, not by itself a complete pseudo-Boolean equivalence classifier: distinct primitive representations can still encode the same Boolean predicate. Exact implication is likewise only a bounded reference relation: it does not authorize rule removal in ElasticXxx and it is not a substitute for a resource-bounded SAT/PB backend.
+The exhaustive oracle is the reference check for small domains; an overflow or work-limit failure is never interpreted as equivalence, non-equivalence, entailment, non-entailment, or set-relation evidence. Common-factor normalization is a representation canonicalization aid, not by itself a complete pseudo-Boolean equivalence classifier: distinct primitive representations can still encode the same Boolean predicate. Exact implication and set-relation classification are likewise only bounded reference relations: they do not authorize rule removal in ElasticXxx and they are not substitutes for a resource-bounded SAT/PB backend.
 
 This programme does **not** yet provide a SAT/PB optimizer, LP/MIP backend, production guard representation, learned sparsity policy, performance benchmark, novelty claim, or cross-repository promotion. Any later backend must be differentially checked against the exact oracle and retain explicit resource limits.
