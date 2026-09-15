@@ -29,38 +29,24 @@ pub struct PseudoBooleanConstraint {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PseudoBooleanError {
-    TooManyTerms {
-        terms: usize,
-        max: usize,
-    },
-    ThresholdExceedsArity {
-        threshold: u64,
-        arity: usize,
-    },
-    AssignmentLengthMismatch {
-        expected: usize,
-        actual: usize,
-    },
-    ArityMismatch {
-        left: usize,
-        right: usize,
-    },
+    TooManyTerms { terms: usize, max: usize },
+    ThresholdExceedsArity { threshold: u64, arity: usize },
+    AssignmentLengthMismatch { expected: usize, actual: usize },
+    ArityMismatch { left: usize, right: usize },
     ZeroScale,
-    ScalingOverflow {
-        term: Option<usize>,
-    },
+    ScalingOverflow { term: Option<usize> },
     WorkAccountingOverflow,
-    WorkLimitExceeded {
-        required: u128,
-        limit: u128,
-    },
+    WorkLimitExceeded { required: u128, limit: u128 },
 }
 
 impl fmt::Display for PseudoBooleanError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TooManyTerms { terms, max } => {
-                write!(f, "pseudo-Boolean constraint has {terms} terms; maximum is {max}")
+                write!(
+                    f,
+                    "pseudo-Boolean constraint has {terms} terms; maximum is {max}"
+                )
             }
             Self::ThresholdExceedsArity { threshold, arity } => write!(
                 f,
@@ -74,9 +60,14 @@ impl fmt::Display for PseudoBooleanError {
                 f,
                 "pseudo-Boolean arity mismatch: left has {left} terms, right has {right}"
             ),
-            Self::ZeroScale => f.write_str("pseudo-Boolean exact scaling requires a positive factor"),
+            Self::ZeroScale => {
+                f.write_str("pseudo-Boolean exact scaling requires a positive factor")
+            }
             Self::ScalingOverflow { term: Some(term) } => {
-                write!(f, "pseudo-Boolean weight {term} overflowed during exact scaling")
+                write!(
+                    f,
+                    "pseudo-Boolean weight {term} overflowed during exact scaling"
+                )
             }
             Self::ScalingOverflow { term: None } => {
                 f.write_str("pseudo-Boolean threshold overflowed during exact scaling")
@@ -217,11 +208,7 @@ pub fn pseudo_boolean_equivalent(
     left: &PseudoBooleanConstraint,
     right: &PseudoBooleanConstraint,
 ) -> Result<bool, PseudoBooleanError> {
-    pseudo_boolean_equivalent_with_work_limit(
-        left,
-        right,
-        DEFAULT_PSEUDO_BOOLEAN_MAX_ASSIGNMENTS,
-    )
+    pseudo_boolean_equivalent_with_work_limit(left, right, DEFAULT_PSEUDO_BOOLEAN_MAX_ASSIGNMENTS)
 }
 
 pub fn pseudo_boolean_equivalent_with_work_limit(
@@ -235,7 +222,8 @@ pub fn pseudo_boolean_equivalent_with_work_limit(
             right: right.arity(),
         });
     }
-    let shift = u32::try_from(left.arity()).map_err(|_| PseudoBooleanError::WorkAccountingOverflow)?;
+    let shift =
+        u32::try_from(left.arity()).map_err(|_| PseudoBooleanError::WorkAccountingOverflow)?;
     let assignments = 1u128
         .checked_shl(shift)
         .ok_or(PseudoBooleanError::WorkAccountingOverflow)?;
@@ -261,12 +249,8 @@ mod tests {
 
     #[test]
     fn weighted_and_cardinality_constraints_are_exact() {
-        let weighted = PseudoBooleanConstraint::new(
-            vec![2, 3, 5],
-            5,
-            PseudoBooleanRelation::AtLeast,
-        )
-        .unwrap();
+        let weighted =
+            PseudoBooleanConstraint::new(vec![2, 3, 5], 5, PseudoBooleanRelation::AtLeast).unwrap();
         assert!(weighted.evaluate(&[false, false, true]).unwrap());
         assert!(weighted.evaluate(&[true, true, false]).unwrap());
         assert!(!weighted.evaluate(&[true, false, false]).unwrap());
@@ -290,36 +274,26 @@ mod tests {
 
     #[test]
     fn positive_integer_scaling_preserves_truth_table_exhaustively() {
-        let original = PseudoBooleanConstraint::new(
-            vec![2, 5, 7, 11],
-            13,
-            PseudoBooleanRelation::AtMost,
-        )
-        .unwrap();
+        let original =
+            PseudoBooleanConstraint::new(vec![2, 5, 7, 11], 13, PseudoBooleanRelation::AtMost)
+                .unwrap();
         let scaled = original.scaled(7).unwrap();
         assert!(pseudo_boolean_equivalent(&original, &scaled).unwrap());
     }
 
     #[test]
     fn scaling_overflow_and_zero_scale_fail_closed() {
-        let constraint = PseudoBooleanConstraint::new(
-            vec![u64::MAX],
-            1,
-            PseudoBooleanRelation::AtLeast,
-        )
-        .unwrap();
+        let constraint =
+            PseudoBooleanConstraint::new(vec![u64::MAX], 1, PseudoBooleanRelation::AtLeast)
+                .unwrap();
         assert_eq!(constraint.scaled(0), Err(PseudoBooleanError::ZeroScale));
         assert_eq!(
             constraint.scaled(2),
             Err(PseudoBooleanError::ScalingOverflow { term: Some(0) })
         );
 
-        let threshold_overflow = PseudoBooleanConstraint::new(
-            vec![1],
-            u64::MAX,
-            PseudoBooleanRelation::AtMost,
-        )
-        .unwrap();
+        let threshold_overflow =
+            PseudoBooleanConstraint::new(vec![1], u64::MAX, PseudoBooleanRelation::AtMost).unwrap();
         assert_eq!(
             threshold_overflow.scaled(2),
             Err(PseudoBooleanError::ScalingOverflow { term: None })
@@ -344,12 +318,8 @@ mod tests {
 
     #[test]
     fn invalid_shape_inputs_are_rejected() {
-        let constraint = PseudoBooleanConstraint::new(
-            vec![1, 2],
-            1,
-            PseudoBooleanRelation::AtLeast,
-        )
-        .unwrap();
+        let constraint =
+            PseudoBooleanConstraint::new(vec![1, 2], 1, PseudoBooleanRelation::AtLeast).unwrap();
         assert_eq!(
             constraint.evaluate(&[true]),
             Err(PseudoBooleanError::AssignmentLengthMismatch {
