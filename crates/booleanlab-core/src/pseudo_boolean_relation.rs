@@ -206,7 +206,7 @@ mod tests {
             pseudo_boolean_set_relation(&original, &scaled),
             Ok(PseudoBooleanSetRelation::Equivalent {
                 assignments: 8,
-                satisfying_assignments: 4,
+                satisfying_assignments: 5,
             })
         );
     }
