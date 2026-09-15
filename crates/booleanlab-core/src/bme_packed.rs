@@ -263,9 +263,12 @@ pub fn packed_thresholded_xnor_product_rows_columns(
             width: inner_width,
         });
     }
-    packed_product_with(left_rows, right_columns, inner_width, |left, right, width| {
-        packed_thresholded_xnor_cell(left, right, width, threshold)
-    })
+    packed_product_with(
+        left_rows,
+        right_columns,
+        inner_width,
+        |left, right, width| packed_thresholded_xnor_cell(left, right, width, threshold),
+    )
 }
 
 #[cfg(test)]
