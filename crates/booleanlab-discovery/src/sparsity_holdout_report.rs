@@ -206,11 +206,8 @@ mod tests {
         ];
         let selection = FrozenSparsitySelection::from_search_frontier(&search).unwrap();
         assert_eq!(selection.candidate_ids(), &["a", "b"]);
-        FrozenSparsityRuleSelection::bind_search_rules(
-            selection,
-            &[binding("a"), binding("b")],
-        )
-        .unwrap()
+        FrozenSparsityRuleSelection::bind_search_rules(selection, &[binding("a"), binding("b")])
+            .unwrap()
     }
 
     fn holdout_item(
@@ -257,12 +254,9 @@ mod tests {
                 "run-001",
             ),
         ];
-        let report = build_holdout_resource_report(
-            &frozen,
-            &holdout,
-            &[binding("b"), binding("a")],
-        )
-        .unwrap();
+        let report =
+            build_holdout_resource_report(&frozen, &holdout, &[binding("b"), binding("a")])
+                .unwrap();
 
         assert_eq!(
             report
@@ -321,11 +315,11 @@ mod tests {
             report
                 .rows
                 .iter()
-                .map(|row| row.candidate.candidate_id.as_str())
+                .map(|row| row.candidate.candidate_id.clone())
                 .collect::<Vec<_>>()
         };
-        assert_eq!(ids(&first_report), vec!["a", "b"]);
-        assert_eq!(ids(&second_report), vec!["a", "b"]);
+        assert_eq!(ids(&first_report), vec!["a".to_owned(), "b".to_owned()]);
+        assert_eq!(ids(&second_report), vec!["a".to_owned(), "b".to_owned()]);
     }
 
     #[test]
@@ -350,11 +344,7 @@ mod tests {
         );
 
         assert!(matches!(
-            build_holdout_resource_report(
-                &frozen,
-                &[search, other],
-                &[binding("a"), binding("b")],
-            ),
+            build_holdout_resource_report(&frozen, &[search, other], &[binding("a"), binding("b")],),
             Err(HoldoutReportError::SemanticFreeze(_))
         ));
     }
