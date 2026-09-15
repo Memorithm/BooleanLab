@@ -291,18 +291,10 @@ fn main() -> Result<(), io::Error> {
         CompiledMultiwordKleeneConjunction::compile(MULTIWORD_ARITY, &multiword_literals)
             .expect("fixed multiword benchmark panel is within the multiword bound");
     let multiword_inputs = corpus(MULTIWORD_ARITY, seed.rotate_left(23));
-    verify_multiword_panel(
-        &multiword_program,
-        &multiword_compiled,
-        &multiword_inputs,
-    );
+    verify_multiword_panel(&multiword_program, &multiword_compiled, &multiword_inputs);
 
     warm_up(&u64_program, &u64_multiword, &u64_inputs);
-    warm_up(
-        &multiword_program,
-        &multiword_compiled,
-        &multiword_inputs,
-    );
+    warm_up(&multiword_program, &multiword_compiled, &multiword_inputs);
 
     println!("schema\t{SCHEMA}");
     println!("seed\t{seed}");
