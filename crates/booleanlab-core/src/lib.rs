@@ -14,6 +14,7 @@ pub mod kleene;
 pub mod kleene_analysis;
 pub mod kleene_conjunction;
 pub mod kleene_conjunction_words;
+pub mod kleene_designated_relation;
 pub mod kleene_entailment;
 pub mod kleene_semantic_key;
 pub mod sparsity;
@@ -67,6 +68,7 @@ pub use kleene_conjunction_words::{
     CompiledMultiwordKleeneConjunction, MAX_MULTIWORD_KLEENE_INPUTS,
     MultiwordKleeneConjunctionError,
 };
+pub use kleene_designated_relation::{KleeneDesignatedRelation, kleene_designated_relation};
 pub use kleene_entailment::{
     KleeneEntailment, KleeneEntailmentError, KleeneEntailmentSide, KleeneEntailmentWitness,
     kleene_designated_entails,
