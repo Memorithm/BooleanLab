@@ -1,0 +1,36 @@
+name: One-shot format BL-BE4 redundancy
+
+on:
+  push:
+    branches:
+      - feat/bl-be4-redundancy-oracle
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor == 'CHECKUPAUTO'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Apply repository rustfmt
+        run: cargo fmt --all
+      - name: Validate whitespace
+        run: git diff --check
+      - name: Commit formatting and remove one-shot workflow
+        env:
+          BRANCH: feat/bl-be4-redundancy-oracle
+        run: |
+          set -euo pipefail
+          git config user.name 'ZEKRITI TAREK'
+          git config user.email 'contact@checkupauto.fr'
+          git rm .github/workflows/zz-one-shot-format-redundancy.yml
+          git add crates/booleanlab-core/src/pseudo_boolean_redundancy.rs crates/booleanlab-core/src/lib.rs
+          git commit -m 'style(bl-be4): apply repository rustfmt'
+          git push origin "HEAD:${BRANCH}"
