@@ -33,6 +33,7 @@ pub mod state;
 pub mod vectorial_degree;
 pub mod vectorial_differential_spectrum;
 pub mod vectorial_metrics;
+pub mod vectorial_walsh_spectrum;
 
 pub use attention::{
     AdmissionScore, AttentionRouterError, BitSignature, admit_by_hamming, hamming_admission_row,
@@ -137,4 +138,7 @@ pub use vectorial_metrics::{
     DEFAULT_VECTORIAL_MAX_WORK, DifferentialUniformityWitness, MAX_VECTORIAL_INPUT_BITS,
     MAX_VECTORIAL_OUTPUT_BITS, VectorialBooleanMetrics, VectorialMetricsError,
     VectorialWalshWitness, vectorial_boolean_metrics, vectorial_boolean_metrics_with_work_limit,
+};
+pub use vectorial_walsh_spectrum::{
+    VectorialWalshSpectrum, vectorial_walsh_spectrum, vectorial_walsh_spectrum_with_work_limit,
 };
