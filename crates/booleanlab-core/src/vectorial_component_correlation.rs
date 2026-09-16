@@ -159,7 +159,7 @@ fn correlation_immunity_order(
     walsh: &[i64],
     input_bits: u8,
 ) -> Result<u8, VectorialMetricsError> {
-    let mut smallest_support_weight = None;
+    let mut smallest_support_weight: Option<u8> = None;
     for (input_mask, &coefficient) in walsh.iter().enumerate().skip(1) {
         if coefficient == 0 {
             continue;
