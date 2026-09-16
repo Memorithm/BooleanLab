@@ -22,6 +22,7 @@ pub mod pseudo_boolean;
 pub mod pseudo_boolean_conjunction_entailment;
 pub mod pseudo_boolean_entailment;
 pub mod pseudo_boolean_normalization;
+pub mod pseudo_boolean_redundancy;
 pub mod pseudo_boolean_relation;
 pub mod sparsity;
 pub mod sparsity_dynamic;
@@ -113,6 +114,10 @@ pub use pseudo_boolean_entailment::{
 };
 pub use pseudo_boolean_normalization::{
     primitive_pseudo_boolean_constraint, pseudo_boolean_common_factor,
+};
+pub use pseudo_boolean_redundancy::{
+    PseudoBooleanRedundancyError, pseudo_boolean_redundant_indices,
+    pseudo_boolean_redundant_indices_with_work_limit,
 };
 pub use pseudo_boolean_relation::{
     PseudoBooleanDifferenceWitness, PseudoBooleanSetRelation, pseudo_boolean_set_relation,
