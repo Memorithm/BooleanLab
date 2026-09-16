@@ -75,8 +75,9 @@ impl fmt::Display for PseudoBooleanConjunctionError {
                 formatter,
                 "pseudo-Boolean antecedent {antecedent_index} has arity {antecedent_arity}; consequent arity is {consequent_arity}"
             ),
-            Self::WorkAccountingOverflow => formatter
-                .write_str("pseudo-Boolean conjunction work accounting overflowed"),
+            Self::WorkAccountingOverflow => {
+                formatter.write_str("pseudo-Boolean conjunction work accounting overflowed")
+            }
             Self::WorkLimitExceeded {
                 required_evaluations,
                 limit,
@@ -84,7 +85,9 @@ impl fmt::Display for PseudoBooleanConjunctionError {
                 formatter,
                 "pseudo-Boolean conjunction requires at most {required_evaluations} predicate evaluations; limit is {limit}"
             ),
-            Self::Constraint(error) => write!(formatter, "pseudo-Boolean constraint error: {error}"),
+            Self::Constraint(error) => {
+                write!(formatter, "pseudo-Boolean constraint error: {error}")
+            }
         }
     }
 }
