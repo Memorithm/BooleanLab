@@ -70,56 +70,8 @@ pub fn vectorial_component_weight_spectrum_with_work_limit(
     output_bits: u8,
     max_work: u128,
 ) -> Result<VectorialComponentWeightSpectrum, VectorialMetricsError> {
-    if !(1..=MAX_VECTORIAL_INPUT_BITS).contains(&input_bits) {
-        return Err(VectorialMetricsError::InputBitsOutOfRange { input_bits });
-    }
-    if !(1..=MAX_VECTORIAL_OUTPUT_BITS).contains(&output_bits) {
-        return Err(VectorialMetricsError::OutputBitsOutOfRange { output_bits });
-    }
-
-    let rows = 1usize
-        .checked_shl(u32::from(input_bits))
-        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-    if table.len() != rows {
-        return Err(VectorialMetricsError::TableLengthMismatch {
-            expected: rows,
-            actual: table.len(),
-        });
-    }
-
-    let output_values = 1usize
-        .checked_shl(u32::from(output_bits))
-        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-    let output_limit =
-        u32::try_from(output_values).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
-    for (index, &value) in table.iter().enumerate() {
-        if u32::from(value) >= output_limit {
-            return Err(VectorialMetricsError::OutputOutOfRange {
-                index,
-                value,
-                output_bits,
-            });
-        }
-    }
-
-    let rows_u128 = u128::try_from(rows).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
-    let components = u128::try_from(output_values)
-        .map_err(|_| VectorialMetricsError::ArithmeticOverflow)?
-        .checked_sub(1)
-        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-    let required = rows_u128
-        .checked_add(
-            rows_u128
-                .checked_mul(components)
-                .ok_or(VectorialMetricsError::ArithmeticOverflow)?,
-        )
-        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
-    if required > max_work {
-        return Err(VectorialMetricsError::WorkLimitExceeded {
-            required,
-            limit: max_work,
-        });
-    }
+    let (rows, output_values, components) =
+        validate_table_and_work(table, input_bits, output_bits, max_work)?;
 
     let spectrum_len = rows
         .checked_add(1)
@@ -183,6 +135,66 @@ pub fn vectorial_component_weight_spectrum_with_work_limit(
         min_weight,
         max_weight,
     })
+}
+
+fn validate_table_and_work(
+    table: &[u16],
+    input_bits: u8,
+    output_bits: u8,
+    max_work: u128,
+) -> Result<(usize, usize, u128), VectorialMetricsError> {
+    if !(1..=MAX_VECTORIAL_INPUT_BITS).contains(&input_bits) {
+        return Err(VectorialMetricsError::InputBitsOutOfRange { input_bits });
+    }
+    if !(1..=MAX_VECTORIAL_OUTPUT_BITS).contains(&output_bits) {
+        return Err(VectorialMetricsError::OutputBitsOutOfRange { output_bits });
+    }
+
+    let rows = 1usize
+        .checked_shl(u32::from(input_bits))
+        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+    if table.len() != rows {
+        return Err(VectorialMetricsError::TableLengthMismatch {
+            expected: rows,
+            actual: table.len(),
+        });
+    }
+
+    let output_values = 1usize
+        .checked_shl(u32::from(output_bits))
+        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+    let output_limit =
+        u32::try_from(output_values).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
+    for (index, &value) in table.iter().enumerate() {
+        if u32::from(value) >= output_limit {
+            return Err(VectorialMetricsError::OutputOutOfRange {
+                index,
+                value,
+                output_bits,
+            });
+        }
+    }
+
+    let rows_u128 = u128::try_from(rows).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
+    let components = u128::try_from(output_values)
+        .map_err(|_| VectorialMetricsError::ArithmeticOverflow)?
+        .checked_sub(1)
+        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+    let required = rows_u128
+        .checked_add(
+            rows_u128
+                .checked_mul(components)
+                .ok_or(VectorialMetricsError::ArithmeticOverflow)?,
+        )
+        .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
+    if required > max_work {
+        return Err(VectorialMetricsError::WorkLimitExceeded {
+            required,
+            limit: max_work,
+        });
+    }
+
+    Ok((rows, output_values, components))
 }
 
 #[cfg(test)]
