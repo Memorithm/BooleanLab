@@ -31,6 +31,7 @@ pub mod sparsity_static;
 pub mod sparsity_structured;
 pub mod sparsity_synthesis;
 pub mod state;
+pub mod vectorial_ccz_screen;
 pub mod vectorial_component_correlation;
 pub mod vectorial_component_weights;
 pub mod vectorial_degree;
@@ -133,6 +134,10 @@ pub use sparsity_synthesis::{
     SynthesisRow, synthesize_exact_conjunction,
 };
 pub use state::{BitState, StateError};
+pub use vectorial_ccz_screen::{
+    VectorialCczMismatch, VectorialCczScreen, VectorialCczScreenError,
+    vectorial_ccz_invariant_screen, vectorial_ccz_invariant_screen_with_work_limit,
+};
 pub use vectorial_component_correlation::{
     VectorialComponentCorrelationProfile, vectorial_component_correlation_profile,
     vectorial_component_correlation_profile_with_work_limit,
