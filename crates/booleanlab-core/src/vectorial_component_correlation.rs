@@ -127,11 +127,13 @@ pub fn vectorial_component_correlation_profile_with_work_limit(
 
     let component_count =
         u64::try_from(components).map_err(|_| VectorialMetricsError::ArithmeticOverflow)?;
-    let vectorial_resiliency_order =
-        (balanced_components == component_count).then_some(min_order);
+    let vectorial_resiliency_order = (balanced_components == component_count).then_some(min_order);
 
     debug_assert_eq!(
-        spectrum.iter().map(|&count| u128::from(count)).sum::<u128>(),
+        spectrum
+            .iter()
+            .map(|&count| u128::from(count))
+            .sum::<u128>(),
         components
     );
 
@@ -155,10 +157,7 @@ fn build_component(table: &[u16], output_mask: u16, component: &mut [i64]) {
     }
 }
 
-fn correlation_immunity_order(
-    walsh: &[i64],
-    input_bits: u8,
-) -> Result<u8, VectorialMetricsError> {
+fn correlation_immunity_order(walsh: &[i64], input_bits: u8) -> Result<u8, VectorialMetricsError> {
     let mut smallest_support_weight: Option<u8> = None;
     for (input_mask, &coefficient) in walsh.iter().enumerate().skip(1) {
         if coefficient == 0 {
