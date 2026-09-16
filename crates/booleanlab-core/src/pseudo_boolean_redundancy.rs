@@ -3,7 +3,8 @@
 //! A constraint is individually redundant when the conjunction of every other
 //! constraint entails it over the complete shared Boolean domain. The result is
 //! a reference oracle for small-domain analysis only: several constraints may be
-//! individually redundant without being safe to delete simultaneously.
+//! individually redundant without being safe to delete simultaneously. Reported
+//! indices are diagnostic evidence and never an automatic rewrite plan.
 
 use core::fmt;
 
