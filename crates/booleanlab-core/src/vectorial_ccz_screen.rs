@@ -42,8 +42,12 @@ pub enum VectorialCczScreenError {
 impl fmt::Display for VectorialCczScreenError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Left(error) => write!(formatter, "left CCZ invariant computation failed: {error}"),
-            Self::Right(error) => write!(formatter, "right CCZ invariant computation failed: {error}"),
+            Self::Left(error) => {
+                write!(formatter, "left CCZ invariant computation failed: {error}")
+            }
+            Self::Right(error) => {
+                write!(formatter, "right CCZ invariant computation failed: {error}")
+            }
         }
     }
 }
