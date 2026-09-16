@@ -127,10 +127,7 @@ pub fn pseudo_boolean_redundant_indices_with_work_limit(
             target_index,
             source,
         })?;
-        if matches!(
-            result,
-            PseudoBooleanConjunctionImplication::Entails { .. }
-        ) {
+        if matches!(result, PseudoBooleanConjunctionImplication::Entails { .. }) {
             redundant.push(target_index);
         }
     }
@@ -163,7 +160,10 @@ mod tests {
             PseudoBooleanConstraint::cardinality(2, 1, PseudoBooleanRelation::AtLeast).unwrap();
 
         assert_eq!(pseudo_boolean_redundant_indices(&[tautology]), Ok(vec![0]));
-        assert_eq!(pseudo_boolean_redundant_indices(&[non_tautology]), Ok(vec![]));
+        assert_eq!(
+            pseudo_boolean_redundant_indices(&[non_tautology]),
+            Ok(vec![])
+        );
     }
 
     #[test]
