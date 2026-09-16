@@ -30,6 +30,7 @@ pub mod sparsity_static;
 pub mod sparsity_structured;
 pub mod sparsity_synthesis;
 pub mod state;
+pub mod vectorial_component_weights;
 pub mod vectorial_degree;
 pub mod vectorial_differential_spectrum;
 pub mod vectorial_metrics;
@@ -125,6 +126,10 @@ pub use sparsity_synthesis::{
     SynthesisRow, synthesize_exact_conjunction,
 };
 pub use state::{BitState, StateError};
+pub use vectorial_component_weights::{
+    VectorialComponentWeightSpectrum, vectorial_component_weight_spectrum,
+    vectorial_component_weight_spectrum_with_work_limit,
+};
 pub use vectorial_degree::{
     DEFAULT_VECTORIAL_DEGREE_MAX_WORK, MAX_VECTORIAL_DEGREE_INPUT_BITS,
     MAX_VECTORIAL_DEGREE_OUTPUT_BITS, VectorialDegreeError, VectorialDegreeProfile,
