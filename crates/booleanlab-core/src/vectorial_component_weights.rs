@@ -166,7 +166,10 @@ pub fn vectorial_component_weight_spectrum_with_work_limit(
     }
 
     debug_assert_eq!(
-        spectrum.iter().map(|&count| u128::from(count)).sum::<u128>(),
+        spectrum
+            .iter()
+            .map(|&count| u128::from(count))
+            .sum::<u128>(),
         components
     );
 
@@ -206,7 +209,11 @@ mod tests {
         assert_eq!(spectrum.balanced_components, 15);
         assert_eq!(spectrum.spectrum[8], 15);
         assert_eq!(
-            spectrum.spectrum.iter().map(|&count| u128::from(count)).sum::<u128>(),
+            spectrum
+                .spectrum
+                .iter()
+                .map(|&count| u128::from(count))
+                .sum::<u128>(),
             15
         );
     }
