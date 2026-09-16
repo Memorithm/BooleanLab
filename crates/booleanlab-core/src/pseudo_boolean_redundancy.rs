@@ -23,6 +23,13 @@ pub enum PseudoBooleanRedundancyError {
         expected_arity: usize,
         actual_arity: usize,
     },
+    /// Conservative total-work accounting overflowed before any target check.
+    WorkAccountingOverflow,
+    /// The complete redundancy screen exceeds its total predicate-evaluation limit.
+    WorkLimitExceeded {
+        required_evaluations: u128,
+        limit: u128,
+    },
     /// The bounded implication oracle failed for one target constraint.
     Entailment {
         target_index: usize,
@@ -41,6 +48,16 @@ impl fmt::Display for PseudoBooleanRedundancyError {
                 formatter,
                 "pseudo-Boolean constraint {constraint_index} has arity {actual_arity}; expected shared arity {expected_arity}"
             ),
+            Self::WorkAccountingOverflow => {
+                formatter.write_str("pseudo-Boolean redundancy work accounting overflowed")
+            }
+            Self::WorkLimitExceeded {
+                required_evaluations,
+                limit,
+            } => write!(
+                formatter,
+                "pseudo-Boolean redundancy screen requires at most {required_evaluations} predicate evaluations; limit is {limit}"
+            ),
             Self::Entailment {
                 target_index,
                 source,
@@ -55,14 +72,16 @@ impl fmt::Display for PseudoBooleanRedundancyError {
 impl std::error::Error for PseudoBooleanRedundancyError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::ArityMismatch { .. } => None,
+            Self::ArityMismatch { .. }
+            | Self::WorkAccountingOverflow
+            | Self::WorkLimitExceeded { .. } => None,
             Self::Entailment { source, .. } => Some(source),
         }
     }
 }
 
 /// Return the indices of constraints that are individually entailed by all of
-/// the other constraints under the default per-target work budget.
+/// the other constraints under the default total work budget.
 ///
 /// The empty set has no redundant constraints. For a singleton, the empty
 /// antecedent is logical `true`, so the sole constraint is redundant exactly
@@ -75,9 +94,10 @@ impl std::error::Error for PseudoBooleanRedundancyError {
 /// # Errors
 ///
 /// Returns [`PseudoBooleanRedundancyError::ArityMismatch`] when the constraints
-/// do not share one Boolean domain, or an entailment error when exact bounded
-/// analysis for a target cannot be completed. Resource exhaustion is a
-/// non-result rather than evidence of redundancy.
+/// do not share one Boolean domain, a work-accounting error on overflow, a
+/// work-limit error before any cloned antecedent is constructed, or an entailment
+/// error when exact bounded analysis for one target cannot be completed. Resource
+/// exhaustion is a non-result rather than evidence of redundancy.
 pub fn pseudo_boolean_redundant_indices(
     constraints: &[PseudoBooleanConstraint],
 ) -> Result<Vec<usize>, PseudoBooleanRedundancyError> {
@@ -88,14 +108,20 @@ pub fn pseudo_boolean_redundant_indices(
 }
 
 /// Return individually redundant constraint indices with an explicit
-/// conservative predicate-evaluation limit for each target check.
+/// conservative total predicate-evaluation limit for the complete screen.
+///
+/// For `n` constraints over arity `a`, every target check has `n - 1`
+/// antecedents plus one consequent. The conservative total upper bound is thus
+/// `2^a * n^2`. It is checked before constructing any cloned antecedent vector,
+/// so a large constraint set cannot evade the budget by resetting a per-target
+/// limit.
 ///
 /// # Errors
 ///
 /// Returns the same failures as [`pseudo_boolean_redundant_indices`].
 pub fn pseudo_boolean_redundant_indices_with_work_limit(
     constraints: &[PseudoBooleanConstraint],
-    max_evaluations_per_target: u128,
+    max_evaluations: u128,
 ) -> Result<Vec<usize>, PseudoBooleanRedundancyError> {
     let Some(first) = constraints.first() else {
         return Ok(Vec::new());
@@ -111,6 +137,27 @@ pub fn pseudo_boolean_redundant_indices_with_work_limit(
         }
     }
 
+    let shift = u32::try_from(expected_arity)
+        .map_err(|_| PseudoBooleanRedundancyError::WorkAccountingOverflow)?;
+    let assignments = 1u128
+        .checked_shl(shift)
+        .ok_or(PseudoBooleanRedundancyError::WorkAccountingOverflow)?;
+    let constraint_count = u128::try_from(constraints.len())
+        .map_err(|_| PseudoBooleanRedundancyError::WorkAccountingOverflow)?;
+    let required_evaluations = assignments
+        .checked_mul(constraint_count)
+        .and_then(|work| work.checked_mul(constraint_count))
+        .ok_or(PseudoBooleanRedundancyError::WorkAccountingOverflow)?;
+    if required_evaluations > max_evaluations {
+        return Err(PseudoBooleanRedundancyError::WorkLimitExceeded {
+            required_evaluations,
+            limit: max_evaluations,
+        });
+    }
+
+    let per_target_evaluations = assignments
+        .checked_mul(constraint_count)
+        .ok_or(PseudoBooleanRedundancyError::WorkAccountingOverflow)?;
     let mut redundant = Vec::new();
     for target_index in 0..constraints.len() {
         let antecedents: Vec<PseudoBooleanConstraint> = constraints
@@ -122,7 +169,7 @@ pub fn pseudo_boolean_redundant_indices_with_work_limit(
         let result = pseudo_boolean_conjunction_implies_with_work_limit(
             &antecedents,
             &constraints[target_index],
-            max_evaluations_per_target,
+            per_target_evaluations,
         )
         .map_err(|source| PseudoBooleanRedundancyError::Entailment {
             target_index,
@@ -196,21 +243,33 @@ mod tests {
     }
 
     #[test]
-    fn per_target_work_limit_exhaustion_is_a_non_result() {
+    fn total_work_limit_exhaustion_is_a_non_result_before_cloning() {
         let at_least_one =
             PseudoBooleanConstraint::cardinality(3, 1, PseudoBooleanRelation::AtLeast).unwrap();
         let at_least_two =
             PseudoBooleanConstraint::cardinality(3, 2, PseudoBooleanRelation::AtLeast).unwrap();
 
-        assert!(matches!(
-            pseudo_boolean_redundant_indices_with_work_limit(&[at_least_one, at_least_two], 15),
-            Err(PseudoBooleanRedundancyError::Entailment {
-                target_index: 0,
-                source: PseudoBooleanConjunctionError::WorkLimitExceeded {
-                    required_evaluations: 16,
-                    limit: 15,
-                },
+        assert_eq!(
+            pseudo_boolean_redundant_indices_with_work_limit(&[at_least_one, at_least_two], 31),
+            Err(PseudoBooleanRedundancyError::WorkLimitExceeded {
+                required_evaluations: 32,
+                limit: 31,
             })
-        ));
+        );
+    }
+
+    #[test]
+    fn total_budget_accounts_for_every_target_check() {
+        let tautology =
+            PseudoBooleanConstraint::cardinality(0, 0, PseudoBooleanRelation::Exactly).unwrap();
+        let constraints = vec![tautology; 8];
+
+        assert_eq!(
+            pseudo_boolean_redundant_indices_with_work_limit(&constraints, 63),
+            Err(PseudoBooleanRedundancyError::WorkLimitExceeded {
+                required_evaluations: 64,
+                limit: 63,
+            })
+        );
     }
 }
