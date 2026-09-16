@@ -17,7 +17,7 @@ The Walsh implementation stores coefficients for every non-zero output mask. For
 
 `vectorial_ccz_invariant_screen_with_work_limit` applies an explicit work limit to each individual exact spectrum calculation and stops at the first invariant mismatch. Any malformed truth table, out-of-range output, arithmetic/allocation failure or work-limit exhaustion is an error/non-result, never evidence for or against equivalence.
 
-A matching result is intentionally named `Inconclusive`. Equal spectra do not establish CCZ-equivalence, EA-equivalence, cryptographic suitability, common mechanism, prior-art status or novelty. Algebraic degree is not added as a CCZ rejection invariant because it is not preserved by CCZ-equivalence in general.
+A matching result is intentionally named `Inconclusive`. The API has no positive-equivalence state. Equal spectra do not establish CCZ-equivalence, EA-equivalence, cryptographic suitability, common mechanism, prior-art status or novelty. Algebraic degree is not added as a CCZ rejection invariant because it is not preserved by CCZ-equivalence in general.
 
 Regression fixtures cover:
 
