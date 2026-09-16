@@ -182,9 +182,11 @@ fn validate_table_and_work(
         .checked_sub(1)
         .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
     let per_component = rows_u128
-        .checked_mul(u128::from(input_bits).checked_add(2).ok_or(
-            VectorialMetricsError::ArithmeticOverflow,
-        )?)
+        .checked_mul(
+            u128::from(input_bits)
+                .checked_add(2)
+                .ok_or(VectorialMetricsError::ArithmeticOverflow)?,
+        )
         .ok_or(VectorialMetricsError::ArithmeticOverflow)?;
     let required = rows_u128
         .checked_add(
