@@ -44,12 +44,9 @@ fn exhaustive_four_bit_two_key_pages_never_false_reject() {
                 );
 
                 for max_distance in 0..=BITS as u64 {
-                    let page_admitted = admit_page_by_hamming_lower_bound(
-                        &query,
-                        &page,
-                        max_distance,
-                    )
-                    .expect("bounded threshold");
+                    let page_admitted =
+                        admit_page_by_hamming_lower_bound(&query, &page, max_distance)
+                            .expect("bounded threshold");
                     let exact_any_admitted = exact_distances
                         .iter()
                         .any(|&distance| distance <= max_distance);
