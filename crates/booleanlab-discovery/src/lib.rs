@@ -23,6 +23,7 @@ pub mod sparsity_rule_evidence;
 pub mod sparsity_rule_search;
 pub mod sparsity_semantic_freeze;
 pub mod sparsity_synthesis_freeze;
+pub mod tropical;
 
 use std::collections::BTreeMap;
 use std::fmt;
