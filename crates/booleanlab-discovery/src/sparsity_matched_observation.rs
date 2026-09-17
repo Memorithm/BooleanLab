@@ -9,7 +9,7 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
-use crate::sparsity_matched_evaluation::MatchedEvaluationArmSet;
+use crate::sparsity_matched_evaluation::{MatchedEvaluationArmKind, MatchedEvaluationArmSet};
 use crate::sparsity_rule_evidence::ResourceEvidenceKind;
 
 /// Version of the BL-14 matched observation contract.
@@ -41,6 +41,8 @@ pub struct MatchedResourceObservation {
 pub struct MatchedArmObservation {
     /// Exact arm identity from [`MatchedEvaluationArmSet`].
     pub arm_id: String,
+    /// Stable fingerprint of the complete frozen arm set, including every exact mask.
+    pub arm_set_fingerprint: u64,
     /// Stable identifier for the independently scored task-quality metric.
     pub quality_metric_id: String,
     /// Signed loss delta relative to the declared dense/reference convention.
@@ -108,8 +110,16 @@ pub enum MatchedObservationError {
         expected: String,
         actual: String,
     },
+    ArmSetFingerprintMismatch {
+        arm_id: String,
+        expected: u64,
+        actual: u64,
+    },
     EmptyQualityMetricId {
         arm_id: String,
+    },
+    DenseReferenceLossMustBeZero {
+        actual: i64,
     },
     QualityMetricMismatch {
         expected: String,
@@ -196,6 +206,7 @@ pub fn bind_matched_observations(
         });
     }
 
+    let arm_set_fingerprint = matched_evaluation_arm_set_fingerprint(arms);
     let mut ids = BTreeSet::new();
     let mut expected_quality_metric: Option<&str> = None;
     let mut expected_resource_kind: Option<ResourceEvidenceKind> = None;
@@ -216,6 +227,18 @@ pub fn bind_matched_observations(
                 index,
                 expected: arm.arm_id().to_owned(),
                 actual: observation.arm_id.clone(),
+            });
+        }
+        if observation.arm_set_fingerprint != arm_set_fingerprint {
+            return Err(MatchedObservationError::ArmSetFingerprintMismatch {
+                arm_id: observation.arm_id.clone(),
+                expected: arm_set_fingerprint,
+                actual: observation.arm_set_fingerprint,
+            });
+        }
+        if arm.kind() == MatchedEvaluationArmKind::Dense && observation.quality_loss_units != 0 {
+            return Err(MatchedObservationError::DenseReferenceLossMustBeZero {
+                actual: observation.quality_loss_units,
             });
         }
         if observation.quality_metric_id.trim().is_empty() {
@@ -310,6 +333,73 @@ pub fn bind_matched_observations(
     })
 }
 
+/// Stable non-cryptographic identity of the exact frozen matched-evaluation arm set.
+///
+/// The fingerprint binds the contract version, protocol identity, Boolean-candidate
+/// provenance, matched cardinality, canonical arm order/kinds, and every mask bit.
+/// It is an evidence-association guard, not a cryptographic attestation or proof of
+/// semantic equivalence.
+#[must_use]
+pub fn matched_evaluation_arm_set_fingerprint(arms: &MatchedEvaluationArmSet) -> u64 {
+    let mut state = FNV1A64_OFFSET;
+    state = hash_field(state, b"contract", arms.contract_version().as_bytes());
+    state = hash_field(state, b"protocol", arms.protocol_id().as_bytes());
+    state = hash_field(
+        state,
+        b"boolean_candidate_provenance",
+        arms.boolean_candidate_provenance().as_bytes(),
+    );
+    state = hash_usize(
+        state,
+        b"matched_retained",
+        arms.matched_cardinality().retained(),
+    );
+    state = hash_usize(state, b"matched_total", arms.matched_cardinality().total());
+    state = hash_usize(state, b"arm_count", arms.arms().len());
+
+    for arm in arms.arms() {
+        state = hash_field(state, b"arm_id", arm.arm_id().as_bytes());
+        let kind = match arm.kind() {
+            MatchedEvaluationArmKind::Dense => "dense".to_owned(),
+            MatchedEvaluationArmKind::Boolean => "boolean".to_owned(),
+            MatchedEvaluationArmKind::Magnitude => "magnitude".to_owned(),
+            MatchedEvaluationArmKind::Structured => "structured".to_owned(),
+            MatchedEvaluationArmKind::Random { seed } => format!("random:{seed}"),
+        };
+        state = hash_field(state, b"arm_kind", kind.as_bytes());
+        state = hash_usize(state, b"mask_width", arm.mask().cardinality().total());
+        for keep in arm.mask().as_slice() {
+            state = fnv1a64_update(state, &[u8::from(*keep)]);
+        }
+        state = fnv1a64_update(state, b"\n");
+    }
+    state
+}
+
+const FNV1A64_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV1A64_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+fn fnv1a64_update(mut state: u64, bytes: &[u8]) -> u64 {
+    for byte in bytes {
+        state ^= u64::from(*byte);
+        state = state.wrapping_mul(FNV1A64_PRIME);
+    }
+    state
+}
+
+fn hash_field(mut state: u64, label: &[u8], value: &[u8]) -> u64 {
+    state = fnv1a64_update(state, label);
+    state = fnv1a64_update(state, b"=");
+    state = fnv1a64_update(state, value.len().to_string().as_bytes());
+    state = fnv1a64_update(state, b":");
+    state = fnv1a64_update(state, value);
+    fnv1a64_update(state, b"\n")
+}
+
+fn hash_usize(state: u64, label: &[u8], value: usize) -> u64 {
+    hash_field(state, label, value.to_string().as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -348,8 +438,9 @@ mod tests {
             .enumerate()
             .map(|(index, arm)| MatchedArmObservation {
                 arm_id: arm.arm_id().to_owned(),
+                arm_set_fingerprint: matched_evaluation_arm_set_fingerprint(arms),
                 quality_metric_id: "task-mse-scaled-1e12".to_owned(),
-                quality_loss_units: i64::try_from(index).expect("fixture arm index fits i64") - 2,
+                quality_loss_units: i64::try_from(index).expect("fixture arm index fits i64"),
                 retained_units: arm.mask().cardinality().retained(),
                 resources: MatchedResourceObservation {
                     kind,
@@ -504,6 +595,67 @@ mod tests {
         assert!(matches!(
             bind_matched_observations(&arms, "e", "w", rows),
             Err(MatchedObservationError::ResourceKindMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn observations_are_bound_to_exact_arm_masks_not_only_ids_and_cardinality() {
+        let original = arm_set();
+        let rows = observations(&original, ResourceEvidenceKind::ReferenceModel);
+
+        let candidate = ExactMask::from_retained_indices(8, &[1, 3, 4, 6]).unwrap();
+        let scores = [9, 1, 8, 2, 7, 3, 6, 4];
+        let baselines = build_matched_baseline_set(
+            &candidate,
+            &scores,
+            &scores,
+            MatchedBaselineProtocol {
+                protocol_id: "bl14.5-model-eval-v1".to_owned(),
+                boolean_candidate_provenance: "boolean-mask:sha256:candidate".to_owned(),
+                magnitude_score_provenance: "weights:sha256:a".to_owned(),
+                structured_score_provenance: "weights:sha256:a".to_owned(),
+                random_seed_provenance: "preregistered-seeds-v1".to_owned(),
+                structured_group_size: 4,
+                random_seeds: vec![7, 11],
+            },
+        )
+        .unwrap();
+        let changed = build_matched_evaluation_arm_set(&candidate, &baselines).unwrap();
+
+        assert_eq!(
+            original
+                .arms()
+                .iter()
+                .map(crate::sparsity_matched_evaluation::MatchedEvaluationArm::arm_id)
+                .collect::<Vec<_>>(),
+            changed
+                .arms()
+                .iter()
+                .map(crate::sparsity_matched_evaluation::MatchedEvaluationArm::arm_id)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            original.matched_cardinality(),
+            changed.matched_cardinality()
+        );
+        assert_ne!(
+            matched_evaluation_arm_set_fingerprint(&original),
+            matched_evaluation_arm_set_fingerprint(&changed)
+        );
+        assert!(matches!(
+            bind_matched_observations(&changed, "e", "w", rows),
+            Err(MatchedObservationError::ArmSetFingerprintMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn dense_quality_delta_must_be_zero() {
+        let arms = arm_set();
+        let mut rows = observations(&arms, ResourceEvidenceKind::ReferenceModel);
+        rows[0].quality_loss_units = 1;
+        assert!(matches!(
+            bind_matched_observations(&arms, "e", "w", rows),
+            Err(MatchedObservationError::DenseReferenceLossMustBeZero { actual: 1 })
         ));
     }
 }
