@@ -20,6 +20,7 @@ pub mod sparsity_function_mask;
 pub mod sparsity_holdout_report;
 pub mod sparsity_matched_baselines;
 pub mod sparsity_matched_evaluation;
+pub mod sparsity_matched_observation;
 pub mod sparsity_model_synthesis;
 pub mod sparsity_rule_evidence;
 pub mod sparsity_rule_search;
