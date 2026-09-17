@@ -1,0 +1,44 @@
+implementation_commit=da68f4ac7580b04e73b797b3bf26284b48d0ec42
+scirust_revision=7178bcfc6800e3277b9f16c3f03c70523b53e2c7
+command=cargo +1.89.0 run -q -p booleanlab-discovery --bin bl13_tropical_bounded_search
+cargo=cargo 1.89.0 (c24e10642 2025-06-23)
+rustc=rustc 1.89.0 (29483883e 2025-08-04)
+rustc_binary=rustc
+rustc_commit-hash=29483883eed69d5fb4db01964cdf2af4d86e9cb2
+rustc_commit-date=2025-08-04
+rustc_host=aarch64-unknown-linux-gnu
+rustc_release=1.89.0
+rustc_llvm_version=20.1.7
+experiment=BL-13.4.1
+configuration=bl13.4.1-frozen-four-input-max-plus-v1
+enumeration=seedless exhaustive enumeration
+syntactic_terms=33
+polynomials=528
+predicates_evaluated=278256
+unique_truth_tables=2377
+duplicate_predicates=275879
+constant_functions=2
+nonconstant_functions=2375
+balanced_functions=371
+max_nonlinearity=6
+max_algebraic_degree=4
+h1_witness_count=259
+control_present=1,1,1,1
+decision=H1_OBSERVED
+reported_witnesses=16
+witness	rank=1	left_polynomial=125	right_polynomial=254	comparison=>=	fingerprint=ba2eac36d7d1ed79	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0000101011011101	anf=0000110010111100	walsh=0,0,-4,-4,4,4,0,0,8,-8,4,4,4,4,0,0
+witness	rank=2	left_polynomial=126	right_polynomial=232	comparison=>=	fingerprint=f22cead416af1c1b	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0000110010111011	anf=0000101011011010	walsh=0,-4,0,-4,4,0,4,0,8,4,-8,4,4,0,4,0
+witness	rank=3	left_polynomial=151	right_polynomial=182	comparison=>=	fingerprint=e794294d34797cb9	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0000110110101101	anf=0000101111001100	walsh=0,0,-4,-4,8,-8,4,4,4,4,0,0,4,4,0,0
+witness	rank=4	left_polynomial=68	right_polynomial=276	comparison=>=	fingerprint=4acd6521106970cd	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010001011110101	anf=0011000010111100	walsh=0,0,4,4,-4,-4,0,0,8,-8,4,4,4,4,0,0
+witness	rank=5	left_polynomial=70	right_polynomial=182	comparison=>=	fingerprint=7fec1566a83f3405	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010100010101111	anf=0011110011111000	walsh=0,-8,0,0,4,-4,4,4,8,0,0,0,-4,4,4,4
+witness	rank=6	left_polynomial=126	right_polynomial=182	comparison=>=	fingerprint=aa890f4cd2734419	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010100010111011	anf=0011110011101100	walsh=0,-8,4,-4,0,0,4,4,8,0,-4,4,0,0,4,4
+witness	rank=7	left_polynomial=70	right_polynomial=254	comparison=>=	fingerprint=c8a61e424cdbdfc5	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010101010001111	anf=0011111111001000	walsh=0,-8,0,0,8,0,0,0,4,-4,4,4,-4,4,4,4
+witness	rank=8	left_polynomial=126	right_polynomial=276	comparison=>=	fingerprint=900fce422d8741d5	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010101010110011	anf=0011111111100000	walsh=0,-8,8,0,0,0,0,0,4,-4,-4,4,4,4,4,4
+witness	rank=9	left_polynomial=177	right_polynomial=254	comparison=>=	fingerprint=5566c29e731bbc0d	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010101110001011	anf=0011111011001100	walsh=0,-8,4,-4,8,0,-4,4,0,0,4,4,0,0,4,4
+witness	rank=10	left_polynomial=177	right_polynomial=276	comparison=>=	fingerprint=92027ac90ad7c5b5	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010101110100011	anf=0011111011110000	walsh=0,-8,8,0,4,-4,-4,4,0,0,0,0,4,4,4,4
+witness	rank=11	left_polynomial=65	right_polynomial=276	comparison=>=	fingerprint=82136225cd220ab5	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0010111100100101	anf=0011101100001100	walsh=0,0,4,4,8,-8,4,4,-4,-4,0,0,4,4,0,0
+witness	rank=12	left_polynomial=70	right_polynomial=234	comparison=>=	fingerprint=1a99ec4099db5017	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0011000010101111	anf=0010001011100110	walsh=0,-4,4,0,0,-4,4,0,8,4,4,0,-8,4,4,0
+witness	rank=13	left_polynomial=96	right_polynomial=182	comparison=>=	fingerprint=10012ab9b7a5b0b5	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0011000110111001	anf=0010001111110000	walsh=0,0,8,-8,-4,-4,4,4,4,4,4,4,0,0,0,0
+witness	rank=14	left_polynomial=70	right_polynomial=162	comparison=>=	fingerprint=805fec79df5abd97	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0011101000001111	anf=0010111000100110	walsh=0,-4,4,0,8,4,4,0,0,-4,4,0,-8,4,4,0
+witness	rank=15	left_polynomial=93	right_polynomial=254	comparison=>=	fingerprint=f0fe6546c32a1665	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0011101100011001	anf=0010111100110000	walsh=0,0,8,-8,4,4,4,4,-4,-4,4,4,0,0,0,0
+witness	rank=16	left_polynomial=39	right_polynomial=277	comparison=>=	fingerprint=4b1401b85c20372f	degree=3	nonlinearity=4	balanced=true	correlation_immunity=0	truth_table=0100010011110011	anf=0101000011011010	walsh=0,4,0,4,-4,0,-4,0,8,4,-8,4,4,0,4,0
