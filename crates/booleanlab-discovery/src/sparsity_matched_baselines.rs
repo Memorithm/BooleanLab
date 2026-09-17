@@ -39,20 +39,44 @@ pub struct MatchedBaselineProtocol {
 /// Exact controls matched to one already-materialised Boolean candidate mask.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MatchedBaselineSet {
-    /// Contract version for cross-run interpretation.
-    pub contract_version: &'static str,
-    /// Frozen provenance/configuration used to build the controls.
-    pub protocol: MatchedBaselineProtocol,
-    /// Exact cardinality shared by the Boolean candidate and every control.
-    pub cardinality: MaskCardinality,
-    /// Descending-score baseline at matched cardinality.
-    pub magnitude: ExactMask,
-    /// Deterministic random controls in the declared seed order.
-    pub random: Vec<(u64, ExactMask)>,
-    /// N:M structured baseline at matched global cardinality.
-    pub structured: ExactMask,
-    /// Exact retained count per structured group derived from the candidate density.
-    pub structured_retained_per_group: usize,
+    contract_version: &'static str,
+    protocol: MatchedBaselineProtocol,
+    cardinality: MaskCardinality,
+    magnitude: ExactMask,
+    random: Vec<(u64, ExactMask)>,
+    structured: ExactMask,
+    structured_retained_per_group: usize,
+}
+
+impl MatchedBaselineSet {
+    #[must_use]
+    pub const fn contract_version(&self) -> &'static str {
+        self.contract_version
+    }
+    #[must_use]
+    pub const fn protocol(&self) -> &MatchedBaselineProtocol {
+        &self.protocol
+    }
+    #[must_use]
+    pub const fn cardinality(&self) -> MaskCardinality {
+        self.cardinality
+    }
+    #[must_use]
+    pub const fn magnitude(&self) -> &ExactMask {
+        &self.magnitude
+    }
+    #[must_use]
+    pub fn random(&self) -> &[(u64, ExactMask)] {
+        &self.random
+    }
+    #[must_use]
+    pub const fn structured(&self) -> &ExactMask {
+        &self.structured
+    }
+    #[must_use]
+    pub const fn structured_retained_per_group(&self) -> usize {
+        self.structured_retained_per_group
+    }
 }
 
 /// Fail-closed construction errors for the matched-baseline set.
@@ -259,13 +283,13 @@ mod tests {
         let scores = [9, 1, 8, 2, 7, 3, 6, 4];
         let set = build_matched_baseline_set(&candidate, &scores, &scores, protocol()).unwrap();
 
-        assert_eq!(set.contract_version, "bl14.matched-baseline-set.v1");
-        assert_eq!(set.cardinality, candidate.cardinality());
-        assert_eq!(set.structured_retained_per_group, 2);
-        assert_eq!(set.magnitude.cardinality(), candidate.cardinality());
-        assert_eq!(set.structured.cardinality(), candidate.cardinality());
-        assert_eq!(set.random.len(), 3);
-        for (_, mask) in &set.random {
+        assert_eq!(set.contract_version(), "bl14.matched-baseline-set.v1");
+        assert_eq!(set.cardinality(), candidate.cardinality());
+        assert_eq!(set.structured_retained_per_group(), 2);
+        assert_eq!(set.magnitude().cardinality(), candidate.cardinality());
+        assert_eq!(set.structured().cardinality(), candidate.cardinality());
+        assert_eq!(set.random().len(), 3);
+        for (_, mask) in set.random() {
             assert_eq!(mask.cardinality(), candidate.cardinality());
         }
     }
@@ -277,9 +301,9 @@ mod tests {
         let left = build_matched_baseline_set(&candidate, &scores, &scores, protocol()).unwrap();
         let right = build_matched_baseline_set(&candidate, &scores, &scores, protocol()).unwrap();
 
-        assert_eq!(left.random, right.random);
+        assert_eq!(left.random(), right.random());
         assert_eq!(
-            left.random
+            left.random()
                 .iter()
                 .map(|(seed, _)| *seed)
                 .collect::<Vec<_>>(),
@@ -374,12 +398,12 @@ mod tests {
 
         let drop = ExactMask::from_retained_indices(4, &[]).unwrap();
         let dropped = build_matched_baseline_set(&drop, &scores, &scores, p.clone()).unwrap();
-        assert_eq!(dropped.cardinality.retained(), 0);
-        assert_eq!(dropped.structured_retained_per_group, 0);
+        assert_eq!(dropped.cardinality().retained(), 0);
+        assert_eq!(dropped.structured_retained_per_group(), 0);
 
         let keep = ExactMask::from_retained_indices(4, &[0, 1, 2, 3]).unwrap();
         let kept = build_matched_baseline_set(&keep, &scores, &scores, p).unwrap();
-        assert_eq!(kept.cardinality.retained(), 4);
-        assert_eq!(kept.structured_retained_per_group, 2);
+        assert_eq!(kept.cardinality().retained(), 4);
+        assert_eq!(kept.structured_retained_per_group(), 2);
     }
 }
