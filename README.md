@@ -15,7 +15,7 @@ BooleanLab is a research bench, not a production inference runtime. Scientific c
 
 | Experiment / track | Status | Verified result or current question |
 | --- | --- | --- |
-| **BL-4 Boolean Attention Control Plane** | ACTIVE / PROPOSED | Determine whether early bitpacked Boolean routing can eliminate enough exact attention work and K/V traffic to improve real FLAT-ATTENTION execution while preserving declared quality. |
+| **BL-4 Boolean Attention Control Plane** | ACTIVE / BOUNDED PAGE-SAFETY QUALIFIED | The BL-4.5.1 page-envelope gate has an exact 10,880-case four-bit/two-key qualification proving no false rejection relative to the declared pairwise Hamming rule in that bounded domain. Representative quality, K/V traffic and hardware benefit remain unqualified. |
 | **BL-14 Boolean Sparsity Control** | CALIBRATIONS + STATIC / STRUCTURED / DYNAMIC / RELATIONAL DEVELOPMENT IMPLEMENTED | Exact masks, exhaustive/CEGIS comparison, fixed numerical layers and trained synthetic pilots now cover static, structured, dynamic and relational control. BL-14.2.2, BL-14.3.1 and BL-14.4.1 all remain non-final development evidence; none establishes hardware benefit or quality preservation versus dense. |
 | **BL-14.2.3 Matched topology search** | EXPLORATORY REANALYSIS EXECUTED | On the reused development panel at 2/8, 4/8 and 6/8 retained units, Boolean beats/ties/loses to direct search in 5/24/7 cells at equal unique-mask scoring budget. Identical populations agree exactly in all 36 cells. No general Boolean advantage is established. |
 | **BL-14.3.1 Dynamic routing** | IMPLEMENTED / MIXED DEVELOPMENT RESULT | On 12 non-final validation trials, the frozen input-conditioned Boolean controller beats/ties/loses to magnitude in 9/2/1 and beats a matched dynamic-random pair in 12/12, but dense has lower task MSE in all 12 trials. No quality-preservation, generalization or hardware-performance claim. |
@@ -56,6 +56,7 @@ Current BL-4 additions:
 - `BL-4.4.1`: Boolean block admission versus dense, structural and density-matched random masks.
 - `BL-4.4.2`: bitpacked Q/K signature families and XOR/XNOR-popcount selection frontiers.
 - `BL-4.5.1`: query-aware Boolean KV-page admission available from the first decode token after prefill.
+  The conservative `PageEnvelope` rejection primitive is now bounded-exhaustively qualified over every four-bit query, every unordered two-key multiset and every threshold 0..=4 (10,880 cases): no page rejection removes a key admitted by the exact pairwise Hamming rule. This is a correctness result for the declared finite domain only, not representative-model quality or hardware-performance evidence.
 - `BL-4.6.1`: measured Boolean-control overhead versus exact attention work and K/V traffic eliminated.
 - `BL-4.7.1`: 1-bit QK only after the router path is qualified, compared against exact FLAT, low-precision QK and Boolean-prefilter-plus-exact-QK.
 
