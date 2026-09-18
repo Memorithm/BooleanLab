@@ -8,6 +8,7 @@
 
 pub mod attention_frontier;
 pub mod baseline;
+pub mod elastic_interop_vectors;
 pub mod equivalence_screen;
 pub mod gf2;
 #[cfg(feature = "sedenion-experiments")]
