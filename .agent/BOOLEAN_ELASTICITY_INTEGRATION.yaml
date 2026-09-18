@@ -1,7 +1,7 @@
 schema_version: 1
 kind: booleanlab_elasticity_integration_overlay
 status: active
-last_updated: "2026-09-13"
+last_updated: "2026-09-18"
 repository: Memorithm/BooleanLab
 canonical_runtime_owner: Memorithm/ElasticXxx
 canonical_runtime_roadmap: Memorithm/ElasticXxx@agent/ecosystem-roadmap:.agent/BOOLEAN_ELASTICITY_ROADMAP.yaml
@@ -23,30 +23,59 @@ hard_boundaries:
 
 implementation_sequence:
   - id: BL-BE0
-    status: active
+    status: completed
+    evidence:
+      - AGENTS_bootstrap_commit_78de02b
+      - inventory_commit_345709b
+      - docs_BL_BE0_ELASTIC_INVENTORY_md
     work:
       - install_agent_bootstrap
       - inventory_existing_BL_boolean_expression_mask_and_search_primitives
       - map_reusable_oracles_to_ElasticXxx_BE1_BE3_BE11_BE13
   - id: BL-BE1
-    status: planned
+    status: completed
+    evidence:
+      - exact_Strong_Kleene_oracle_PR_60_merge_302835c
+      - bounded_program_analysis_and_compiled_conjunction_differential_surfaces
+      - exact_differential_witnesses_PR_87_merge_3392d4f
     work:
       - add_differential_oracle_for_Elastic_strong_Kleene_truth_tables
       - exhaustively_compare_simple_compiled_conjunctions_with_generic_evaluation
       - characterize_contradictions_tautologies_and_redundancy_on_small_domains
   - id: BL-BE2
-    status: planned
+    status: completed_bounded_measurement_scope
+    evidence:
+      - multiword_representation_PR_67_merge_0d2de0a
+      - representation_measurement_qualification_PR_93_merge_1a7b9aa
+      - hosted_evidence_retention_PR_94_merge_dc74927
+      - docs_BL_BE2_REPRESENTATION_BENCHMARK_md
     work:
       - benchmark_scalar_expression_vs_u64_mask_vs_multiword_candidate_forms
       - measure_storage_and_evaluation_cost_without_extrapolating_to_Elastic_runtime
   - id: BL-BE3
-    status: planned
+    status: active
+    completed_slices:
+      - exact_designated_entailment_PR_95_merge_ca1cb82
+      - designated_truth_set_relations_PR_96_merge_8367c3f
+      - bounded_designated_subsumption_graph_PR_97_merge_204762e
+    remaining:
+      - bounded_canonical_form_experiments
+      - explicitly_resource_bounded_BDD_or_SAT_backend_experiment_if_dependency_and_license_review_qualify
+      - record_timeout_resource_exhaustion_and_complexity_explosion_as_non_results
     work:
       - experiment_with_canonicalization_normal_forms_BDD_and_bounded_SAT
       - record_failure_modes_and_complexity_explosion
       - identify_safe_bounded_backend_contracts
   - id: BL-BE4
-    status: planned
+    status: completed_exact_small_domain_oracle_scope
+    evidence:
+      - bounded_pseudo_Boolean_oracle_PR_100_merge_4ba0ce6
+      - common_factor_normalization_PR_101_merge_b5dd9c3
+      - bounded_implication_PR_102_merge_182f449
+      - satisfying_set_relations_PR_103_merge_549af7d
+      - conjunction_entailment_PR_108_merge_8860832
+      - bounded_redundancy_PR_110_merge_5b0f403
+      - docs_BL_BE4_PSEUDO_BOOLEAN_md
     work:
       - experiment_with_pseudo_boolean_weighted_constraints
       - validate_exact_integer_scaling_over_small_enumerable_domains
@@ -63,5 +92,18 @@ cross_repository_rules:
   - TDI_scientific_holdouts_and_final_material_are_out_of_scope
 
 current_facts:
+  - verified_main_ae8fff2e8bca54bc2f27308be03b8fda9f6fa14e
   - BooleanLab_main_contains_BL_14_5_exhaustive_Boolean_mask_fit_calibration_through_PR_55
-  - BooleanLab_currently_has_no_root_AGENTS_bootstrap_before_this_program
+  - BooleanLab_root_AGENTS_bootstrap_is_installed
+  - BL_BE0_inventory_is_complete
+  - BL_BE1_exact_Strong_Kleene_differential_oracles_are_implemented
+  - BL_BE2_has_retained_bounded_representation_measurement_evidence_without_Elastic_runtime_speedup_claim
+  - BL_BE3_exact_designated_entailment_relation_and_subsumption_graph_exist_but_BDD_SAT_experimentation_remains_incomplete
+  - BL_BE4_exact_small_domain_pseudo_Boolean_oracle_family_is_implemented
+  - BL_BE5_cross_repository_promotion_remains_planned_and_must_not_skip_the_remaining_BL_BE3_work
+
+current_execution:
+  earliest_incomplete_phase: BL-BE3
+  immediate_next_slice: bounded_canonical_form_or_explicitly_bounded_BDD_SAT_experiment
+  verified_main: ae8fff2e8bca54bc2f27308be03b8fda9f6fa14e
+  open_pull_requests_at_checkpoint: 0
