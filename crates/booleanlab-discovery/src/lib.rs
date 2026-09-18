@@ -8,6 +8,8 @@
 
 pub mod attention_frontier;
 pub mod baseline;
+#[cfg(feature = "bdd-experiments")]
+pub mod bounded_bdd;
 pub mod elastic_interop_vectors;
 pub mod equivalence_screen;
 pub mod gf2;

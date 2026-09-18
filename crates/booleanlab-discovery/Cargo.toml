@@ -8,8 +8,10 @@ rust-version.workspace = true
 [features]
 default = []
 sedenion-experiments = ["dep:scirust-simd"]
+bdd-experiments = ["dep:biodivine-lib-bdd"]
 
 [dependencies]
+biodivine-lib-bdd = { version = "=0.6.3", optional = true }
 booleanlab-core = { path = "../booleanlab-core" }
 scirust-modalg = { git = "https://github.com/Memorithm/scirust", rev = "7178bcfc6800e3277b9f16c3f03c70523b53e2c7" }
 scirust-simd = { git = "https://github.com/Memorithm/scirust", rev = "7178bcfc6800e3277b9f16c3f03c70523b53e2c7", optional = true, features = ["portable-simd"] }
