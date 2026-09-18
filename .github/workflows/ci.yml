@@ -148,6 +148,21 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  bdd-experiments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.89.0
+          components: clippy
+      - name: Resolve exact dependency lock
+        run: cargo generate-lockfile
+      - name: Bounded BDD feature tests
+        run: cargo test -p booleanlab-discovery --features bdd-experiments
+      - name: Bounded BDD feature Clippy
+        run: cargo clippy -p booleanlab-discovery --features bdd-experiments --all-targets -- -D warnings
+
   sedenion-nightly:
     runs-on: ubuntu-latest
     steps:
