@@ -12,6 +12,7 @@ pub mod circuit;
 pub mod hybrid;
 pub mod kleene;
 pub mod kleene_analysis;
+pub mod kleene_canonical;
 pub mod kleene_conjunction;
 pub mod kleene_conjunction_words;
 pub mod kleene_designated_relation;
@@ -72,6 +73,10 @@ pub use kleene_analysis::{
     DEFAULT_KLEENE_ANALYSIS_MAX_INSTRUCTION_EVALUATIONS, KleeneAnalysisError,
     KleeneComparisonError, KleeneProgramAnalysis, KleeneProgramComparison, KleeneProgramMismatch,
     analyze_kleene_program, analyze_kleene_program_with_work_budget, compare_kleene_programs,
+};
+pub use kleene_canonical::{
+    KleeneCanonicalClass, KleeneCanonicalizationError, MAX_KLEENE_CANONICAL_CANDIDATES,
+    canonicalize_kleene_programs,
 };
 pub use kleene_conjunction::{
     CompiledKleeneConjunction, KleeneConjunctionComparison, KleeneConjunctionComparisonError,
