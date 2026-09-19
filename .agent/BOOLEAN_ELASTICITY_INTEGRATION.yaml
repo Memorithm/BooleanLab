@@ -1,7 +1,7 @@
 schema_version: 1
 kind: booleanlab_elasticity_integration_overlay
 status: active
-last_updated: "2026-09-18"
+last_updated: "2026-09-19"
 repository: Memorithm/BooleanLab
 canonical_runtime_owner: Memorithm/ElasticXxx
 canonical_runtime_roadmap: Memorithm/ElasticXxx@agent/ecosystem-roadmap:.agent/BOOLEAN_ELASTICITY_ROADMAP.yaml
@@ -53,16 +53,22 @@ implementation_sequence:
       - benchmark_scalar_expression_vs_u64_mask_vs_multiword_candidate_forms
       - measure_storage_and_evaluation_cost_without_extrapolating_to_Elastic_runtime
   - id: BL-BE3
-    status: active
+    status: completed_bounded_external_BDD_experiment_scope
     completed_slices:
       - exact_designated_entailment_PR_95_merge_ca1cb82
       - designated_truth_set_relations_PR_96_merge_8367c3f
       - bounded_designated_subsumption_graph_PR_97_merge_204762e
       - bounded_semantic_class_canonicalizer_PR_120_head_599c77f4c4a8527bbacb48d37be41546cb1e6385_merge_984a9b307dff02cbc138caee2d4d6d9c826c6b68
-    remaining:
-      - explicitly_resource_bounded_BDD_or_SAT_backend_experiment_if_dependency_and_license_review_qualify
-      - dependency_and_license_review_may_fail_closed_and_record_no_qualified_backend
-      - record_timeout_resource_exhaustion_and_complexity_explosion_as_non_results
+      - bounded_BDD_dependency_review_and_experiment_PR_122_head_d9bacc0605d36743ecb667356bcb9fb876a6cc87_merge_0d518155f346a5875fea93122672ce30f3aedd30
+      - required_BDD_feature_CI_PR_123_head_4ecd26720cf0e64d43644353d6c469775254310f_merge_2646e7ca675d3dcde71abed10c7531e1d36c93b8
+    closure:
+      - rustsat_0_7_5_reviewed_not_selected_no_reviewed_allocation_hard_ceiling
+      - varisat_0_2_2_reviewed_not_selected_no_caller_result_node_or_work_ceiling
+      - biodivine_lib_bdd_0_6_3_selected_only_for_default_off_at_most_8_input_experiment
+      - checked_operand_pair_and_backend_result_node_limits_fail_closed
+      - exhaustive_final_truth_table_replay_is_required
+      - resource_limit_or_semantic_mismatch_is_an_explicit_non_result
+      - no_SAT_BDD_runtime_promotion_or_performance_claim_follows
     work:
       - experiment_with_canonicalization_normal_forms_BDD_and_bounded_SAT
       - record_failure_modes_and_complexity_explosion
@@ -81,7 +87,11 @@ implementation_sequence:
       - experiment_with_pseudo_boolean_weighted_constraints
       - validate_exact_integer_scaling_over_small_enumerable_domains
   - id: BL-BE5
-    status: planned
+    status: active
+    completed_slices:
+      - exact_Elastic_interop_vectors_PR_121_head_81297e2a62d49b3c87d87210bd979d7cb3d067e9_merge_748000d4677c04593d6ef6be0ada443d84c9089c
+      - exact_vector_contract_is_versioned_exhaustively_regenerated_and_SciRust_metric_backed
+      - downstream_rule_requires_pinned_snapshot_not_live_BooleanLab_runtime_dependency
     work:
       - publish_versioned_candidate_contracts_for_generic_results
       - promote_only_evidence_backed_primitives_to_ElasticXxx_or_SciRust_as_appropriate
@@ -93,18 +103,20 @@ cross_repository_rules:
   - TDI_scientific_holdouts_and_final_material_are_out_of_scope
 
 current_facts:
-  - verified_main_984a9b307dff02cbc138caee2d4d6d9c826c6b68
+  - verified_main_119afad5b14c9d15c7663723ad905d50c93407a2
+  - PR_123_exact_head_CI_run_35396416003_success_and_BL_14_matched_topology_run_35396416038_success
+  - current_main_license_alignment_PR_124_does_not_change_BL_BE3_or_BL_BE5_semantics
   - BooleanLab_main_contains_BL_14_5_exhaustive_Boolean_mask_fit_calibration_through_PR_55
   - BooleanLab_root_AGENTS_bootstrap_is_installed
   - BL_BE0_inventory_is_complete
   - BL_BE1_exact_Strong_Kleene_differential_oracles_are_implemented
   - BL_BE2_has_retained_bounded_representation_measurement_evidence_without_Elastic_runtime_speedup_claim
-  - BL_BE3_exact_designated_entailment_relation_subsumption_graph_and_bounded_candidate_set_canonicalizer_exist_but_BDD_SAT_dependency_review_or_experimentation_remains_incomplete
+  - BL_BE3_bounded_external_BDD_dependency_review_experiment_and_required_feature_CI_are_complete_for_the_declared_small_domain_scope
   - BL_BE4_exact_small_domain_pseudo_Boolean_oracle_family_is_implemented
-  - BL_BE5_cross_repository_promotion_remains_planned_and_must_not_skip_the_remaining_BL_BE3_work
+  - BL_BE5_has_a_qualified_versioned_exact_vector_bridge_but_remains_active_for_future_evidence_backed_promotions_only
 
 current_execution:
-  earliest_incomplete_phase: BL-BE3
-  immediate_next_slice: bounded_BDD_SAT_dependency_and_license_review_then_experiment_only_if_hard_resource_contract_qualifies
-  verified_main: 984a9b307dff02cbc138caee2d4d6d9c826c6b68
-  open_pull_requests_at_checkpoint: 1
+  earliest_incomplete_phase: BL-BE5
+  immediate_next_slice: review_existing_versioned_exact_vectors_and_other_generic_results_for_additional_real_consumers_without_promoting_the_BDD_backend_or_runtime_semantics_by_default
+  verified_main: 119afad5b14c9d15c7663723ad905d50c93407a2
+  open_pull_requests_at_checkpoint: 0
