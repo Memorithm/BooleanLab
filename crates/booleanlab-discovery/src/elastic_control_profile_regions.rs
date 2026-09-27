@@ -4,7 +4,7 @@
 //! They are an offline compression of evidence, not a production runtime policy.
 
 use crate::elastic_control_profile_partition::{
-    payloads, ControlProfilePartitionError, DEFAULT_EXHAUSTIVE_MAX_SLOTS,
+    ControlProfilePartitionError, DEFAULT_EXHAUSTIVE_MAX_SLOTS, payloads,
 };
 
 /// Versioned compact-region contract.
