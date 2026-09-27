@@ -3,7 +3,7 @@
 //! Deterministic BL-BE5 export of exact Elastic control-profile partition vectors.
 
 use booleanlab_discovery::elastic_control_profile_partition::{
-    payloads, reduced_predicates, SLHA_CONTROL_PROFILE_SOURCE_REVISION,
+    SLHA_CONTROL_PROFILE_SOURCE_REVISION, payloads, reduced_predicates,
 };
 use std::env;
 use std::process::ExitCode;
@@ -114,10 +114,7 @@ mod tests {
     #[test]
     fn parser_is_bounded_and_defaults_to_256() {
         assert_eq!(parse_max_slots_from(Vec::<String>::new()).unwrap(), 256);
-        assert_eq!(
-            parse_max_slots_from(["1".to_owned()]).unwrap(),
-            1
-        );
+        assert_eq!(parse_max_slots_from(["1".to_owned()]).unwrap(), 1);
         assert!(parse_max_slots_from(["0".to_owned()]).is_err());
         assert!(parse_max_slots_from(["4097".to_owned()]).is_err());
         assert!(parse_max_slots_from(["2".to_owned(), "3".to_owned()]).is_err());
