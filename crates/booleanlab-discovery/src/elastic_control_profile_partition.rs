@@ -1,6 +1,6 @@
-//! Exact bounded partition oracle for SLHAv2 Elastic control-plane profiles.
+//! Exact bounded partition oracle for `SLHAv2` Elastic control-plane profiles.
 //!
-//! Source semantics are pinned to SLHAv2 merge
+//! Source semantics are pinned to `SLHAv2` merge
 //! `0bf49558eef14519ae1ce4b246b67347941c8237`, which retains three read-only
 //! control-plane representations:
 //!
@@ -9,10 +9,10 @@
 //! - hybrid W64 + Boolean planes: one 64-bit generation lane per slot plus
 //!   three packed bitplanes over the slot domain.
 //!
-//! BooleanLab owns this exact bounded differential oracle only. It does not
+//! `BooleanLab` owns this exact bounded differential oracle only. It does not
 //! promote a runtime policy or actuate SLHAv2/ElasticXxx state.
 
-/// Pinned SLHAv2 source revision for the compared representation formulas.
+/// Pinned `SLHAv2` source revision for the compared representation formulas.
 pub const SLHA_CONTROL_PROFILE_SOURCE_REVISION: &str = "0bf49558eef14519ae1ce4b246b67347941c8237";
 
 /// Largest slot count exhaustively qualified by the default test.
@@ -80,9 +80,17 @@ impl ControlProfilePayloads {
     /// Reconstruct the argmin/tie mask from the three Boolean predicates.
     #[must_use]
     pub fn predicate_minimum_mask(self) -> u8 {
-        u8::from(self.sparse_is_minimum_predicate()) * PROFILE_SPARSE_W512
-            | u8::from(self.dense_is_minimum_predicate()) * PROFILE_DENSE_W128
-            | u8::from(self.hybrid_is_minimum_predicate()) * PROFILE_HYBRID_W64_BOOLEAN
+        let mut mask = 0_u8;
+        if self.sparse_is_minimum_predicate() {
+            mask |= PROFILE_SPARSE_W512;
+        }
+        if self.dense_is_minimum_predicate() {
+            mask |= PROFILE_DENSE_W128;
+        }
+        if self.hybrid_is_minimum_predicate() {
+            mask |= PROFILE_HYBRID_W64_BOOLEAN;
+        }
+        mask
     }
 }
 
@@ -133,7 +141,7 @@ pub fn payloads(
 }
 
 /// Algebraically reduced predicates equivalent to the direct payload
-/// comparisons. These are the compact candidate boundary rules BooleanLab
+/// comparisons. These are the compact candidate boundary rules `BooleanLab`
 /// qualifies; they are not a production selector.
 ///
 /// Sparse <= dense:
@@ -153,6 +161,13 @@ pub struct ReducedBoundaryPredicates {
     pub hybrid_le_dense: bool,
 }
 
+/// # Errors
+///
+/// Returns [`ControlProfilePartitionError::ZeroSlots`] for an empty physical
+/// domain, [`ControlProfilePartitionError::PresentExceedsSlots`] for an
+/// impossible occupancy count, and
+/// [`ControlProfilePartitionError::ArithmeticOverflow`] when a reduced
+/// integer comparison cannot be represented.
 pub fn reduced_predicates(
     slot_count: usize,
     present_slots: usize,
