@@ -13,8 +13,7 @@
 //! promote a runtime policy or actuate SLHAv2/ElasticXxx state.
 
 /// Pinned SLHAv2 source revision for the compared representation formulas.
-pub const SLHA_CONTROL_PROFILE_SOURCE_REVISION: &str =
-    "0bf49558eef14519ae1ce4b246b67347941c8237";
+pub const SLHA_CONTROL_PROFILE_SOURCE_REVISION: &str = "0bf49558eef14519ae1ce4b246b67347941c8237";
 
 /// Largest slot count exhaustively qualified by the default test.
 pub const DEFAULT_EXHAUSTIVE_MAX_SLOTS: usize = 4096;
@@ -229,8 +228,7 @@ pub fn exhaustive_partition(
             }
 
             let reduced = reduced_predicates(slot_count, present_slots)?;
-            if reduced.sparse_le_dense
-                != (costs.sparse_w512_bits <= costs.dense_w128_bits)
+            if reduced.sparse_le_dense != (costs.sparse_w512_bits <= costs.dense_w128_bits)
                 || reduced.sparse_le_hybrid
                     != (costs.sparse_w512_bits <= costs.hybrid_w64_boolean_bits)
                 || reduced.hybrid_le_dense
@@ -248,8 +246,7 @@ pub fn exhaustive_partition(
                 .ok_or(ControlProfilePartitionError::ArithmeticOverflow)?;
             summary.sparse_minimum_cases += u64::from(exact & PROFILE_SPARSE_W512 != 0);
             summary.dense_minimum_cases += u64::from(exact & PROFILE_DENSE_W128 != 0);
-            summary.hybrid_minimum_cases +=
-                u64::from(exact & PROFILE_HYBRID_W64_BOOLEAN != 0);
+            summary.hybrid_minimum_cases += u64::from(exact & PROFILE_HYBRID_W64_BOOLEAN != 0);
             summary.tied_minimum_cases += u64::from(exact.count_ones() > 1);
         }
     }
@@ -329,10 +326,7 @@ mod tests {
         assert_eq!(dense64.hybrid_w64_boolean_bits, 4288);
         assert_eq!(dense64.dense_w128_bits, 8192);
         assert_eq!(dense64.sparse_w512_bits, 32768);
-        assert_eq!(
-            dense64.exact_minimum_mask(),
-            PROFILE_HYBRID_W64_BOOLEAN
-        );
+        assert_eq!(dense64.exact_minimum_mask(), PROFILE_HYBRID_W64_BOOLEAN);
 
         let sparse64 = payloads(64, 1).unwrap();
         assert_eq!(sparse64.sparse_w512_bits, 512);
@@ -365,10 +359,7 @@ mod tests {
 
     #[test]
     fn invalid_domain_fails_closed() {
-        assert_eq!(
-            payloads(0, 0),
-            Err(ControlProfilePartitionError::ZeroSlots)
-        );
+        assert_eq!(payloads(0, 0), Err(ControlProfilePartitionError::ZeroSlots));
         assert_eq!(
             payloads(4, 5),
             Err(ControlProfilePartitionError::PresentExceedsSlots {
