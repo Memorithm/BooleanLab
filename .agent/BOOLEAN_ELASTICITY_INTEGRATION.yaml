@@ -120,3 +120,21 @@ current_execution:
   immediate_next_slice: review_existing_versioned_exact_vectors_and_other_generic_results_for_additional_real_consumers_without_promoting_the_BDD_backend_or_runtime_semantics_by_default
   verified_main: 119afad5b14c9d15c7663723ad905d50c93407a2
   open_pull_requests_at_checkpoint: 0
+
+
+ax_boolean_bench_task_program:
+  source_review_date: "2026-09-27"
+  external_reference: google_ax_architecture_only
+  role: isolated_boolean_research_task_consumer
+  objective: >-
+    Bind Boolean search, exact characterization and matched sparse-control
+    experiments to explicit workspace, resource and attempt identities while
+    preserving BooleanLab scientific evidence boundaries.
+  phases:
+    - AXBL1_pin_corpus_oracle_code_and_protocol_identity
+    - AXBL2_attach_exact_search_and_matched_resource_budgets
+    - AXBL3_isolate_parallel_search_and_validation_runs
+    - AXBL4_export_task_provenance_without_promoting_claim_scope
+  invariants:
+    - exact_Boolean_results_remain_distinct_from_empirical_performance_claims
+    - task_status_never_replaces_preregistered_decision_rules
