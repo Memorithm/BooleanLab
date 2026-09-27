@@ -1,0 +1,50 @@
+name: BL-BE5 Elastic profile evidence
+
+on:
+  pull_request:
+    paths:
+      - 'crates/booleanlab-discovery/src/elastic_control_profile_partition.rs'
+      - 'crates/booleanlab-discovery/src/elastic_control_profile_regions.rs'
+      - 'crates/booleanlab-discovery/src/bin/bl_elastic_profile_vectors.rs'
+      - 'crates/booleanlab-discovery/src/bin/bl_elastic_profile_regions.rs'
+      - '.github/workflows/bl-be5-elastic-profile-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  elastic-profile-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Export exact vectors and compact regions
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir=target/bl-be5-elastic-profile-evidence
+          rm -rf "$evidence_dir"
+          mkdir -p "$evidence_dir"
+          {
+            printf 'schema=booleanlab.bl-be5-elastic-profile-evidence/v1\n'
+            printf 'git_head=%s\n' "$(git rev-parse HEAD)"
+            printf 'rustc=%s\n' "$(rustc --version)"
+            printf 'scope=offline-structural-evidence\n'
+            printf 'runtime_policy_claim=false\n'
+          } > "$evidence_dir/manifest.txt"
+          cargo run --quiet --release -p booleanlab-discovery --bin bl_elastic_profile_vectors -- 256             > "$evidence_dir/full-vectors.tsv"
+          cargo run --quiet --release -p booleanlab-discovery --bin bl_elastic_profile_regions -- 256             > "$evidence_dir/compact-regions.tsv"
+          test -s "$evidence_dir/full-vectors.tsv"
+          test -s "$evidence_dir/compact-regions.tsv"
+          wc -l "$evidence_dir"/*.tsv
+      - name: Retain BL-BE5 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bl-be5-elastic-profile-${{ github.event.pull_request.head.sha || github.sha }}
+          path: target/bl-be5-elastic-profile-evidence
+          if-no-files-found: error
+          retention-days: 14
