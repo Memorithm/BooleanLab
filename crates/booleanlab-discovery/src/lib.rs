@@ -12,6 +12,7 @@ pub mod baseline;
 pub mod bounded_bdd;
 pub mod elastic_control_profile_partition;
 pub mod elastic_control_profile_regions;
+pub mod elastic_control_profile_threshold;
 pub mod elastic_interop_vectors;
 pub mod equivalence_screen;
 pub mod gf2;
