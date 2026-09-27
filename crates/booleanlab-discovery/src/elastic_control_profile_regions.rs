@@ -189,11 +189,17 @@ mod tests {
     #[test]
     fn compact_regions_replay_full_exact_oracle_over_qualified_domain() {
         for slot_count in 1..=DEFAULT_EXHAUSTIVE_MAX_SLOTS {
+            let regions = regions_for_slot_count(slot_count).unwrap();
             for present_slots in 0..=slot_count {
                 let exact = payloads(slot_count, present_slots)
                     .unwrap()
                     .exact_minimum_mask();
-                let compact = minimum_mask_from_regions(slot_count, present_slots).unwrap();
+                let compact = regions
+                    .iter()
+                    .copied()
+                    .find(|region| region.contains(present_slots))
+                    .map(ControlProfileRegionV1::minimum_mask)
+                    .expect("qualified regions must cover every present-slot count");
                 assert_eq!(
                     compact, exact,
                     "slot_count={slot_count}, present_slots={present_slots}"
