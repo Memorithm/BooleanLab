@@ -4,7 +4,7 @@
 
 use booleanlab_discovery::elastic_control_profile_partition::SLHA_CONTROL_PROFILE_SOURCE_REVISION;
 use booleanlab_discovery::elastic_control_profile_regions::{
-    regions_for_slot_count, ELASTIC_CONTROL_PROFILE_REGIONS_V1,
+    ELASTIC_CONTROL_PROFILE_REGIONS_V1, regions_for_slot_count,
 };
 use std::env;
 use std::process::ExitCode;
@@ -104,8 +104,7 @@ mod tests {
                 let expected = payloads(slot_count, present_slots)
                     .unwrap()
                     .exact_minimum_mask();
-                let compact =
-                    minimum_mask_from_regions(slot_count, present_slots).unwrap();
+                let compact = minimum_mask_from_regions(slot_count, present_slots).unwrap();
                 assert_eq!(compact, expected);
             }
         }
