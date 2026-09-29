@@ -134,6 +134,102 @@ pub fn verify_dense_hybrid_closed_form(max_slots: usize) -> Result<(), SparseThr
     }
     Ok(())
 }
+/// Exact closed-form minimum/tie mask for the complete retained profile set.
+///
+/// Below the sparse threshold, sparse-W512 is the unique minimum. Above the
+/// threshold, the occupancy-independent dense/hybrid closed form applies. At
+/// the threshold itself, sparse is always minimal and equality against the
+/// dense and hybrid formulas determines any exact ties.
+///
+/// # Errors
+///
+/// Returns an error for an empty slot domain, impossible occupancy, or
+/// checked-arithmetic overflow.
+pub fn exact_minimum_mask_closed_form(
+    slot_count: usize,
+    present_slots: usize,
+) -> Result<u8, ControlProfilePartitionError> {
+    if slot_count == 0 {
+        return Err(ControlProfilePartitionError::ZeroSlots);
+    }
+    if present_slots > slot_count {
+        return Err(ControlProfilePartitionError::PresentExceedsSlots {
+            present_slots,
+            slot_count,
+        });
+    }
+
+    let threshold = sparse_minimum_threshold(slot_count)?;
+    if present_slots < threshold {
+        return Ok(PROFILE_SPARSE_W512);
+    }
+    if present_slots > threshold {
+        return dense_hybrid_closed_form(slot_count);
+    }
+
+    let mut mask = PROFILE_SPARSE_W512;
+    let four_present = present_slots
+        .checked_mul(4)
+        .ok_or(ControlProfilePartitionError::ArithmeticOverflow)?;
+    if four_present == slot_count {
+        mask |= PROFILE_DENSE_W128;
+    }
+
+    let bitmap_words = slot_count.div_ceil(64);
+    let eight_present = present_slots
+        .checked_mul(8)
+        .ok_or(ControlProfilePartitionError::ArithmeticOverflow)?;
+    let hybrid_rhs = slot_count
+        .checked_add(
+            bitmap_words
+                .checked_mul(3)
+                .ok_or(ControlProfilePartitionError::ArithmeticOverflow)?,
+        )
+        .ok_or(ControlProfilePartitionError::ArithmeticOverflow)?;
+    if eight_present == hybrid_rhs {
+        mask |= PROFILE_HYBRID_W64_BOOLEAN;
+    }
+
+    Ok(mask)
+}
+
+/// Exhaustively verify the complete closed form against the exact payload
+/// oracle over the already-qualified bounded domain.
+///
+/// # Errors
+///
+/// Returns the first mismatch or an underlying bounded-domain/accounting error.
+pub fn verify_exact_minimum_closed_form(max_slots: usize) -> Result<(), SparseThresholdError> {
+    if max_slots == 0 {
+        return Err(SparseThresholdError::Oracle(
+            ControlProfilePartitionError::ZeroSlots,
+        ));
+    }
+    if max_slots > DEFAULT_EXHAUSTIVE_MAX_SLOTS {
+        return Err(SparseThresholdError::OutsideQualifiedDomain {
+            observed: max_slots,
+            maximum: DEFAULT_EXHAUSTIVE_MAX_SLOTS,
+        });
+    }
+
+    for slot_count in 1..=max_slots {
+        let threshold = sparse_minimum_threshold(slot_count)?;
+        for present_slots in 0..=slot_count {
+            let exact = payloads(slot_count, present_slots)?.exact_minimum_mask();
+            let closed = exact_minimum_mask_closed_form(slot_count, present_slots)?;
+            if exact != closed {
+                return Err(SparseThresholdError::Mismatch {
+                    slot_count,
+                    present_slots,
+                    threshold,
+                    exact_mask: exact,
+                    expected_relation: "full-closed-form",
+                });
+            }
+        }
+    }
+    Ok(())
+}
 /// Verify the reduced threshold against every exact occupancy row.
 ///
 /// # Errors
@@ -294,6 +390,26 @@ mod tests {
     #[test]
     fn dense_hybrid_closed_form_is_exact_over_qualified_domain() {
         verify_dense_hybrid_closed_form(DEFAULT_EXHAUSTIVE_MAX_SLOTS).unwrap();
+    }
+    #[test]
+    fn full_closed_form_preserves_known_unique_and_tied_minima() {
+        assert_eq!(
+            exact_minimum_mask_closed_form(64, 1).unwrap(),
+            PROFILE_SPARSE_W512
+        );
+        assert_eq!(
+            exact_minimum_mask_closed_form(3, 3).unwrap(),
+            PROFILE_DENSE_W128 | PROFILE_HYBRID_W64_BOOLEAN
+        );
+        assert_eq!(
+            exact_minimum_mask_closed_form(64, 64).unwrap(),
+            PROFILE_HYBRID_W64_BOOLEAN
+        );
+    }
+
+    #[test]
+    fn full_closed_form_matches_every_qualified_oracle_case() {
+        verify_exact_minimum_closed_form(DEFAULT_EXHAUSTIVE_MAX_SLOTS).unwrap();
     }
     #[test]
     fn exhaustive_qualified_domain_matches_closed_threshold() {
