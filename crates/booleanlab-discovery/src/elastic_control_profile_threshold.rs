@@ -88,9 +88,7 @@ pub fn non_sparse_minimum_mask(slot_count: usize) -> Result<u8, ControlProfilePa
 /// # Errors
 ///
 /// Returns `ControlProfilePartitionError::ZeroSlots` for an empty domain.
-pub fn dense_hybrid_closed_form(
-    slot_count: usize,
-) -> Result<u8, ControlProfilePartitionError> {
+pub fn dense_hybrid_closed_form(slot_count: usize) -> Result<u8, ControlProfilePartitionError> {
     if slot_count == 0 {
         return Err(ControlProfilePartitionError::ZeroSlots);
     }
@@ -108,9 +106,7 @@ pub fn dense_hybrid_closed_form(
 /// # Errors
 ///
 /// Returns the first mismatch or a bounded-domain error.
-pub fn verify_dense_hybrid_closed_form(
-    max_slots: usize,
-) -> Result<(), SparseThresholdError> {
+pub fn verify_dense_hybrid_closed_form(max_slots: usize) -> Result<(), SparseThresholdError> {
     if max_slots == 0 {
         return Err(SparseThresholdError::Oracle(
             ControlProfilePartitionError::ZeroSlots,
