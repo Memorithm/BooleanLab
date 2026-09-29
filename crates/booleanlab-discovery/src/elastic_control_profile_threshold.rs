@@ -76,6 +76,64 @@ pub fn non_sparse_minimum_mask(slot_count: usize) -> Result<u8, ControlProfilePa
     })
 }
 
+/// Closed-form dense/hybrid minimum mask.
+///
+/// The exact inequality is `3 * ceil(slot_count / 64) <= slot_count`.
+/// Over every positive slot count this reduces to:
+///
+/// - slots 1..=2: dense W128 only;
+/// - slots 3: exact dense/hybrid tie;
+/// - slots >= 4: hybrid W64+Boolean only.
+///
+/// # Errors
+///
+/// Returns `ControlProfilePartitionError::ZeroSlots` for an empty domain.
+pub fn dense_hybrid_closed_form(slot_count: usize) -> Result<u8, ControlProfilePartitionError> {
+    if slot_count == 0 {
+        return Err(ControlProfilePartitionError::ZeroSlots);
+    }
+
+    Ok(match slot_count {
+        1 | 2 => PROFILE_DENSE_W128,
+        3 => PROFILE_DENSE_W128 | PROFILE_HYBRID_W64_BOOLEAN,
+        _ => PROFILE_HYBRID_W64_BOOLEAN,
+    })
+}
+
+/// Verify the closed form against the exact non-sparse comparison across the
+/// already-qualified bounded domain.
+///
+/// # Errors
+///
+/// Returns the first mismatch or a bounded-domain error.
+pub fn verify_dense_hybrid_closed_form(max_slots: usize) -> Result<(), SparseThresholdError> {
+    if max_slots == 0 {
+        return Err(SparseThresholdError::Oracle(
+            ControlProfilePartitionError::ZeroSlots,
+        ));
+    }
+    if max_slots > DEFAULT_EXHAUSTIVE_MAX_SLOTS {
+        return Err(SparseThresholdError::OutsideQualifiedDomain {
+            observed: max_slots,
+            maximum: DEFAULT_EXHAUSTIVE_MAX_SLOTS,
+        });
+    }
+
+    for slot_count in 1..=max_slots {
+        let exact = non_sparse_minimum_mask(slot_count)?;
+        let closed = dense_hybrid_closed_form(slot_count)?;
+        if exact != closed {
+            return Err(SparseThresholdError::Mismatch {
+                slot_count,
+                present_slots: 0,
+                threshold: 0,
+                exact_mask: exact,
+                expected_relation: "dense-hybrid-closed-form",
+            });
+        }
+    }
+    Ok(())
+}
 /// Verify the reduced threshold against every exact occupancy row.
 ///
 /// # Errors
@@ -215,6 +273,28 @@ mod tests {
         }
     }
 
+    #[test]
+    fn dense_hybrid_closed_form_matches_exact_boundaries() {
+        assert_eq!(dense_hybrid_closed_form(1).unwrap(), PROFILE_DENSE_W128);
+        assert_eq!(dense_hybrid_closed_form(2).unwrap(), PROFILE_DENSE_W128);
+        assert_eq!(
+            dense_hybrid_closed_form(3).unwrap(),
+            PROFILE_DENSE_W128 | PROFILE_HYBRID_W64_BOOLEAN
+        );
+        assert_eq!(
+            dense_hybrid_closed_form(4).unwrap(),
+            PROFILE_HYBRID_W64_BOOLEAN
+        );
+        assert_eq!(
+            dense_hybrid_closed_form(4096).unwrap(),
+            PROFILE_HYBRID_W64_BOOLEAN
+        );
+    }
+
+    #[test]
+    fn dense_hybrid_closed_form_is_exact_over_qualified_domain() {
+        verify_dense_hybrid_closed_form(DEFAULT_EXHAUSTIVE_MAX_SLOTS).unwrap();
+    }
     #[test]
     fn exhaustive_qualified_domain_matches_closed_threshold() {
         verify_sparse_threshold(DEFAULT_EXHAUSTIVE_MAX_SLOTS).unwrap();
