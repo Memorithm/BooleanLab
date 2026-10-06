@@ -107,7 +107,7 @@ The [BL-14.4.1 relational result](experiments/results/BL-14.4.1-RELATIONAL-RELU-
 
 ```bash
 set -euo pipefail
-if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
+test -s Cargo.lock
 cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
 cargo run --locked -p booleanlab-discovery --bin bl14_linear_calibration --release
 cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release
@@ -117,7 +117,7 @@ cargo run --locked -p booleanlab-discovery --bin bl14_structured_relu --release 
 cargo run --locked -p booleanlab-discovery --bin bl14_relational_relu --release
 ```
 
-The workspace does not yet commit `Cargo.lock`: preserve the resolved lockfile, toolchain and source commit with each report, as shown in the pilot protocol. A fresh dependency resolution on another date is not an immutable reproduction of a previous run. An existing lockfile is not overwritten by the bootstrap above.
+The repository commits `Cargo.lock`; every report must preserve that exact lockfile, toolchain and source commit. CI and the reproduction commands use `--locked`, so dependency resolution cannot silently change the reported experiment.
 
 The notation `y_g = z_g * G_g(x)` specifies the output, not an automatic execution saving: a runner must reject a group **before** evaluating its numerical work. Multiplying an already-computed result by zero does not skip that work. The numerical calibration tests this early-dispatch boundary. TDI-9.3 owns the corresponding action-policy calibration and its separate observation/final-evaluation contracts.
 

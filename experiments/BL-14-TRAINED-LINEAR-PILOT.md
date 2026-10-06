@@ -85,13 +85,12 @@ by this pilot.
 
 ## Reproduce from a fresh checkout
 
-The workspace currently does not commit `Cargo.lock`. Resolve dependencies once
-before using `--locked`; do not silently overwrite an existing lockfile. Preserve
-the resolved lockfile, toolchain and commit together with the report:
+The repository commits `Cargo.lock`. Use the versioned lockfile with `--locked`
+and preserve it, the toolchain and the commit together with the report:
 
 ```bash
 set -euo pipefail
-if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi
+test -s Cargo.lock
 mkdir -p target/bl14-pilot-evidence
 cp Cargo.lock target/bl14-pilot-evidence/Cargo.lock
 git rev-parse HEAD > target/bl14-pilot-evidence/commit.txt
@@ -102,12 +101,9 @@ cargo run --locked -p booleanlab-discovery --bin bl14_trained_linear --release \
   | tee target/bl14-pilot-evidence/report.tsv
 ```
 
-The initial resolution needs network access unless all inputs are cached. A
-newly generated lockfile may differ at another date: `--locked` prevents changes
-to the local resolved file; it does not make an uncommitted dependency graph a
-repository-wide immutable pin. Reproducing a prior run requires its preserved
-lockfile and recorded toolchain, not a fresh resolution assumed equivalent.
-The existing CI's preceding unlocked workspace test resolves dependencies before
+The versioned lockfile is the dependency graph used by CI and by this protocol.
+Reproducing a prior run requires this preserved lockfile and the recorded
+toolchain, not a fresh resolution assumed equivalent.
 its locked pilot invocation; that is not a substitute for this fresh-checkout
 bootstrap. A committed workspace lockfile is a separate remaining reproducibility
 improvement.
