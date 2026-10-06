@@ -21,7 +21,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # pinned campaign toolchain
+        with:
+          toolchain: 1.89.0
       - name: Export exact vectors and compact regions
         shell: bash
         run: |
