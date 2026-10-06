@@ -22,12 +22,8 @@ git rev-parse 'HEAD^{tree}' > "$OUT/source-tree.txt"
 rustc --version --verbose > "$OUT/rustc.txt"
 cargo --version > "$OUT/cargo.txt"
 uname -a > "$OUT/host.txt"
-if [[ ! -f Cargo.lock ]]; then
-  cargo generate-lockfile
-  printf 'generated-for-this-run\n' > "$OUT/lock-origin.txt"
-else
-  printf 'pre-existing-lockfile\n' > "$OUT/lock-origin.txt"
-fi
+test -s Cargo.lock
+printf 'repository-lockfile\n' > "$OUT/lock-origin.txt"
 cp Cargo.lock "$OUT/Cargo.lock"
 sha256sum Cargo.toml crates/booleanlab-discovery/Cargo.toml \
   crates/booleanlab-core/Cargo.toml \

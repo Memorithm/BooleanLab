@@ -12,20 +12,21 @@ jobs:
   rust:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # pinned campaign toolchain
         with:
+          toolchain: 1.89.0
           components: rustfmt, clippy
       - name: Resolve exact dependency lock
-        run: cargo generate-lockfile
+        run: test -s Cargo.lock
       - name: Format
         run: cargo fmt --all -- --check
       - name: Test
-        run: cargo test --workspace
+        run: cargo test --locked --workspace
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - name: BL-0 deterministic smoke experiment
-        run: cargo run -p booleanlab-runner --release
+        run: cargo run --locked -p booleanlab-runner --release
       - name: BL-BE2 representation benchmark evidence
         env:
           SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -58,24 +59,24 @@ jobs:
             sha256sum Cargo.lock cargo-version.txt checkout-sha.txt manifest.env report.tsv rustc-version.txt source-head-sha.txt > SHA256SUMS
           )
       - name: Upload BL-BE2 representation evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: bl-be2-representation-${{ github.event.pull_request.head.sha || github.sha }}
           retention-days: 90
           if-no-files-found: error
           path: bl-be2-representation-evidence/
       - name: BL-4.4.2 deterministic Hamming frontier calibration
-        run: cargo run -p booleanlab-discovery --bin bl4_hamming_frontier --release
+        run: cargo run --locked -p booleanlab-discovery --bin bl4_hamming_frontier --release
       - name: BL-4.5.1 deterministic KV page calibration
-        run: cargo run -p booleanlab-discovery --bin bl4_kv_page_calibration --release
+        run: cargo run --locked -p booleanlab-discovery --bin bl4_kv_page_calibration --release
       - name: BL-4.6.1 systems evidence contract calibration
-        run: cargo run -p booleanlab-discovery --bin bl4_systems_evidence_calibration --release
+        run: cargo run --locked -p booleanlab-discovery --bin bl4_systems_evidence_calibration --release
       - name: BL-13 exact metric calibration
-        run: cargo run -p booleanlab-discovery --bin bl13_calibrate --release
+        run: cargo run --locked -p booleanlab-discovery --bin bl13_calibrate --release
       - name: BL-13 Boolean-only reference and Pareto campaign
-        run: cargo run -p booleanlab-discovery --bin bl13_boolean_baseline --release
+        run: cargo run --locked -p booleanlab-discovery --bin bl13_boolean_baseline --release
       - name: BL-13 GF(2^8) inversion campaign
-        run: cargo run -p booleanlab-discovery --bin bl13_gf2_inversion --release
+        run: cargo run --locked -p booleanlab-discovery --bin bl13_gf2_inversion --release
       - name: BL-14.5 exhaustive versus CEGIS calibration
         run: cargo run --locked -p booleanlab-discovery --bin bl14_search_comparison --release
       - name: BL-14 exact numerical linear-layer calibration
@@ -117,7 +118,7 @@ jobs:
             sha256sum Cargo.lock cargo-version.txt checkout-sha.txt git-version.txt manifest.env replay.tsv report.tsv rustc-version.txt source-head-sha.txt > SHA256SUMS
           )
       - name: Upload BL-14.3.1 provenance bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: bl14-dynamic-routing-${{ github.event.pull_request.head.sha || github.sha }}
           retention-days: 90
@@ -130,7 +131,7 @@ jobs:
           git diff -- crates/booleanlab-core/src crates/booleanlab-runner/src > rustfmt.patch
       - name: Retain rustfmt diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: booleanlab-rustfmt-${{ github.event.pull_request.head.sha || github.sha }}
           path: rustfmt.patch
@@ -138,10 +139,10 @@ jobs:
           retention-days: 7
       - name: Collect Clippy diagnostics
         if: failure()
-        run: cargo clippy --workspace --all-targets --message-format=short -- -D warnings > clippy.txt 2>&1 || true
+        run: cargo clippy --locked --workspace --all-targets --message-format=short -- -D warnings > clippy.txt 2>&1 || true
       - name: Retain Clippy diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: booleanlab-clippy-${{ github.event.pull_request.head.sha || github.sha }}
           path: clippy.txt
@@ -151,33 +152,33 @@ jobs:
   bdd-experiments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master
         with:
           toolchain: 1.89.0
           components: clippy
       - name: Resolve exact dependency lock
-        run: cargo generate-lockfile
+        run: test -s Cargo.lock
       - name: Bounded BDD feature tests
-        run: cargo test -p booleanlab-discovery --features bdd-experiments
+        run: cargo test --locked -p booleanlab-discovery --features bdd-experiments
       - name: Bounded BDD feature Clippy
-        run: cargo clippy -p booleanlab-discovery --features bdd-experiments --all-targets -- -D warnings
+        run: cargo clippy --locked -p booleanlab-discovery --features bdd-experiments --all-targets -- -D warnings
 
   sedenion-nightly:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master
         with:
           toolchain: nightly-2026-07-02
           components: rustfmt, clippy
       - name: Sedenion tests
-        run: cargo test -p booleanlab-discovery --features sedenion-experiments
+        run: cargo test --locked -p booleanlab-discovery --features sedenion-experiments
       - name: Sedenion Clippy
-        run: cargo clippy -p booleanlab-discovery --features sedenion-experiments --all-targets -- -D warnings
+        run: cargo clippy --locked -p booleanlab-discovery --features sedenion-experiments --all-targets -- -D warnings
       - name: BL-13.2.0 sedenion predicate control
-        run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_control --release
+        run: cargo run --locked -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_control --release
       - name: BL-13.2.1 sedenion full-baseline equivalence screen
-        run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_baseline_screen --release
+        run: cargo run --locked -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_baseline_screen --release
       - name: BL-13.2.1 sedenion input-permutation screen
-        run: cargo run -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_permutation_screen --release
+        run: cargo run --locked -p booleanlab-discovery --features sedenion-experiments --bin bl13_sedenion_permutation_screen --release

@@ -63,9 +63,9 @@ Development validation for the Rust workspace:
 
 ```bash
 cargo fmt --all -- --check
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-cargo run -p booleanlab-runner --release
+cargo test --locked --workspace
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo run --locked -p booleanlab-runner --release
 ```
 
 Hardware claims require additional device-specific provenance and raw measurements.

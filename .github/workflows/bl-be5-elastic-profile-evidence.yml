@@ -17,11 +17,13 @@ jobs:
   elastic-profile-evidence:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # pinned campaign toolchain
+        with:
+          toolchain: 1.89.0
       - name: Export exact vectors and compact regions
         shell: bash
         run: |
@@ -36,13 +38,13 @@ jobs:
             printf 'scope=offline-structural-evidence\n'
             printf 'runtime_policy_claim=false\n'
           } > "$evidence_dir/manifest.txt"
-          cargo run --quiet --release -p booleanlab-discovery --bin bl_elastic_profile_vectors -- 256             > "$evidence_dir/full-vectors.tsv"
-          cargo run --quiet --release -p booleanlab-discovery --bin bl_elastic_profile_regions -- 256             > "$evidence_dir/compact-regions.tsv"
+          cargo run --locked --quiet --release -p booleanlab-discovery --bin bl_elastic_profile_vectors -- 256             > "$evidence_dir/full-vectors.tsv"
+          cargo run --locked --quiet --release -p booleanlab-discovery --bin bl_elastic_profile_regions -- 256             > "$evidence_dir/compact-regions.tsv"
           test -s "$evidence_dir/full-vectors.tsv"
           test -s "$evidence_dir/compact-regions.tsv"
           wc -l "$evidence_dir"/*.tsv
       - name: Retain BL-BE5 evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: bl-be5-elastic-profile-${{ github.event.pull_request.head.sha || github.sha }}
           path: target/bl-be5-elastic-profile-evidence

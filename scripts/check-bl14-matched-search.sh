@@ -11,12 +11,8 @@ git rev-parse HEAD > "$OUT/source-sha.txt"
 rustc -Vv > "$OUT/rustc.txt"
 cargo -V > "$OUT/cargo.txt"
 uname -a > "$OUT/host.txt"
-if [ -f Cargo.lock ]; then
-  printf 'existing-lockfile\n' > "$OUT/lock-origin.txt"
-else
-  cargo generate-lockfile
-  printf 'generated-for-this-run\n' > "$OUT/lock-origin.txt"
-fi
+test -s Cargo.lock
+printf 'repository-lockfile\n' > "$OUT/lock-origin.txt"
 cp Cargo.lock "$OUT/Cargo.lock"
 cp crates/booleanlab-discovery/src/bin/bl14_structured_relu.rs "$OUT/fixture.rs"
 cp crates/booleanlab-discovery/src/bin/support/bl14_matched_search.rs "$OUT/audit.rs"
